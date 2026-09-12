@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, X, Download, Wand2, Music2, Bot } from "lucide-react";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 const LINKS = [
   { href: "/", label: "Downloader", icon: Download },
@@ -44,13 +45,16 @@ export default function Navbar() {
           })}
         </nav>
 
-        <button
-          className="grid h-9 w-9 place-items-center rounded-lg text-white/80 hover:bg-white/5 md:hidden focus-ring"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="Buka menu"
-        >
-          {open ? <X size={20} /> : <Menu size={20} />}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <ThemeSwitcher />
+          <button
+            className="grid h-9 w-9 place-items-center rounded-lg text-white/80 hover:bg-white/5 md:hidden focus-ring"
+            onClick={() => setOpen((v) => !v)}
+            aria-label="Buka menu"
+          >
+            {open ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -71,4 +75,3 @@ export default function Navbar() {
     </header>
   );
 }
-
