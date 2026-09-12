@@ -7,22 +7,26 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Nilai warna diambil dari CSS variable (lihat app/globals.css) supaya
+        // bisa berubah sesuai tema yang dipilih user (atribut data-theme di <html>).
+        // Pola "rgb(var(--x) / <alpha-value>)" tetap membuat modifier opacity
+        // Tailwind (contoh: bg-ink-900/60) berfungsi normal.
         ink: {
-          950: "#0B0A14",
-          900: "#121022",
-          800: "#1B1830",
-          700: "#262242",
-          600: "#332C58",
+          950: "rgb(var(--ink-950) / <alpha-value>)",
+          900: "rgb(var(--ink-900) / <alpha-value>)",
+          800: "rgb(var(--ink-800) / <alpha-value>)",
+          700: "rgb(var(--ink-700) / <alpha-value>)",
+          600: "rgb(var(--ink-600) / <alpha-value>)",
         },
         signal: {
-          400: "#7CF5D0",
-          500: "#4BE3B0",
-          600: "#2EC79A",
+          400: "rgb(var(--signal-400) / <alpha-value>)",
+          500: "rgb(var(--signal-500) / <alpha-value>)",
+          600: "rgb(var(--signal-600) / <alpha-value>)",
         },
         flare: {
-          400: "#FF8A6B",
-          500: "#FF6B4A",
-          600: "#E4502F",
+          400: "rgb(var(--flare-400) / <alpha-value>)",
+          500: "rgb(var(--flare-500) / <alpha-value>)",
+          600: "rgb(var(--flare-600) / <alpha-value>)",
         },
       },
       fontFamily: {
@@ -30,10 +34,10 @@ module.exports = {
         body: ["var(--font-body)", "sans-serif"],
       },
       boxShadow: {
-        glow: "0 0 0 1px rgba(124,245,208,0.15), 0 8px 30px rgba(0,0,0,0.35)",
+        glow: "0 0 0 1px rgb(var(--signal-400) / 0.15), 0 8px 30px rgba(0,0,0,0.35)",
       },
       backgroundImage: {
-        grain: "radial-gradient(circle at 20% 20%, rgba(124,245,208,0.08), transparent 40%), radial-gradient(circle at 80% 0%, rgba(255,107,74,0.08), transparent 45%)",
+        grain: "radial-gradient(circle at 20% 20%, rgb(var(--signal-500) / 0.08), transparent 40%), radial-gradient(circle at 80% 0%, rgb(var(--flare-500) / 0.08), transparent 45%)",
       },
     },
   },
