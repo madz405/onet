@@ -32,13 +32,15 @@ export default function MediaResult({ result }) {
   if (!result) return null;
   const { title, author, thumbnail, media = [] } = result;
 
-  const isTiktokPhotos = result.platform === "tiktok" && media.some((m) => m.type === "image");
-  const tiktokImages = isTiktokPhotos ? media.filter((m) => m.type === "image") : [];
+  const usePhoneFrame =
+    (result.platform === "tiktok" || result.platform === "instagram") &&
+    media.some((m) => m.type === "image");
+  const photoItems = usePhoneFrame ? media.filter((m) => m.type === "image") : [];
   const mainVideo = media.find((m) => m.type === "video");
 
   return (
     <div className="animate-rise space-y-4">
-      {(thumbnail || title) && !isTiktokPhotos && (
+      {(thumbnail || title) && !usePhoneFrame && (
         <div className="flex gap-3 rounded-xl border border-white/8 bg-ink-950/60 p-3">
           {thumbnail && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -62,9 +64,9 @@ export default function MediaResult({ result }) {
         </p>
       )}
 
-      {isTiktokPhotos && (
+      {usePhoneFrame && (
         <div className="flex gap-3 overflow-x-auto pb-1">
-          {tiktokImages.map((m, i) => (
+          {photoItems.map((m, i) => (
             <PhoneFrame key={i} className="w-32">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={m.url} alt="" className="aspect-[9/16] w-full object-cover" referrerPolicy="no-referrer" />
@@ -73,10 +75,10 @@ export default function MediaResult({ result }) {
         </div>
       )}
 
-      {!isTiktokPhotos && mainVideo && (
+      {!usePhoneFrame && mainVideo && (
         <video controls className="w-full rounded-xl border border-white/8 bg-black" src={mainVideo.url} />
       )}
-      {!isTiktokPhotos && !mainVideo && media.some((m) => m.type === "image") && (
+      {!usePhoneFrame && !mainVideo && media.some((m) => m.type === "image") && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={media.find((m) => m.type === "image")?.url}
