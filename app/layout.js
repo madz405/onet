@@ -1,7 +1,7 @@
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
-import ChatWidget from "@/components/ChatWidget";
+import Footer from "@/components/Footer";
 
 const display = Space_Grotesk({
   subsets: ["latin"],
@@ -27,8 +27,9 @@ export default function RootLayout({ children }) {
       <body className="font-body bg-ink-950 bg-grain min-h-screen">
         <Navbar />
         <main className="min-h-[calc(100vh-64px)]">{children}</main>
-        <ChatWidget />
+        <Footer />
       </body>
     </html>
   );
 }
+
