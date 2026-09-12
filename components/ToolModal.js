@@ -70,6 +70,11 @@ export default function ToolModal({ tool, onClose }) {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      // Untuk tool bertipe "upload-text" (misal fakeml), sertakan juga
+      // field teks tambahan seperti nickname.
+      if (tool.kind === "upload-text") {
+        Object.entries(values).forEach(([k, v]) => formData.append(k, v));
+      }
       const res = await fetch(`/api/tools/process?tool=${tool.id}`, {
         method: "POST",
         body: formData,
@@ -93,7 +98,7 @@ export default function ToolModal({ tool, onClose }) {
         </form>
       )}
 
-      {tool.kind === "upload" && (
+      {(tool.kind === "upload" || tool.kind === "upload-text") && (
         <form onSubmit={handleUploadSubmit} className="space-y-3">
           <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-white/15 px-4 py-8 text-center text-sm text-white/60 hover:border-white/30 hover:text-white/80">
             <Upload size={22} />
@@ -104,6 +109,10 @@ export default function ToolModal({ tool, onClose }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={filePreview} alt="" className="mx-auto max-h-52 rounded-xl border border-white/10" />
           )}
+          {tool.kind === "upload-text" &&
+            tool.fields.map((field) => (
+              <Field key={field.name} field={field} value={values[field.name]} onChange={updateField} />
+            ))}
           <SubmitButton loading={loading} disabled={!file} />
         </form>
       )}
