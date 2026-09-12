@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, X, Download, Wand2, Music2 } from "lucide-react";
+import { Menu, X, Download, Wand2, Music2, Bot } from "lucide-react";
 
 const LINKS = [
   { href: "/", label: "Downloader", icon: Download },
   { href: "/tools", label: "Tools", icon: Wand2 },
   { href: "/musik", label: "Musik", icon: Music2 },
+  { href: "/chat", label: "Chat AI", icon: Bot },
 ];
 
 export default function Navbar() {
@@ -70,3 +71,4 @@ export default function Navbar() {
     </header>
   );
 }
+
