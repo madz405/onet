@@ -1,14 +1,44 @@
 "use client";
 
-import { Download, ExternalLink } from "lucide-react";
+import { Download } from "lucide-react";
+import PhoneFrame from "@/components/PhoneFrame";
+
+function extFor(type) {
+  if (type === "video") return "mp4";
+  if (type === "audio") return "mp3";
+  return "jpg";
+}
+
+function slug(text) {
+  return (text || "media")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 40) || "media";
+}
+
+// Semua tombol download diarahkan lewat /api/fetch-media supaya file
+// langsung terunduh (lihat komentar di route tersebut untuk alasannya),
+// bukan membuka tab baru seperti sebelumnya.
+function downloadHref(result, media, index) {
+  const filename = `${result.platform}-${slug(result.title || media.label)}-${index + 1}.${extFor(
+    media.type
+  )}`;
+  const params = new URLSearchParams({ url: media.url, filename });
+  return `/api/fetch-media?${params.toString()}`;
+}
 
 export default function MediaResult({ result }) {
   if (!result) return null;
   const { title, author, thumbnail, media = [] } = result;
 
+  const isTiktokPhotos = result.platform === "tiktok" && media.some((m) => m.type === "image");
+  const tiktokImages = isTiktokPhotos ? media.filter((m) => m.type === "image") : [];
+  const mainVideo = media.find((m) => m.type === "video");
+
   return (
     <div className="animate-rise space-y-4">
-      {(thumbnail || title) && (
+      {(thumbnail || title) && !isTiktokPhotos && (
         <div className="flex gap-3 rounded-xl border border-white/8 bg-ink-950/60 p-3">
           {thumbnail && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -32,14 +62,21 @@ export default function MediaResult({ result }) {
         </p>
       )}
 
-      {media.some((m) => m.type === "video") && (
-        <video
-          controls
-          className="w-full rounded-xl border border-white/8 bg-black"
-          src={media.find((m) => m.type === "video")?.url}
-        />
+      {isTiktokPhotos && (
+        <div className="flex gap-3 overflow-x-auto pb-1">
+          {tiktokImages.map((m, i) => (
+            <PhoneFrame key={i} className="w-32">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={m.url} alt="" className="aspect-[9/16] w-full object-cover" referrerPolicy="no-referrer" />
+            </PhoneFrame>
+          ))}
+        </div>
       )}
-      {!media.some((m) => m.type === "video") && media.some((m) => m.type === "image") && (
+
+      {!isTiktokPhotos && mainVideo && (
+        <video controls className="w-full rounded-xl border border-white/8 bg-black" src={mainVideo.url} />
+      )}
+      {!isTiktokPhotos && !mainVideo && media.some((m) => m.type === "image") && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={media.find((m) => m.type === "image")?.url}
@@ -53,23 +90,16 @@ export default function MediaResult({ result }) {
         {media.map((m, i) => (
           <a
             key={i}
-            href={m.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            download
+            href={downloadHref(result, m, i)}
             className="flex items-center justify-between rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-signal-500 hover:text-ink-950"
           >
             <span className="flex items-center gap-2">
               <Download size={16} />
               {m.label}
             </span>
-            <ExternalLink size={14} className="opacity-60" />
           </a>
         ))}
       </div>
-      <p className="text-xs text-white/40">
-        Jika file tidak langsung terunduh, tautan akan terbuka di tab baru — simpan dari sana.
-      </p>
     </div>
   );
 }
