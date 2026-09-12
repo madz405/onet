@@ -80,22 +80,36 @@ export async function POST(req) {
       }
 
       case "instagram": {
-        const data = await getJson(`https://api.azbry.com/api/download/instagramv2?url=${link}`);
-        const r = data.result || data;
-        const links = r.links || [];
-        const media = links
-          .filter((l) => l.type === "video" || l.type === "audio" || /download photo/i.test(l.text || ""))
-          .map((l, i) => ({
-            type: l.type === "video" ? "video" : l.type === "audio" ? "audio" : "image",
-            label: l.text || `Media ${i + 1}`,
-            url: l.url,
-          }));
+        const data = await getJson(
+          `https://api.termai.cc/api/downloader/instagram?url=${link}&key=Bell409`
+        );
+        const d = data.data || {};
+        const ogTitle = d.userInfo?.raw?.ogTitle || "";
+        const ogDesc = d.userInfo?.raw?.ogDesc || "";
+
+        // Username asli tersembunyi di dalam teks ogDesc, formatnya kira-kira:
+        // "69K likes, 2,783 comments - namauser pada 6 September 2026: ...".
+        const usernameMatch = ogDesc.match(/-\s*(\S+)\s+pada\b/);
+        const author = usernameMatch?.[1] || null;
+
+        // Kalau data.title kosong, captionnya masih ada di dalam ogTitle,
+        // formatnya: 'namatampilan di Instagram: "isi caption di sini"'.
+        const captionMatch = ogTitle.match(/:\s*"([\s\S]*)"\s*$/);
+        const title = d.title || captionMatch?.[1] || null;
+
+        const contents = d.content || [];
+        const media = contents.map((item, i) => ({
+          type: item.type === "video" ? "video" : "image",
+          label: item.type === "video" ? "Download video" : `Download foto ${i + 1}`,
+          url: item.url,
+        }));
+
         return NextResponse.json({
           status: true,
           platform,
-          title: r.author ? `Postingan @${r.author}` : null,
-          author: r.author,
-          thumbnail: r.thumbnail,
+          title,
+          author,
+          thumbnail: contents[0]?.thumbnail || d.userInfo?.profilePic || null,
           media,
         });
       }
