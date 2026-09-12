@@ -1,20 +1,41 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Search, Play, Pause, Download, Loader2, Music2 } from "lucide-react";
+import {
+  Search,
+  Play,
+  Pause,
+  Download,
+  Loader2,
+  Music2,
+  RotateCcw,
+  RotateCw,
+  Volume1,
+  Volume2,
+} from "lucide-react";
 
 const SOURCES = [
   { id: "youtube", label: "YouTube" },
   { id: "spotify", label: "Spotify" },
 ];
 
+const SEEK_SECONDS = 10;
+
 function formatTime(sec) {
-  if (!sec || Number.isNaN(sec)) return "0:00";
+  if (!sec || Number.isNaN(sec) || sec < 0) return "0:00";
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60)
     .toString()
     .padStart(2, "0");
   return `${m}:${s}`;
+}
+
+function slug(text) {
+  return (text || "lagu")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 50) || "lagu";
 }
 
 export default function MusicSection() {
@@ -26,14 +47,20 @@ export default function MusicSection() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
   const audioRef = useRef(null);
 
   useEffect(() => {
     if (!track) return;
+    setProgress(0);
     setIsPlaying(true);
     const t = setTimeout(() => audioRef.current?.play().catch(() => {}), 50);
     return () => clearTimeout(t);
   }, [track]);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
 
   async function handleSearch(e) {
     e.preventDefault();
@@ -66,8 +93,22 @@ export default function MusicSection() {
     setIsPlaying((v) => !v);
   }
 
+  function seek(delta) {
+    if (!audioRef.current) return;
+    const next = Math.min(Math.max(audioRef.current.currentTime + delta, 0), duration || 0);
+    audioRef.current.currentTime = next;
+    setProgress(next);
+  }
+
+  const downloadHref = track
+    ? `/api/fetch-media?${new URLSearchParams({
+        url: track.streamUrl,
+        filename: `${slug(track.title)}.mp3`,
+      }).toString()}`
+    : "#";
+
   return (
-    <div className={track ? "pb-28" : ""}>
+    <div>
       <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row">
         <div className="flex rounded-xl border border-white/10 bg-ink-900/60 p-1">
           {SOURCES.map((s) => (
@@ -118,28 +159,7 @@ export default function MusicSection() {
       )}
 
       {track && (
-        <div className="mt-8 animate-rise overflow-hidden rounded-3xl border border-white/8 bg-gradient-to-b from-ink-800/80 to-ink-900/40 p-6 sm:p-10">
-          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-end">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={track.thumbnail}
-              alt=""
-              referrerPolicy="no-referrer"
-              className="h-40 w-40 flex-shrink-0 rounded-2xl object-cover shadow-glow sm:h-48 sm:w-48"
-            />
-            <div className="min-w-0 text-center sm:text-left">
-              <p className="text-xs font-medium uppercase tracking-wide text-signal-400">
-                {track.source === "spotify" ? "Spotify" : "YouTube"}
-              </p>
-              <h2 className="mt-1 truncate font-display text-2xl font-semibold text-white">{track.title}</h2>
-              <p className="mt-1 truncate text-white/50">{track.artist}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {track && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-ink-900/95 backdrop-blur">
+        <div className="mx-auto mt-8 max-w-sm animate-rise overflow-hidden rounded-[2rem] border border-white/8 bg-ink-900/80 p-5 shadow-glow">
           <audio
             ref={audioRef}
             src={track.streamUrl}
@@ -147,45 +167,89 @@ export default function MusicSection() {
             onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
             onEnded={() => setIsPlaying(false)}
           />
-          <div className="mx-auto flex max-w-6xl items-center gap-4 px-5 py-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={track.thumbnail} alt="" className="h-11 w-11 flex-shrink-0 rounded-lg object-cover" referrerPolicy="no-referrer" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-white">{track.title}</p>
-              <div className="mt-1 flex items-center gap-2">
-                <span className="w-9 text-right text-[11px] tabular-nums text-white/40">{formatTime(progress)}</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={duration || 0}
-                  value={progress}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    if (audioRef.current) audioRef.current.currentTime = val;
-                    setProgress(val);
-                  }}
-                  className="h-1 flex-1 accent-signal-500"
-                />
-                <span className="w-9 text-[11px] tabular-nums text-white/40">{formatTime(duration)}</span>
-              </div>
+
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={track.thumbnail}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="aspect-square w-full rounded-2xl object-cover"
+          />
+
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-signal-400">
+                {track.source === "spotify" ? "Spotify" : "YouTube"}
+              </p>
+              <h2 className="mt-0.5 truncate font-display text-lg font-semibold text-white">{track.title}</h2>
+              <p className="truncate text-sm text-white/50">{track.artist}</p>
             </div>
-            <button
-              onClick={togglePlay}
-              className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full bg-signal-500 text-ink-950"
-              aria-label={isPlaying ? "Jeda" : "Putar"}
-            >
-              {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-            </button>
             <a
-              href={track.streamUrl}
-              download
-              target="_blank"
-              rel="noopener noreferrer"
-              className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full border border-white/15 text-white/70 hover:text-white"
-              aria-label="Unduh"
+              href={downloadHref}
+              className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full border border-white/15 text-white/70 hover:border-signal-500 hover:text-signal-400"
+              aria-label="Unduh lagu"
             >
               <Download size={16} />
             </a>
+          </div>
+
+          <div className="mt-4">
+            <input
+              type="range"
+              min={0}
+              max={duration || 0}
+              value={progress}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                if (audioRef.current) audioRef.current.currentTime = val;
+                setProgress(val);
+              }}
+              className="h-1 w-full accent-signal-500"
+            />
+            <div className="mt-1 flex justify-between text-[11px] tabular-nums text-white/40">
+              <span>{formatTime(progress)}</span>
+              <span>-{formatTime((duration || 0) - progress)}</span>
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center justify-center gap-8">
+            <button
+              onClick={() => seek(-SEEK_SECONDS)}
+              className="relative grid h-11 w-11 place-items-center text-white/70 hover:text-white"
+              aria-label={`Mundur ${SEEK_SECONDS} detik`}
+            >
+              <RotateCcw size={26} />
+              <span className="pointer-events-none absolute text-[9px] font-semibold">{SEEK_SECONDS}</span>
+            </button>
+            <button
+              onClick={togglePlay}
+              className="grid h-14 w-14 place-items-center rounded-full bg-signal-500 text-ink-950"
+              aria-label={isPlaying ? "Jeda" : "Putar"}
+            >
+              {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-0.5" />}
+            </button>
+            <button
+              onClick={() => seek(SEEK_SECONDS)}
+              className="relative grid h-11 w-11 place-items-center text-white/70 hover:text-white"
+              aria-label={`Maju ${SEEK_SECONDS} detik`}
+            >
+              <RotateCw size={26} />
+              <span className="pointer-events-none absolute text-[9px] font-semibold">{SEEK_SECONDS}</span>
+            </button>
+          </div>
+
+          <div className="mt-5 flex items-center gap-3">
+            <Volume1 size={15} className="flex-shrink-0 text-white/40" />
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={volume}
+              onChange={(e) => setVolume(Number(e.target.value))}
+              className="h-1 w-full accent-signal-500"
+            />
+            <Volume2 size={15} className="flex-shrink-0 text-white/40" />
           </div>
         </div>
       )}
