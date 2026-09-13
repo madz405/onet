@@ -1,6 +1,7 @@
 import MusicSection from "@/components/MusicSection";
+import { SITE_NAME } from "@/lib/site";
 
-export const metadata = { title: "Musik — Unduhin" };
+export const metadata = { title: `Musik — ${SITE_NAME}` };
 
 export default function MusicPage() {
   return (
