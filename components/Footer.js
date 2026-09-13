@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SITE_NAME, SITE_LOGO } from "@/lib/site";
 
 export default function Footer() {
   return (
@@ -7,10 +8,9 @@ export default function Footer() {
         <div className="grid gap-8 sm:grid-cols-3">
           <div>
             <p className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-              <span className="grid h-7 w-7 place-items-center rounded-lg bg-signal-500 text-sm text-ink-950">
-                U
-              </span>
-              Unduhin
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={SITE_LOGO} alt={SITE_NAME} className="h-7 w-7 rounded-lg object-cover" />
+              {SITE_NAME}
             </p>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-white/50">
               Download video &amp; foto dari berbagai sosial media, tools edit cepat, dan pemutar musik —
@@ -54,7 +54,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 flex flex-col gap-2 border-t border-white/8 pt-6 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between">
-          <p>&copy; {new Date().getFullYear()} Unduhin. Dibuat untuk penggunaan pribadi.</p>
+          <p>&copy; {new Date().getFullYear()} {SITE_NAME}. Dibuat untuk penggunaan pribadi.</p>
           <p>Dibangun dengan Next.js</p>
         </div>
       </div>
