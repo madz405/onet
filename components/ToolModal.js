@@ -64,6 +64,15 @@ export default function ToolModal({ tool, onClose }) {
   async function handleUploadSubmit(e) {
     e.preventDefault();
     if (!file) return;
+    // Untuk tool yang teksnya opsional tapi tidak boleh kosong semua
+    // (misal Meme: teks atas & bawah, minimal salah satu harus diisi).
+    if (tool.requireAtLeastOneOf) {
+      const anyFilled = tool.requireAtLeastOneOf.some((name) => (values[name] || "").toString().trim());
+      if (!anyFilled) {
+        setError("Isi minimal salah satu kolom teks di atas.");
+        return;
+      }
+    }
     setLoading(true);
     setError("");
     setResultUrl(null);
