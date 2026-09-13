@@ -4,9 +4,34 @@ import { proxyMedia } from "@/lib/proxyMedia";
 
 export const runtime = "nodejs";
 
+// memegen.link pakai skema escape sendiri untuk teks di dalam path URL
+// (bukan encodeURIComponent biasa), supaya karakter seperti "/" atau "?"
+// di dalam teks tidak dianggap bagian dari struktur URL. Referensi lengkap
+// ada di dokumentasi memegen.link, ini rule-rule utamanya:
+// - baris kosong -> "_"
+// - spasi -> "_"
+// - "_" asli di teks -> "__"
+// - "-" asli di teks -> "--"
+// - "?" -> "~q"   "%" -> "~p"   "#" -> "~h"   "/" -> "~s"
+function memegenEncode(text) {
+  const trimmed = (text || "").toString().trim();
+  if (!trimmed) return "_";
+  const escaped = trimmed
+    .replace(/_/g, "__")
+    .replace(/-/g, "--")
+    .replace(/\?/g, "~q")
+    .replace(/%/g, "~p")
+    .replace(/#/g, "~h")
+    .replace(/\//g, "~s")
+    .replace(/\s+/g, "_");
+  // Lapisan pengaman terakhir untuk karakter non-ASCII (emoji, dll) — aman
+  // dipakai di sini karena "~" dan huruf tidak ikut ter-encode ulang.
+  return encodeURIComponent(escaped);
+}
+
 // Setiap builder menerima (imageUrl, formData) — imageUrl sudah di-host di
 // top4top, formData dipakai untuk tool yang butuh input tambahan selain foto
-// (contoh: fakeml butuh nickname).
+// (contoh: fakeml butuh nickname, meme butuh teks atas/bawah).
 const ENDPOINTS = {
   removebg: (imageUrl) => `https://api.azbry.com/api/tools/removebg?url=${encodeURIComponent(imageUrl)}`,
   hd: (imageUrl) => `https://api-faa.my.id/faa/hdv3?image=${encodeURIComponent(imageUrl)}`,
@@ -15,6 +40,13 @@ const ENDPOINTS = {
     return `https://api.nexray.web.id/maker/fakelobyml?avatar=${encodeURIComponent(
       imageUrl
     )}&nickname=${encodeURIComponent(nickname)}`;
+  },
+  meme: (imageUrl, formData) => {
+    const top = memegenEncode(formData.get("topText"));
+    const bottom = memegenEncode(formData.get("bottomText"));
+    return `https://api.memegen.link/images/custom/${top}/${bottom}.png?background=${encodeURIComponent(
+      imageUrl
+    )}`;
   },
 };
 
@@ -42,6 +74,16 @@ export async function POST(req) {
   }
   if (tool === "fakeml" && !formData.get("nickname")?.toString().trim()) {
     return NextResponse.json({ status: false, message: "Nickname tidak boleh kosong." }, { status: 400 });
+  }
+  if (tool === "meme") {
+    const top = (formData.get("topText") || "").toString().trim();
+    const bottom = (formData.get("bottomText") || "").toString().trim();
+    if (!top && !bottom) {
+      return NextResponse.json(
+        { status: false, message: "Isi minimal salah satu: teks atas atau teks bawah." },
+        { status: 400 }
+      );
+    }
   }
 
   try {
