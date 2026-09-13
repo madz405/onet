@@ -244,21 +244,12 @@ export default function MusicSection() {
             className="aspect-square w-full rounded-2xl object-cover"
           />
 
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wide text-signal-400">
-                {track.source === "spotify" ? "Spotify" : "YouTube"}
-              </p>
-              <h2 className="mt-0.5 truncate font-display text-lg font-semibold text-white">{track.title}</h2>
-              <p className="truncate text-sm text-white/50">{track.artist}</p>
-            </div>
-            <a
-              href={downloadHref}
-              className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full border border-white/15 text-white/70 hover:border-signal-500 hover:text-signal-400"
-              aria-label="Unduh lagu"
-            >
-              <Download size={16} />
-            </a>
+          <div className="mt-4 min-w-0">
+            <p className="text-xs font-medium uppercase tracking-wide text-signal-400">
+              {track.source === "spotify" ? "Spotify" : "YouTube"}
+            </p>
+            <h2 className="mt-0.5 truncate font-display text-lg font-semibold text-white">{track.title}</h2>
+            <p className="truncate text-sm text-white/50">{track.artist}</p>
           </div>
 
           <div className="mt-4">
@@ -280,7 +271,15 @@ export default function MusicSection() {
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-center gap-6">
+          <div className="mt-3 flex items-center justify-center gap-4">
+            <a
+              href={downloadHref}
+              className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-full text-white/40 hover:text-white/70"
+              aria-label="Unduh lagu"
+              title="Unduh lagu"
+            >
+              <Download size={20} />
+            </a>
             <button
               onClick={() => playByOffset(-1)}
               disabled={history.length < 2}
