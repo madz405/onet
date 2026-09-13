@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { THEME_STORAGE_KEY } from "@/lib/themes";
+import { SITE_NAME, SITE_TAGLINE, SITE_FAVICON } from "@/lib/site";
 
 // Dijalankan sebelum React hydrate, supaya tema tersimpan langsung
 // terpasang sejak render pertama (tidak ada kedipan balik ke tema default).
@@ -28,9 +29,12 @@ const body = Inter({
 });
 
 export const metadata = {
-  title: "Unduhin — Download & Tools Sosial Media",
+  title: `${SITE_NAME} — ${SITE_TAGLINE}`,
   description:
     "Unduh video dan foto dari TikTok, Instagram, Facebook, Pinterest, X, CapCut, YouTube, Spotify, SoundCloud, dan Apple Music. Plus tools edit cepat dan pemutar musik.",
+  icons: {
+    icon: SITE_FAVICON,
+  },
 };
 
 export default function RootLayout({ children }) {
