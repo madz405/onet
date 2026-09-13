@@ -26,7 +26,12 @@ import {
 const SOURCES = [
   { id: "youtube", label: "YouTube" },
   { id: "spotify", label: "Spotify" },
+  { id: "soundcloud", label: "SoundCloud" },
 ];
+
+function sourceLabel(id) {
+  return SOURCES.find((s) => s.id === id)?.label || "YouTube";
+}
 
 // Urutan siklus tombol mode tiap diklik.
 const NEXT_MODE = { sequential: "repeat", repeat: "shuffle", shuffle: "sequential" };
@@ -246,7 +251,7 @@ export default function MusicSection() {
 
           <div className="mt-4 min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-signal-400">
-              {track.source === "spotify" ? "Spotify" : "YouTube"}
+              {sourceLabel(track.source)}
             </p>
             <h2 className="mt-0.5 truncate font-display text-lg font-semibold text-white">{track.title}</h2>
             <p className="truncate text-sm text-white/50">{track.artist}</p>
@@ -353,7 +358,7 @@ export default function MusicSection() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-white">{t.title}</p>
                   <p className="truncate text-xs text-white/40">
-                    {t.source === "spotify" ? "Spotify" : "YouTube"} · {t.artist}
+                    {sourceLabel(t.source)} · {t.artist}
                   </p>
                 </div>
                 <button
