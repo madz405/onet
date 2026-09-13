@@ -7,7 +7,7 @@ Web downloader media sosial + tools edit cepat + pemutar musik + chat AI, dibang
 - **Downloader** — TikTok, Instagram, Facebook, Pinterest, X/Twitter, CapCut, YouTube (video/audio), Spotify, SoundCloud, Apple Music. Setiap kartu platform pakai logo asli masing-masing. Hasil slide foto TikTok & Instagram ditampilkan dalam bingkai gaya ponsel.
 - **Instagram pakai scraper langsung** sebagai metode utama (tanpa API pihak ketiga), baru jatuh ke endpoint API sebagai cadangan kalau scraper gagal.
 - **Tools** — Brat Text, IQC Status Bar, Lobby Free Fire, Lobby Mobile Legends (upload avatar + nickname), Hapus Background, Perjelas Foto (HD).
-- **Musik** — cari lagu dari judul (YouTube / Spotify), tampil sebagai satu kartu pemutar (artwork, progress bar, tombol mundur/maju 10 detik, volume) dan bisa diunduh.
+- **Musik** — cari lagu dari judul (YouTube / Spotify), tampil sebagai satu kartu pemutar (artwork, progress bar, previous/next, mode ulangi/acak/berurutan, volume) dan bisa diunduh. Riwayat pencarian tersimpan otomatis di browser (localStorage) — tidak hilang saat refresh, bisa diputar ulang atau dihapus satu-satu.
 - **Chat AI** — halaman tersendiri (`/chat`), ada di menu navigasi bareng Downloader/Tools/Musik.
 - **Tema warna** — 3 pilihan (Aurora/Sunset/Mint), bisa diganti dari ikon palet di navbar, tersimpan otomatis di browser masing-masing pengunjung.
 
@@ -51,6 +51,7 @@ lib/
   chatPersona.js     → nama & system prompt bot chat (gampang diedit)
   uploadImage.js     → helper upload gambar ke top4top.io (dipakai removebg, hd, fakeml)
   themes.js          → daftar tema warna yang muncul di navbar
+  musicHistory.js    → helper localStorage untuk riwayat pencarian musik
   scrapers/instagram.js → scraper langsung ke instagram.com (metode utama downloader IG)
 components/          → semua komponen UI (modal, grid, chat panel, footer, theme switcher, dll)
 ```
@@ -107,3 +108,4 @@ Form dan tombolnya di modal Tools otomatis mengikuti karena `ToolModal` sudah ge
 - Logo tiap platform (`lib/platforms.js`) dan logo/favicon situs (`lib/site.js`) saat ini di-hosting di catbox.moe. Sudah ada fallback otomatis ke inisial huruf kalau gambar gagal dimuat, tapi untuk keandalan jangka panjang, sebaiknya pindahkan file-file itu ke folder `public/` project ini.
 - Tautan hasil download yang berasal dari CDN pihak ketiga (TikTok, Instagram, dll) kadang membuka tab baru alih-alih langsung mengunduh — ini normal, tergantung header yang diberikan CDN tersebut, bukan bug dari aplikasi ini.
 - Dua tool dari kumpulan skrip awal — generator e-KTP dan generator bukti transfer DANA — **sengaja tidak disertakan** karena berpotensi disalahgunakan untuk pemalsuan dokumen/penipuan.
+- Riwayat musik tersimpan di `localStorage`, jadi sifatnya **per-browser/per-perangkat** — ganti browser atau HP berarti riwayat tidak ikut pindah (beda dengan sistem akun/login yang nyimpen di server). Selain itu, link audio (`streamUrl`) dari beberapa endpoint musik bisa kedaluwarsa setelah beberapa waktu; kalau item riwayat lama gagal diputar, itu sebabnya — tinggal cari ulang judul yang sama.
