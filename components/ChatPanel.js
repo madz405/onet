@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Send, Loader2 } from "lucide-react";
 import { CHAT_BOT_NAME } from "@/lib/chatPersona";
+import { SITE_NAME } from "@/lib/site";
 
 // Ganti logo bulat di header chat di sini. Cara paling gampang:
 // 1) taruh file logo kamu di folder public/, misal public/chat-logo.png
@@ -18,7 +19,7 @@ function LogoBubble() {
 
 export default function ChatPanel() {
   const [messages, setMessages] = useState([
-    { role: "bot", text: `Hai! Aku ${CHAT_BOT_NAME}, ada yang bisa dibantu seputar Unduhin? 👋` },
+    { role: "bot", text: `Hai! Aku ${CHAT_BOT_NAME}, ada yang bisa dibantu seputar ${SITE_NAME}? 👋` },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
