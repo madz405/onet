@@ -1,7 +1,8 @@
 import ChatPanel from "@/components/ChatPanel";
 import { CHAT_BOT_NAME } from "@/lib/chatPersona";
+import { SITE_NAME } from "@/lib/site";
 
-export const metadata = { title: "Chat AI — Unduhin" };
+export const metadata = { title: `Chat AI — ${SITE_NAME}` };
 
 export default function ChatPage() {
   return (
@@ -12,7 +13,7 @@ export default function ChatPage() {
           Ngobrol sama {CHAT_BOT_NAME}
         </h1>
         <p className="mt-3 text-white/60">
-          Bingung cara pakai salah satu fitur di Unduhin? Tanya langsung di sini.
+          Bingung cara pakai salah satu fitur di {SITE_NAME}? Tanya langsung di sini.
         </p>
       </section>
 
