@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { instagram } from "@/lib/scrapers/instagram";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,43 @@ async function getJson(url) {
 
 function fail(message, statusCode = 400) {
   return NextResponse.json({ status: false, message }, { status: statusCode });
+}
+
+// Meratakan hasil kaya dari lib/scrapers/instagram.js (yang punya 2 kemungkinan
+// bentuk: media.videos[] untuk reel/video, atau media.slides[] untuk carousel foto)
+// menjadi bentuk seragam { title, author, thumbnail, media } yang dipakai di seluruh app.
+function normalizeInstagramScraperResult(result) {
+  const metadata = result?.metadata || {};
+  const author = result?.author || {};
+  const media = [];
+
+  if (Array.isArray(result?.media?.videos) && result.media.videos.length) {
+    result.media.videos.forEach((v, i) => {
+      media.push({
+        type: "video",
+        label: result.media.videos.length > 1 ? `Download video ${i + 1}` : "Download video",
+        url: v.url,
+      });
+    });
+  } else if (Array.isArray(result?.media?.slides) && result.media.slides.length) {
+    let photoIndex = 0;
+    result.media.slides.forEach((slide) => {
+      (slide.images || []).forEach((img) => {
+        photoIndex += 1;
+        media.push({ type: "image", label: `Download foto ${photoIndex}`, url: img.url });
+      });
+      (slide.videos || []).forEach((vid) => {
+        media.push({ type: "video", label: "Download video", url: vid.url });
+      });
+    });
+  }
+
+  return {
+    title: metadata.caption || null,
+    author: author.username || null,
+    thumbnail: result?.media?.thumbnail || author.profilePic || null,
+    media,
+  };
 }
 
 export async function POST(req) {
@@ -80,38 +118,58 @@ export async function POST(req) {
       }
 
       case "instagram": {
-        const data = await getJson(
-          `https://api.termai.cc/api/downloader/instagram?url=${link}&key=Bell409`
-        );
-        const d = data.data || {};
-        const ogTitle = d.userInfo?.raw?.ogTitle || "";
-        const ogDesc = d.userInfo?.raw?.ogDesc || "";
+        // 1) Coba scraper langsung ke Instagram dulu (lebih cepat, tanpa
+        //    tergantung API pihak ketiga). instagram.video() menangani
+        //    reel/video, instagram.slide() menangani carousel/foto — coba
+        //    video dulu, kalau memang bukan video baru coba slide.
+        const tryScraper = async () => {
+          let res = await instagram.video(url);
+          if (!res.status) {
+            res = await instagram.slide(url);
+          }
+          if (!res.status) {
+            throw new Error(res.error || "Scraper Instagram gagal memproses link ini.");
+          }
+          return normalizeInstagramScraperResult(res.result);
+        };
 
-        // Username asli tersembunyi di dalam teks ogDesc, formatnya kira-kira:
-        // "69K likes, 2,783 comments - namauser pada 6 September 2026: ...".
-        const usernameMatch = ogDesc.match(/-\s*(\S+)\s+pada\b/);
-        const author = usernameMatch?.[1] || null;
+        // 2) Kalau scraper gagal (link diblokir, struktur halaman IG
+        //    berubah, dll), baru jatuh ke endpoint API sebagai cadangan.
+        const tryEndpoint = async () => {
+          const data = await getJson(
+            `https://api.termai.cc/api/downloader/instagram?url=${link}&key=Bell409`
+          );
+          const d = data.data || {};
+          const ogTitle = d.userInfo?.raw?.ogTitle || "";
+          const ogDesc = d.userInfo?.raw?.ogDesc || "";
 
-        // Kalau data.title kosong, captionnya masih ada di dalam ogTitle,
-        // formatnya: 'namatampilan di Instagram: "isi caption di sini"'.
-        const captionMatch = ogTitle.match(/:\s*"([\s\S]*)"\s*$/);
-        const title = d.title || captionMatch?.[1] || null;
+          const usernameMatch = ogDesc.match(/-\s*(\S+)\s+pada\b/);
+          const author = usernameMatch?.[1] || null;
 
-        const contents = d.content || [];
-        const media = contents.map((item, i) => ({
-          type: item.type === "video" ? "video" : "image",
-          label: item.type === "video" ? "Download video" : `Download foto ${i + 1}`,
-          url: item.url,
-        }));
+          const captionMatch = ogTitle.match(/:\s*"([\s\S]*)"\s*$/);
+          const title = d.title || captionMatch?.[1] || null;
 
-        return NextResponse.json({
-          status: true,
-          platform,
-          title,
-          author,
-          thumbnail: contents[0]?.thumbnail || d.userInfo?.profilePic || null,
-          media,
+          const contents = d.content || [];
+          const media = contents.map((item, i) => ({
+            type: item.type === "video" ? "video" : "image",
+            label: item.type === "video" ? "Download video" : `Download foto ${i + 1}`,
+            url: item.url,
+          }));
+
+          return {
+            title,
+            author,
+            thumbnail: contents[0]?.thumbnail || d.userInfo?.profilePic || null,
+            media,
+          };
+        };
+
+        const result = await tryScraper().catch((err) => {
+          console.error("[instagram] scraper gagal, pakai endpoint cadangan:", err.message);
+          return tryEndpoint();
         });
+
+        return NextResponse.json({ status: true, platform, ...result });
       }
 
       case "facebook": {
