@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, X, Download, Wand2, Music2, Bot } from "lucide-react";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import { SITE_NAME, SITE_LOGO } from "@/lib/site";
 
 const LINKS = [
   { href: "/", label: "Downloader", icon: Download },
@@ -21,8 +22,9 @@ export default function Navbar() {
     <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
         <Link href="/" className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight text-white">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-signal-500 text-ink-950">U</span>
-          Unduhin
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={SITE_LOGO} alt={SITE_NAME} className="h-8 w-8 rounded-lg object-cover" />
+          {SITE_NAME}
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
