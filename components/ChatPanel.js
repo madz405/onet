@@ -11,9 +11,12 @@ import { SITE_NAME } from "@/lib/site";
 //      <img src="/chat-logo.png" alt={CHAT_BOT_NAME} className="h-full w-full object-cover" />
 function LogoBubble() {
   return (
-    <span className="grid h-full w-full place-items-center bg-gradient-to-br from-signal-500 to-flare-500 font-display text-lg font-bold text-ink-950">
-      {CHAT_BOT_NAME.charAt(0)}
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="https://files.catbox.moe/bbrup2.jpg"
+      alt={CHAT_BOT_NAME}
+      className="h-full w-full object-cover"
+    />
   );
 }
 
