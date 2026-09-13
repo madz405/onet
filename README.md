@@ -1,13 +1,15 @@
-# Unduhin
+# ONET
 
 Web downloader media sosial + tools edit cepat + pemutar musik + chat AI, dibangun dengan Next.js (App Router) supaya bisa langsung di-deploy ke Vercel.
 
 ## Fitur
 
-- **Downloader** — TikTok, Instagram, Facebook, Pinterest, X/Twitter, CapCut, YouTube (video/audio), Spotify, SoundCloud, Apple Music.
-- **Tools** — Brat Text, IQC Status Bar, Lobby Free Fire, Hapus Background, Perjelas Foto (HD).
+- **Downloader** — TikTok, Instagram, Facebook, Pinterest, X/Twitter, CapCut, YouTube (video/audio), Spotify, SoundCloud, Apple Music. Setiap kartu platform pakai logo asli masing-masing. Hasil slide foto TikTok & Instagram ditampilkan dalam bingkai gaya ponsel.
+- **Instagram pakai scraper langsung** sebagai metode utama (tanpa API pihak ketiga), baru jatuh ke endpoint API sebagai cadangan kalau scraper gagal.
+- **Tools** — Brat Text, IQC Status Bar, Lobby Free Fire, Lobby Mobile Legends (upload avatar + nickname), Hapus Background, Perjelas Foto (HD).
 - **Musik** — cari lagu dari judul (YouTube / Spotify), tampil sebagai satu kartu pemutar (artwork, progress bar, tombol mundur/maju 10 detik, volume) dan bisa diunduh.
-- **Chat AI** — sekarang jadi halaman tersendiri (`/chat`), ada di menu navigasi bareng Downloader/Tools/Musik.
+- **Chat AI** — halaman tersendiri (`/chat`), ada di menu navigasi bareng Downloader/Tools/Musik.
+- **Tema warna** — 3 pilihan (Aurora/Sunset/Mint), bisa diganti dari ikon palet di navbar, tersimpan otomatis di browser masing-masing pengunjung.
 
 Semua tombol download (baik dari downloader maupun tools) diarahkan lewat `app/api/fetch-media` atau proxy tool masing-masing, supaya file **langsung terunduh** — tidak membuka tab baru dulu. Ini penting karena atribut `download` di HTML hanya dihormati browser untuk file satu domain; link CDN pihak ketiga perlu ditarik dulu di server sebelum dikirim ke browser dengan header `Content-Disposition: attachment`.
 
@@ -43,12 +45,32 @@ app/
   api/chat/          → proxy server chat AI
   api/fetch-media/   → proxy pemaksa download (Content-Disposition: attachment)
 lib/
-  platforms.js       → daftar platform downloader (nama, warna, placeholder)
+  site.js            → nama, tagline, logo, dan favicon website (lihat bagian ganti branding di bawah)
+  platforms.js       → daftar platform downloader (nama, warna, logo, placeholder)
   tools.js           → daftar tools & definisi form masing-masing
   chatPersona.js     → nama & system prompt bot chat (gampang diedit)
-  uploadImage.js     → helper upload gambar ke top4top.io (dipakai removebg & hd)
-components/          → semua komponen UI (modal, grid, chat panel, footer, dll)
+  uploadImage.js     → helper upload gambar ke top4top.io (dipakai removebg, hd, fakeml)
+  themes.js          → daftar tema warna yang muncul di navbar
+  scrapers/instagram.js → scraper langsung ke instagram.com (metode utama downloader IG)
+components/          → semua komponen UI (modal, grid, chat panel, footer, theme switcher, dll)
 ```
+
+> Beberapa endpoint (Instagram sebagai cadangan, IQC) memakai API key statis (`Bell409`) yang ditulis langsung di kode. Kalau suatu saat key ini expired/diganti oleh penyedianya, tinggal cari-ganti string `Bell409` di `app/api/download/route.js` dan `app/api/tools/iqc/route.js`.
+
+## Mengganti nama, logo, dan favicon website
+
+Semua ada di satu file: `lib/site.js`.
+
+```js
+export const SITE_NAME = "ONET";
+export const SITE_TAGLINE = "Download & Tools Sosial Media";
+export const SITE_LOGO = "https://files.catbox.moe/hmnpjb.png";
+export const SITE_FAVICON = "https://files.catbox.moe/lb98ty.jpg";
+```
+
+Ganti nilainya sesuai kebutuhan — semua tempat yang menampilkan nama/logo situs (navbar, footer, judul tab browser, sapaan chat AI) otomatis ikut berubah karena semuanya baca dari file ini.
+
+Logo & favicon saat ini masih menumpang di catbox.moe (hosting gambar gratis pihak luar). Ini sudah berfungsi normal, tapi kalau suatu saat file di catbox dihapus, gambar akan hilang. Untuk jangka panjang lebih aman upload file logo ke folder `public/` di project ini (misal `public/logo.png`), lalu ganti `SITE_LOGO`/`SITE_FAVICON` di atas jadi `"/logo.png"`.
 
 ## Mengganti logo chat AI
 
@@ -81,5 +103,7 @@ Form dan tombolnya di modal Tools otomatis mengikuti karena `ToolModal` sudah ge
 ## Catatan penting
 
 - Semua endpoint downloader/tools di sini memakai **API pihak ketiga gratis** (azbry.com, nexray.eu.cc, siputzx.my.id, api-faa.my.id, top4top.io) yang **tidak dikontrol oleh project ini**. Endpoint-endpoint tersebut bisa saja berubah format responsnya, dibatasi rate limit, atau mati sewaktu-waktu — kalau itu terjadi, sesuaikan lagi fungsi parsing-nya di `app/api/download/route.js` atau file tools terkait.
+- Scraper Instagram (`lib/scrapers/instagram.js`) mengambil data langsung dari halaman instagram.com. Ini lebih cepat dan tidak tergantung API pihak ketiga, tapi juga lebih rapuh — kalau Instagram mengubah struktur halamannya, scraper bisa berhenti bekerja. Kalau itu terjadi, downloader Instagram tetap jalan karena otomatis jatuh ke endpoint API sebagai cadangan; scraper-nya sendiri baru perlu diperbaiki/disesuaikan lagi.
+- Logo tiap platform (`lib/platforms.js`) dan logo/favicon situs (`lib/site.js`) saat ini di-hosting di catbox.moe. Sudah ada fallback otomatis ke inisial huruf kalau gambar gagal dimuat, tapi untuk keandalan jangka panjang, sebaiknya pindahkan file-file itu ke folder `public/` project ini.
 - Tautan hasil download yang berasal dari CDN pihak ketiga (TikTok, Instagram, dll) kadang membuka tab baru alih-alih langsung mengunduh — ini normal, tergantung header yang diberikan CDN tersebut, bukan bug dari aplikasi ini.
 - Dua tool dari kumpulan skrip awal — generator e-KTP dan generator bukti transfer DANA — **sengaja tidak disertakan** karena berpotensi disalahgunakan untuk pemalsuan dokumen/penipuan.
