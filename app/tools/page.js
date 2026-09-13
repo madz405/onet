@@ -1,6 +1,7 @@
 import ToolsSection from "@/components/ToolsSection";
+import { SITE_NAME } from "@/lib/site";
 
-export const metadata = { title: "Tools — Unduhin" };
+export const metadata = { title: `Tools — ${SITE_NAME}` };
 
 export default function ToolsPage() {
   return (
