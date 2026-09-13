@@ -50,6 +50,21 @@ export async function POST(req) {
       });
     }
 
+    if (source === "soundcloud") {
+      const data = await getJson(`https://api-faa.my.id/faa/soundcloud-play?query=${q}`);
+      const r = data.result || {};
+      return NextResponse.json({
+        status: true,
+        source: "soundcloud",
+        title: r.title,
+        artist: r.user,
+        // API ini mengembalikan durasi dalam milidetik, bukan detik.
+        duration: typeof r.duration === "number" ? Math.round(r.duration / 1000) : null,
+        thumbnail: r.thumbnail,
+        streamUrl: r.download_url,
+      });
+    }
+
     // default: youtube
     const data = await getJson(`https://api.azbry.com/api/download/ytplay2?q=${q}`);
     const r = data.result || {};
