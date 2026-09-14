@@ -37,6 +37,7 @@ export default function MediaResult({ result }) {
     media.some((m) => m.type === "image");
   const photoItems = usePhoneFrame ? media.filter((m) => m.type === "image") : [];
   const mainVideo = media.find((m) => m.type === "video");
+  const mainAudio = media.find((m) => m.type === "audio");
 
   return (
     <div className="animate-rise space-y-4">
@@ -52,8 +53,8 @@ export default function MediaResult({ result }) {
             />
           )}
           <div className="min-w-0">
-            {title && <p className="truncate text-sm font-medium text-white">{title}</p>}
-            {author && <p className="truncate text-xs text-white/50">{author}</p>}
+            {title && <p className="break-words text-sm font-medium text-white">{title}</p>}
+            {author && <p className="break-words text-xs text-white/50">{author}</p>}
           </div>
         </div>
       )}
@@ -86,6 +87,14 @@ export default function MediaResult({ result }) {
           className="w-full rounded-xl border border-white/8"
           referrerPolicy="no-referrer"
         />
+      )}
+
+      {/* Pemutar audio: muncul untuk hasil musik (YouTube MP3, Spotify,
+          SoundCloud, Apple Music) maupun audio latar pada slide TikTok. */}
+      {mainAudio && (
+        <audio controls className="w-full rounded-xl" src={mainAudio.url}>
+          Browser kamu tidak mendukung pemutar audio.
+        </audio>
       )}
 
       <div className="flex flex-col gap-2">
