@@ -1,23 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { Send, Loader2 } from "lucide-react";
 import { CHAT_BOT_NAME } from "@/lib/chatPersona";
-import { SITE_NAME } from "@/lib/site";
+import { SITE_NAME, KAYNA_AVATAR } from "@/lib/site";
 
-// Ganti logo bulat di header chat di sini. Cara paling gampang:
-// 1) taruh file logo kamu di folder public/, misal public/chat-logo.png
-// 2) ganti isi <LogoBubble/> di bawah jadi:
-//      <img src="/chat-logo.png" alt={CHAT_BOT_NAME} className="h-full w-full object-cover" />
+// Ganti logo bulat di header chat di lib/site.js (KAYNA_AVATAR) kalau perlu.
 function LogoBubble() {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="https://files.catbox.moe/bbrup2.jpg"
-      alt={CHAT_BOT_NAME}
-      className="h-full w-full object-cover"
-    />
-  );
+  return <Image src={KAYNA_AVATAR} alt={CHAT_BOT_NAME} width={40} height={40} className="h-full w-full object-cover" />;
 }
 
 export default function ChatPanel() {
