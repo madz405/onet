@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 export default function PlatformCard({ platform, onClick }) {
   const [logoFailed, setLogoFailed] = useState(false);
@@ -16,10 +17,11 @@ export default function PlatformCard({ platform, onClick }) {
         style={{ backgroundColor: platform.accent }}
       >
         {showLogo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={platform.logo}
-            alt=""
+            alt={platform.name}
+            width={44}
+            height={44}
             className="h-full w-full object-cover"
             onError={() => setLogoFailed(true)}
           />
