@@ -1,10 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Media hasil download berasal dari CDN pihak ketiga yang berubah-ubah,
-  // jadi kita pakai <img>/<video> biasa dan matikan optimasi bawaan next/image.
-  images: {
-    unoptimized: true,
-  },
+  // Preview media hasil download (thumbnail/video dari CDN pihak ketiga yang
+  // berubah-ubah) tetap pakai <img>/<video> biasa, bukan next/image, jadi
+  // tidak perlu whitelist domain di sini. Optimasi next/image tetap aktif
+  // (default) untuk aset lokal di public/ seperti logo & avatar chat.
   eslint: {
     ignoreDuringBuilds: true,
   },
