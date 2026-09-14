@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, X, Download, Wand2, Music2, Bot } from "lucide-react";
@@ -22,8 +23,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
         <Link href="/" className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight text-white">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={SITE_LOGO} alt={SITE_NAME} className="h-8 w-8 rounded-lg object-cover" />
+          <Image src={SITE_LOGO} alt={SITE_NAME} width={32} height={32} className="h-8 w-8 rounded-lg object-cover" />
           {SITE_NAME}
         </Link>
 
