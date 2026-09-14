@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { SITE_NAME, SITE_LOGO } from "@/lib/site";
 
 export default function Footer() {
@@ -8,8 +9,7 @@ export default function Footer() {
         <div className="grid gap-8 sm:grid-cols-3">
           <div>
             <p className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={SITE_LOGO} alt={SITE_NAME} className="h-7 w-7 rounded-lg object-cover" />
+              <Image src={SITE_LOGO} alt={SITE_NAME} width={28} height={28} className="h-7 w-7 rounded-lg object-cover" />
               {SITE_NAME}
             </p>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-white/50">
