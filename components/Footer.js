@@ -45,11 +45,15 @@ export default function Footer() {
           </div>
 
           <div>
-            <p className="mb-3 text-sm font-semibold text-white">Catatan</p>
-            <p className="text-sm leading-relaxed text-white/50">
-              Semua proses download memakai layanan pihak ketiga dan disediakan untuk keperluan pribadi.
-              Hormati hak cipta pemilik konten asli sebelum membagikan ulang hasil unduhan.
-            </p>
+            <p className="mb-3 text-sm font-semibold text-white">Developer</p>
+            <ul className="space-y-2 text-sm text-white/50">
+              <li>madz</li>
+              <li>
+                <a href="mailto:madz@goatmail.uk" className="hover:text-white">
+                  madz@goatmail.uk
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
 
