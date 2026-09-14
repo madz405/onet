@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { User, Mail } from "lucide-react";
 import { SITE_NAME, SITE_LOGO } from "@/lib/site";
 
 export default function Footer() {
@@ -47,8 +48,12 @@ export default function Footer() {
           <div>
             <p className="mb-3 text-sm font-semibold text-white">Developer</p>
             <ul className="space-y-2 text-sm text-white/50">
-              <li>madz</li>
-              <li>
+              <li className="flex items-center gap-2">
+                <User size={14} className="flex-shrink-0" />
+                madz
+              </li>
+              <li className="flex items-center gap-2">
+                <Mail size={14} className="flex-shrink-0" />
                 <a href="mailto:madz@goatmail.uk" className="hover:text-white">
                   madz@goatmail.uk
                 </a>
