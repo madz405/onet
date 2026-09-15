@@ -50,7 +50,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-white/50">
               <li className="flex items-center gap-2">
                 <User size={14} className="flex-shrink-0" />
-                madz
+                madzmuldi
               </li>
               <li className="flex items-center gap-2">
                 <Mail size={14} className="flex-shrink-0" />
@@ -63,8 +63,8 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 flex flex-col gap-2 border-t border-white/8 pt-6 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between">
-          <p>&copy; {new Date().getFullYear()} {SITE_NAME}. Dibuat untuk penggunaan pribadi.</p>
-          <p>Dibangun dengan Next.js</p>
+          <p>&copy; {new Date().getFullYear()} {SITE_NAME}. All right reserved.</p>
+          <p>made by madzmuldi.js</p>
         </div>
       </div>
     </footer>
