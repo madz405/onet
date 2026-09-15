@@ -10,8 +10,8 @@ export default function HomePage() {
           Tempel link, ambil videonya.
         </h1>
         <p className="mt-3 text-white/60">
-          Pilih platform di bawah, tempel link video atau foto yang mau diunduh, dan {SITE_NAME} akan
-          menyiapkan filenya untukmu — tanpa watermark kalau tersedia.
+          Pilih platform di bawah, tempel link yang mau diunduh, dan {SITE_NAME} akan
+          menyiapkan filenya untukmu tanpa watermark kalau tersedia.
         </p>
       </section>
 
