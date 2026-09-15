@@ -14,7 +14,7 @@ export default function Footer() {
               {SITE_NAME}
             </p>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-white/50">
-              Download video &amp; foto dari berbagai sosial media, tools edit cepat, dan pemutar musik —
+              Download video &amp; foto dari berbagai sosial media, tools edit cepat, dan pemutar musik
               semua dalam satu tempat.
             </p>
           </div>
