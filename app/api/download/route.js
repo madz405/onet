@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { instagram } from "@/lib/scrapers/instagram";
+import { tiktokDl } from "@/lib/scrapers/tiktok";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,33 @@ async function getJson(url) {
 
 function fail(message, statusCode = 400) {
   return NextResponse.json({ status: false, message }, { status: statusCode });
+}
+
+// Meratakan hasil kaya dari lib/scrapers/tiktok.js jadi bentuk seragam
+// { title, author, thumbnail, media } yang dipakai di seluruh app.
+function normalizeTiktokScraperResult(result) {
+  const labelMap = {
+    watermark: "Download (dengan watermark)",
+    nowatermark: "Download (tanpa watermark)",
+    nowatermark_hd: "Download HD (tanpa watermark)",
+  };
+
+  const media = (result.data || []).map((m, i) =>
+    m.type === "photo"
+      ? { type: "image", label: `Foto ${i + 1}`, url: m.url }
+      : { type: "video", label: labelMap[m.type] || "Download video", url: m.url }
+  );
+
+  if (result.music_info?.url) {
+    media.push({ type: "audio", label: "Audio latar", url: result.music_info.url });
+  }
+
+  return {
+    title: result.title || null,
+    author: result.author?.nickname || result.author?.fullname || null,
+    thumbnail: result.cover || null,
+    media,
+  };
 }
 
 // Meratakan hasil kaya dari lib/scrapers/instagram.js (yang punya 2 kemungkinan
@@ -80,40 +108,61 @@ export async function POST(req) {
   try {
     switch (platform) {
       case "tiktok": {
-        const isPhoto = /\/photo\//i.test(url);
-        const tryVideo = async () => {
-          const data = await getJson(`https://api.azbry.com/api/download/tiktokv2?url=${link}`);
-          const r = data.result || {};
-          const downloads = (r.downloads || []).map((d) => ({
-            type: d.type === "mp3" ? "audio" : "video",
-            label: d.quality || d.type,
-            url: d.url,
-          }));
-          if (!downloads.length) throw new Error("empty");
-          return {
-            title: r.title,
-            author: r.author?.username,
-            thumbnail: r.cover,
-            media: downloads,
-          };
+        // 1) Coba scraper langsung (tikwm) dulu — tidak butuh API key.
+        const tryScraper = async () => {
+          const res = await tiktokDl(url);
+          if (!res.status || !res.data?.length) {
+            throw new Error("Scraper TikTok gagal memproses link ini.");
+          }
+          return normalizeTiktokScraperResult(res);
         };
-        const trySlide = async () => {
-          const data = await getJson(`https://api.azbry.com/api/download/tiktokslide?url=${link}`);
-          const r = data.result || {};
-          const images = (r.images || []).map((img, i) => ({
-            type: "image",
-            label: `Foto ${i + 1}`,
-            url: img,
-          }));
-          if (r.music) images.push({ type: "audio", label: "Audio latar", url: r.music });
-          return {
-            title: r.title,
-            author: r.author,
-            thumbnail: r.cover,
-            media: images,
+
+        // 2) Kalau scraper gagal (tikwm down/berubah struktur), jatuh ke
+        //    endpoint API azbry sebagai cadangan — logic lama tetap dipakai:
+        //    coba endpoint video dulu, kalau ternyata post foto baru coba
+        //    endpoint slide.
+        const tryEndpoint = async () => {
+          const isPhoto = /\/photo\//i.test(url);
+          const tryVideo = async () => {
+            const data = await getJson(`https://api.azbry.com/api/download/tiktokv2?url=${link}`);
+            const r = data.result || {};
+            const downloads = (r.downloads || []).map((d) => ({
+              type: d.type === "mp3" ? "audio" : "video",
+              label: d.quality || d.type,
+              url: d.url,
+            }));
+            if (!downloads.length) throw new Error("empty");
+            return {
+              title: r.title,
+              author: r.author?.username,
+              thumbnail: r.cover,
+              media: downloads,
+            };
           };
+          const trySlide = async () => {
+            const data = await getJson(`https://api.azbry.com/api/download/tiktokslide?url=${link}`);
+            const r = data.result || {};
+            const images = (r.images || []).map((img, i) => ({
+              type: "image",
+              label: `Foto ${i + 1}`,
+              url: img,
+            }));
+            if (r.music) images.push({ type: "audio", label: "Audio latar", url: r.music });
+            return {
+              title: r.title,
+              author: r.author,
+              thumbnail: r.cover,
+              media: images,
+            };
+          };
+          return isPhoto ? await trySlide() : await tryVideo().catch(trySlide);
         };
-        const result = isPhoto ? await trySlide() : await tryVideo().catch(trySlide);
+
+        const result = await tryScraper().catch((err) => {
+          console.error("[tiktok] scraper gagal, pakai endpoint cadangan:", err.message);
+          return tryEndpoint();
+        });
+
         return NextResponse.json({ status: true, platform, ...result });
       }
 
