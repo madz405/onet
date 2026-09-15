@@ -1,8 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { Download, Play, Pause } from "lucide-react";
 import PhoneFrame from "@/components/PhoneFrame";
+import { getPlatform } from "@/lib/platforms";
 
 function extFor(type) {
   if (type === "video") return "mp4";
@@ -96,8 +98,10 @@ function downloadHref(result, media, index) {
 }
 
 export default function MediaResult({ result }) {
+  const [thumbFailed, setThumbFailed] = useState(false);
   if (!result) return null;
   const { title, author, thumbnail, media = [] } = result;
+  const platformInfo = getPlatform(result.platform);
 
   const usePhoneFrame =
     (result.platform === "tiktok" || result.platform === "instagram") &&
@@ -110,13 +114,14 @@ export default function MediaResult({ result }) {
     <div className="animate-rise space-y-4">
       {(thumbnail || title) && !usePhoneFrame && (
         <div className="flex gap-3 rounded-xl border border-white/8 bg-ink-950/60 p-3">
-          {thumbnail && (
+          {(thumbnail || platformInfo?.logo) && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={thumbnail}
+              src={thumbnail && !thumbFailed ? thumbnail : platformInfo?.logo}
               alt=""
               className="h-16 w-16 flex-shrink-0 rounded-lg object-cover"
               referrerPolicy="no-referrer"
+              onError={() => setThumbFailed(true)}
             />
           )}
           <div className="min-w-0">
