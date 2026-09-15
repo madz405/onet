@@ -12,7 +12,7 @@ export default function MusicPage() {
           Muter lagu dari judulnya aja.
         </h1>
         <p className="mt-3 text-white/60">
-          Tidak perlu link — ketik judul lagu atau nama artisnya, pilih YouTube atau Spotify.
+          Tidak perlu link ketik judul lagu atau nama artisnya, pilih YouTube, Spotify atau Soundcloud.
         </p>
       </section>
 
