@@ -5,7 +5,7 @@ Web downloader media sosial + tools edit cepat + pemutar musik + chat AI, dibang
 ## Fitur
 
 - **Downloader** — TikTok, Instagram, Facebook, Pinterest, X/Twitter, CapCut, YouTube (video/audio), Spotify, SoundCloud, Apple Music. Setiap kartu platform pakai logo asli masing-masing. Hasil slide foto TikTok & Instagram ditampilkan dalam bingkai gaya ponsel.
-- **TikTok & Instagram pakai scraper langsung** sebagai metode utama (tanpa API pihak ketiga), baru jatuh ke endpoint API sebagai cadangan kalau scraper gagal.
+- **TikTok, Instagram, Pinterest, X/Twitter, Spotify, Apple Music, dan YouTube pakai scraper langsung** sebagai metode utama (tanpa API pihak ketiga), baru jatuh ke endpoint API sebagai cadangan kalau scraper gagal. Facebook, CapCut, dan SoundCloud masih pakai endpoint API saja (belum ada scraper untuk itu).
 - **Tools** — Brat Text, Brat HD (pilih hasil gambar/video), IQC Status Bar, Lobby Free Fire, Lobby Mobile Legends (upload avatar + nickname), Meme Custom (upload foto + teks atas/bawah), Hapus Background, Perjelas Foto (HD).
 - **Musik** — cari lagu dari judul (YouTube / Spotify / SoundCloud), tampil sebagai satu kartu pemutar (artwork, progress bar, previous/next, mode ulangi/acak/berurutan, volume) dan bisa diunduh. Riwayat pencarian tersimpan otomatis di browser (localStorage) — tidak hilang saat refresh, bisa diputar ulang atau dihapus satu-satu.
 - **Chat AI** — halaman tersendiri (`/chat`), ada di menu navigasi bareng Downloader/Tools/Musik.
@@ -54,6 +54,12 @@ lib/
   musicHistory.js    → helper localStorage untuk riwayat pencarian musik
   scrapers/instagram.js → scraper langsung ke instagram.com (metode utama downloader IG)
   scrapers/tiktok.js    → scraper langsung via tikwm.com (metode utama downloader TikTok)
+  scrapers/pinterest.js → scraper langsung ke halaman pin (regex, tanpa DOMParser)
+  scrapers/twitter.js   → scraper via tweeload.com (metode utama downloader X/Twitter)
+  scrapers/spotify.js   → scraper via spotidown.app (metode utama downloader Spotify)
+  scrapers/applemusic.js → scraper via aplmate.com (metode utama downloader Apple Music)
+  scrapers/youtube.js   → scraper via ytmp3.mobi (metode utama downloader YouTube)
+  scrapers/scraperUtils.js → helper bersama (parsing HTML tanpa DOMParser, cookie, dll)
 components/          → semua komponen UI (modal, grid, chat panel, footer, theme switcher, dll)
 ```
 
@@ -129,7 +135,8 @@ Form dan tombolnya di modal Tools otomatis mengikuti karena `ToolModal` sudah ge
 ## Catatan penting
 
 - Semua endpoint downloader/tools di sini memakai **API pihak ketiga gratis** (azbry.com, nexray.eu.cc, siputzx.my.id, api-faa.my.id, top4top.io) yang **tidak dikontrol oleh project ini**. Endpoint-endpoint tersebut bisa saja berubah format responsnya, dibatasi rate limit, atau mati sewaktu-waktu — kalau itu terjadi, sesuaikan lagi fungsi parsing-nya di `app/api/download/route.js` atau file tools terkait.
-- Scraper Instagram (`lib/scrapers/instagram.js`) mengambil data langsung dari halaman instagram.com, dan scraper TikTok (`lib/scrapers/tiktok.js`) lewat tikwm.com. Keduanya lebih cepat dan tidak tergantung API pihak ketiga, tapi juga lebih rapuh — kalau sumbernya mengubah struktur/format responsnya, scraper bisa berhenti bekerja. Kalau itu terjadi, downloader-nya tetap jalan karena otomatis jatuh ke endpoint API sebagai cadangan; scraper-nya sendiri baru perlu diperbaiki/disesuaikan lagi.
+- Scraper Instagram (`lib/scrapers/instagram.js`) mengambil data langsung dari halaman instagram.com, scraper TikTok (`lib/scrapers/tiktok.js`) lewat tikwm.com, dan scraper Pinterest/X/Spotify/Apple Music/YouTube masing-masing lewat situs mirror-nya sendiri (lihat daftar di atas). Semuanya lebih cepat dan tidak tergantung API pihak ketiga, tapi juga lebih rapuh — kalau sumbernya mengubah struktur/format responsnya (atau menambah proteksi captcha baru), scraper bisa berhenti bekerja. Kalau itu terjadi, downloader-nya tetap jalan karena otomatis jatuh ke endpoint API sebagai cadangan; scraper-nya sendiri baru perlu diperbaiki/disesuaikan lagi.
+- Scraper Spotify & Apple Music mengandalkan token verifikasi (`g-recaptcha-response`/`cf-turnstile-response`) dari situs mirror-nya — kalau situs itu suatu saat memperketat validasinya, scraper bisa mulai sering gagal dan otomatis lebih sering jatuh ke endpoint cadangan (fungsinya tetap jalan, cuma sedikit lebih lambat). Scraper YouTube dibatasi maksimal ~5 detik menunggu proses konversi selesai (versi aslinya bisa sampai puluhan detik) supaya tidak bikin function di Vercel timeout — kalau belum selesai dalam waktu segitu, otomatis jatuh ke endpoint cadangan juga.
 - Logo tiap platform (`lib/platforms.js`) dan logo/favicon/avatar chat (`lib/site.js`) sekarang disimpan lokal di `public/assets/` — sudah tidak tergantung hosting gambar pihak luar lagi. Tetap ada fallback otomatis ke inisial huruf di kartu platform kalau suatu file gambarnya ternyata hilang/salah nama.
 - Tautan hasil download yang berasal dari CDN pihak ketiga (TikTok, Instagram, dll) kadang membuka tab baru alih-alih langsung mengunduh — ini normal, tergantung header yang diberikan CDN tersebut, bukan bug dari aplikasi ini.
 - Dua tool dari kumpulan skrip awal — generator e-KTP dan generator bukti transfer DANA — **sengaja tidak disertakan** karena berpotensi disalahgunakan untuk pemalsuan dokumen/penipuan.
