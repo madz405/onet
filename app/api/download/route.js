@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { instagram } from "@/lib/scrapers/instagram";
 import { tiktokDl } from "@/lib/scrapers/tiktok";
+import { scrapePinterest } from "@/lib/scrapers/pinterest";
+import { scrapeTwitter } from "@/lib/scrapers/twitter";
+import { scrapeAppleMusic } from "@/lib/scrapers/applemusic";
+import { scrapeSpotify } from "@/lib/scrapers/spotify";
+import { scrapeYouTube } from "@/lib/scrapers/youtube";
 
 export const runtime = "nodejs";
 
@@ -28,6 +33,12 @@ function fail(message, statusCode = 400) {
 
 // Meratakan hasil kaya dari lib/scrapers/tiktok.js jadi bentuk seragam
 // { title, author, thumbnail, media } yang dipakai di seluruh app.
+function formatBytes(bytes) {
+  if (!bytes) return "";
+  const mb = bytes / (1024 * 1024);
+  return ` · ${mb.toFixed(1)} MB`;
+}
+
 function normalizeTiktokScraperResult(result) {
   const labelMap = {
     watermark: "Download (dengan watermark)",
@@ -38,7 +49,11 @@ function normalizeTiktokScraperResult(result) {
   const media = (result.data || []).map((m, i) =>
     m.type === "photo"
       ? { type: "image", label: `Foto ${i + 1}`, url: m.url }
-      : { type: "video", label: labelMap[m.type] || "Download video", url: m.url }
+      : {
+          type: "video",
+          label: (labelMap[m.type] || "Download video") + formatBytes(m.size),
+          url: m.url,
+        }
   );
 
   if (result.music_info?.url) {
@@ -240,40 +255,55 @@ export async function POST(req) {
       }
 
       case "pinterest": {
-        const data = await getJson(`https://api.azbry.com/api/download/pinterest?url=${link}`);
-        const r = data.result || {};
-        const media = [];
-        if (r.type === "video" && r.download) {
-          media.push({ type: "video", label: "Download video", url: r.download });
-        } else if (r.download) {
-          media.push({ type: "image", label: "Download gambar", url: r.download });
-        }
-        return NextResponse.json({
-          status: true,
-          platform,
-          title: r.title,
-          author: r.user?.fullName,
-          thumbnail: r.thumbnail,
-          media,
+        const tryScraper = async () => {
+          const result = await scrapePinterest(url);
+          if (!result.media?.length) throw new Error("Scraper Pinterest tidak menemukan media.");
+          return result;
+        };
+        const tryEndpoint = async () => {
+          const data = await getJson(`https://api.azbry.com/api/download/pinterest?url=${link}`);
+          const r = data.result || {};
+          const media = [];
+          if (r.type === "video" && r.download) {
+            media.push({ type: "video", label: "Download video", url: r.download });
+          } else if (r.download) {
+            media.push({ type: "image", label: "Download gambar", url: r.download });
+          }
+          return { title: r.title, author: r.user?.fullName, thumbnail: r.thumbnail, media };
+        };
+        const result = await tryScraper().catch((err) => {
+          console.error("[pinterest] scraper gagal, pakai endpoint cadangan:", err.message);
+          return tryEndpoint();
         });
+        return NextResponse.json({ status: true, platform, ...result });
       }
 
       case "twitter": {
-        const data = await getJson(`https://api.azbry.com/api/download/x?url=${link}`);
-        const r = data.result || {};
-        const media = (r.media || []).map((m, i) => ({
-          type: m.type?.startsWith("video") ? "video" : "image",
-          label: m.type?.startsWith("video") ? "Download video" : `Download foto ${i + 1}`,
-          url: m.url,
-        }));
-        return NextResponse.json({
-          status: true,
-          platform,
-          title: r.title,
-          author: r.author?.name,
-          thumbnail: r.media?.[0]?.thumbnail || r.author?.profile_image,
-          media,
+        const tryScraper = async () => {
+          const result = await scrapeTwitter(url);
+          if (!result.media?.length) throw new Error("Scraper Twitter/X tidak menemukan media.");
+          return result;
+        };
+        const tryEndpoint = async () => {
+          const data = await getJson(`https://api.azbry.com/api/download/x?url=${link}`);
+          const r = data.result || {};
+          const media = (r.media || []).map((m, i) => ({
+            type: m.type?.startsWith("video") ? "video" : "image",
+            label: m.type?.startsWith("video") ? "Download video" : `Download foto ${i + 1}`,
+            url: m.url,
+          }));
+          return {
+            title: r.title,
+            author: r.author?.name,
+            thumbnail: r.media?.[0]?.thumbnail || r.author?.profile_image,
+            media,
+          };
+        };
+        const result = await tryScraper().catch((err) => {
+          console.error("[twitter] scraper gagal, pakai endpoint cadangan:", err.message);
+          return tryEndpoint();
         });
+        return NextResponse.json({ status: true, platform, ...result });
       }
 
       case "capcut": {
@@ -300,16 +330,26 @@ export async function POST(req) {
       }
 
       case "applemusic": {
-        const data = await getJson(`https://api.azbry.com/api/download/applemusic?url=${link}`);
-        const r = data.result || {};
-        return NextResponse.json({
-          status: true,
-          platform,
-          title: r.title,
-          author: r.artist,
-          thumbnail: null,
-          media: r.download ? [{ type: "audio", label: "Download MP3", url: r.download }] : [],
+        const tryScraper = async () => {
+          const result = await scrapeAppleMusic(url);
+          if (!result.media?.length) throw new Error("Scraper Apple Music tidak menemukan media.");
+          return result;
+        };
+        const tryEndpoint = async () => {
+          const data = await getJson(`https://api.azbry.com/api/download/applemusic?url=${link}`);
+          const r = data.result || {};
+          return {
+            title: r.title,
+            author: r.artist,
+            thumbnail: null,
+            media: r.download ? [{ type: "audio", label: "Download MP3", url: r.download }] : [],
+          };
+        };
+        const result = await tryScraper().catch((err) => {
+          console.error("[applemusic] scraper gagal, pakai endpoint cadangan:", err.message);
+          return tryEndpoint();
         });
+        return NextResponse.json({ status: true, platform, ...result });
       }
 
       case "soundcloud": {
@@ -326,43 +366,63 @@ export async function POST(req) {
       }
 
       case "spotify": {
-        // Catatan: respons endpoint ini tidak dibungkus field "result".
-        const data = await getJson(`https://api.azbry.com/api/download/spotify?url=${link}`);
-        return NextResponse.json({
-          status: true,
-          platform,
-          title: data.title,
-          author: data.author,
-          thumbnail: data.cover,
-          media: data.downloadLink
-            ? [{ type: "audio", label: "Download MP3", url: data.downloadLink }]
-            : [],
+        const tryScraper = async () => {
+          const result = await scrapeSpotify(url);
+          if (!result.media?.length) throw new Error("Scraper Spotify tidak menemukan media.");
+          return result;
+        };
+        const tryEndpoint = async () => {
+          // Catatan: respons endpoint ini tidak dibungkus field "result".
+          const data = await getJson(`https://api.azbry.com/api/download/spotify?url=${link}`);
+          return {
+            title: data.title,
+            author: data.author,
+            thumbnail: data.cover,
+            media: data.downloadLink
+              ? [{ type: "audio", label: "Download MP3", url: data.downloadLink }]
+              : [],
+          };
+        };
+        const result = await tryScraper().catch((err) => {
+          console.error("[spotify] scraper gagal, pakai endpoint cadangan:", err.message);
+          return tryEndpoint();
         });
+        return NextResponse.json({ status: true, platform, ...result });
       }
 
       case "youtube": {
         const wantAudio = format === "audio";
-        const endpoint = wantAudio
-          ? `https://api.azbry.com/api/download/ytmp3?url=${link}`
-          : `https://api.azbry.com/api/download/ytmp4?url=${link}`;
-        const data = await getJson(endpoint);
-        const r = data.result || {};
-        return NextResponse.json({
-          status: true,
-          platform,
-          title: r.title,
-          author: r.author || r.channel,
-          thumbnail: r.thumbnail,
-          media: r.download
-            ? [
-                {
-                  type: wantAudio ? "audio" : "video",
-                  label: wantAudio ? "Download MP3" : `Download MP4 ${r.quality || ""}`.trim(),
-                  url: r.download,
-                },
-              ]
-            : [],
+        const tryScraper = async () => {
+          const result = await scrapeYouTube(url, format);
+          if (!result.media?.length) throw new Error("Scraper YouTube tidak menghasilkan link.");
+          return result;
+        };
+        const tryEndpoint = async () => {
+          const endpoint = wantAudio
+            ? `https://api.azbry.com/api/download/ytmp3?url=${link}`
+            : `https://api.azbry.com/api/download/ytmp4?url=${link}`;
+          const data = await getJson(endpoint);
+          const r = data.result || {};
+          return {
+            title: r.title,
+            author: r.author || r.channel,
+            thumbnail: r.thumbnail,
+            media: r.download
+              ? [
+                  {
+                    type: wantAudio ? "audio" : "video",
+                    label: wantAudio ? "Download MP3" : `Download MP4 ${r.quality || ""}`.trim(),
+                    url: r.download,
+                  },
+                ]
+              : [],
+          };
+        };
+        const result = await tryScraper().catch((err) => {
+          console.error("[youtube] scraper gagal, pakai endpoint cadangan:", err.message);
+          return tryEndpoint();
         });
+        return NextResponse.json({ status: true, platform, ...result });
       }
 
       default:
