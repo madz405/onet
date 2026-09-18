@@ -1,4 +1,6 @@
-# ONET
+<p align="center">
+  <img src="public/assets/logo.jpg" width="128" alt="ONET">
+</p># ONET
 
 Web downloader media sosial + tools edit cepat + pemutar musik + chat AI, dibangun dengan Next.js (App Router) supaya bisa langsung di-deploy ke Vercel.
 
