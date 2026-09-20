@@ -2,16 +2,24 @@ import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import SiteBackground from "@/components/SiteBackground";
 import { THEME_STORAGE_KEY } from "@/lib/themes";
 import { SITE_NAME, SITE_TAGLINE, SITE_FAVICON } from "@/lib/site";
 
 // Dijalankan sebelum React hydrate, supaya tema tersimpan langsung
 // terpasang sejak render pertama (tidak ada kedipan balik ke tema default).
+// Pilihan "video-*"/"foto-*" tetap disimpan apa adanya, tapi atribut
+// data-theme yang dipasang ke <html> di-resolve ke "glass" (lihat
+// resolveCssTheme() di lib/themes.js) karena background media numpang gaya
+// kaca milik tema glass.
 const themeInitScript = `
 (function () {
   try {
     var theme = localStorage.getItem("${THEME_STORAGE_KEY}");
-    if (theme) document.documentElement.setAttribute("data-theme", theme);
+    if (theme) {
+      var isMedia = theme.indexOf("video-") === 0 || theme.indexOf("foto-") === 0;
+      document.documentElement.setAttribute("data-theme", isMedia ? "glass" : theme);
+    }
   } catch (e) {}
 })();
 `;
@@ -44,6 +52,7 @@ export default function RootLayout({ children }) {
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="font-body bg-ink-950 bg-grain min-h-screen">
+        <SiteBackground />
         <Navbar />
         <main className="min-h-[calc(100vh-64px)]">{children}</main>
         <Footer />
