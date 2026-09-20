@@ -6,7 +6,10 @@
    Sistem tema: tiap variabel berisi angka "R G B" (tanpa fungsi rgb()),
    supaya bisa dipakai Tailwind dengan modifier opacity (contoh: bg-ink-900/60)
    lewat pola rgb(var(--x) / <alpha-value>) di tailwind.config.js.
-   Ganti tema dengan menaruh atribut data-theme="aurora|sunset|mint" di <html>.
+   Ganti tema dengan menaruh atribut data-theme="aurora|sunset|mint|glass" di
+   <html>. Untuk background video/foto, data-theme yang dipasang juga "glass"
+   (lihat resolveCssTheme() di lib/themes.js) supaya kartu-kartunya ikut jadi
+   kaca buram, cocok ditumpuk di atas video/foto yang ramai.
    ========================================================================== */
 
 :root,
@@ -52,6 +55,20 @@
   --flare-600: 224 116 31;
 }
 
+[data-theme="glass"] {
+  --ink-950: 20 16 43;
+  --ink-900: 30 24 64;
+  --ink-800: 42 33 88;
+  --ink-700: 56 44 112;
+  --ink-600: 71 56 144;
+  --signal-400: 255 157 209;
+  --signal-500: 255 111 184;
+  --signal-600: 224 72 154;
+  --flare-400: 255 201 138;
+  --flare-500: 242 167 92;
+  --flare-600: 217 135 48;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -61,6 +78,45 @@ body {
   color: #F3F1FA;
   font-feature-settings: "ss01";
   transition: background-color 0.2s ease;
+}
+
+/* Tema Glass: body-nya pakai gradient warna-warni ala contoh (biru → ungu →
+   pink → oranye), bukan warna solid seperti tema lain. */
+[data-theme="glass"] body {
+  background-color: rgb(20 16 43);
+  background-image:
+    radial-gradient(circle at 12% 12%, rgba(91, 140, 255, 0.55), transparent 45%),
+    radial-gradient(circle at 88% 18%, rgba(168, 92, 255, 0.5), transparent 50%),
+    radial-gradient(circle at 25% 88%, rgba(255, 111, 184, 0.45), transparent 50%),
+    radial-gradient(circle at 92% 92%, rgba(242, 167, 92, 0.5), transparent 45%),
+    linear-gradient(135deg, #16214f 0%, #3c2e7a 45%, #7a3a86 72%, #c96a45 100%);
+  background-attachment: fixed;
+}
+
+/* Efek kaca buram: elemen mana pun yang pakai kelas permukaan kartu standar
+   (bg-ink-900/950/800, dengan modifier opacity apa pun ATAU tanpa modifier
+   sama sekali) otomatis kebagian transparansi + blur belakang kalau tema
+   aktifnya "glass" — jadi tidak perlu ubah tiap komponen kartu satu-satu.
+   Dipasang juga di background video/foto lewat resolveCssTheme() di
+   lib/themes.js, supaya kartu tetap kebaca di atasnya. */
+[data-theme="glass"] [class*="bg-ink-900"] {
+  background-color: rgb(var(--ink-900) / 0.5) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+[data-theme="glass"] [class*="bg-ink-950"] {
+  background-color: rgb(var(--ink-950) / 0.5) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+[data-theme="glass"] [class*="bg-ink-800"] {
+  background-color: rgb(var(--ink-800) / 0.5) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+/* Border putih tipis dipertegas dikit biar kelihatan seperti tepi kaca. */
+[data-theme="glass"] [class*="border-white"] {
+  border-color: rgb(255 255 255 / 0.25) !important;
 }
 
 ::selection {
