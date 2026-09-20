@@ -1,6 +1,8 @@
 <p align="center">
   <img src="public/assets/logo.jpg" width="128" alt="ONET">
-</p># ONET
+</p>
+
+# ONET
 
 Web downloader media sosial + tools edit cepat + pemutar musik + chat AI, dibangun dengan Next.js (App Router) supaya bisa langsung di-deploy ke Vercel.
 
@@ -11,7 +13,7 @@ Web downloader media sosial + tools edit cepat + pemutar musik + chat AI, dibang
 - **Tools** — Brat Text, Brat HD (pilih hasil gambar/video), IQC Status Bar, Lobby Free Fire, Lobby Mobile Legends (upload avatar + nickname), Meme Custom (upload foto + teks atas/bawah), Hapus Background, Perjelas Foto (HD).
 - **Musik** — cari lagu dari judul (YouTube / Spotify / SoundCloud), tampil sebagai satu kartu pemutar (artwork, progress bar, previous/next, mode ulangi/acak/berurutan, volume) dan bisa diunduh. Riwayat pencarian tersimpan otomatis di browser (localStorage) — tidak hilang saat refresh, bisa diputar ulang atau dihapus satu-satu.
 - **Chat AI** — halaman tersendiri (`/chat`), ada di menu navigasi bareng Downloader/Tools/Musik.
-- **Tema warna** — 3 pilihan (Aurora/Sunset/Mint), bisa diganti dari ikon palet di navbar, tersimpan otomatis di browser masing-masing pengunjung.
+- **Tema & background** — 4 tema warna (Aurora/Sunset/Mint/**Glass**), plus pilihan background **video** dan **foto** yang membuat semua kartu otomatis jadi gaya kaca buram (glassmorphism) supaya tetap kebaca di atas media yang ramai. Semua bisa diganti dari ikon palet di navbar, tersimpan otomatis di browser masing-masing pengunjung.
 
 Semua tombol download (baik dari downloader maupun tools) diarahkan lewat `app/api/fetch-media` atau proxy tool masing-masing, supaya file **langsung terunduh** — tidak membuka tab baru dulu. Ini penting karena atribut `download` di HTML hanya dihormati browser untuk file satu domain; link CDN pihak ketiga perlu ditarik dulu di server sebelum dikirim ke browser dengan header `Content-Disposition: attachment`.
 
@@ -91,6 +93,34 @@ public/assets/
 Semua gambar ini dirender lewat `next/image` (bukan `<img>` biasa), jadi otomatis dikompres, dikonversi ke format lebih ringan, dan baru dimuat saat kelihatan di layar (lazy-load) — tidak perlu setting tambahan apa pun karena file-nya lokal di `public/`.
 
 Mau ganti salah satu gambarnya? Timpa saja file dengan nama yang sama di `public/assets/` — tidak perlu ubah kode. Mau ganti *nama filenya*? Sesuaikan path-nya di `lib/platforms.js` (field `logo` tiap platform) atau `lib/site.js` (`SITE_LOGO`, `SITE_FAVICON`, `KAYNA_AVATAR`).
+
+## Tema Glass & background video/foto
+
+Selain 3 tema warna solid (Aurora/Sunset/Mint), ada tema ke-4 bernama **Glass**: kartu-kartunya jadi kaca buram (transparan + blur), dengan warna dasar gradasi biru → ungu → pink → oranye. Efek kaca ini otomatis dipakai juga setiap kali user memilih background **video** atau **foto** (bukan warna solid), supaya konten tetap kebaca di atas media yang ramai — jadi kamu tidak perlu mengatur gaya kartu secara terpisah untuk tiap kombinasi.
+
+Semua pilihan ini didaftarkan di satu tempat: `lib/themes.js`. Untuk video/foto, filenya harus ada di `public/assets/backgrounds/` dengan nama persis seperti ini (2 slot masing-masing sebagai contoh awal):
+
+```
+public/assets/backgrounds/
+  video-1.mp4
+  video-2.mp4
+  foto-1.jpg
+  foto-2.jpg
+```
+
+**Menambah pilihan video/foto baru:** upload file barunya ke folder di atas, lalu tambah satu entri baru di array `THEMES` pada `lib/themes.js`, contoh:
+
+```js
+{ id: "video-3", name: "Video 3", kind: "video", src: "/assets/backgrounds/video-3.mp4" },
+```
+
+Otomatis muncul sebagai pilihan baru di menu tema, tidak perlu ubah file lain.
+
+**Catatan soal video/foto background:**
+- Ditampilkan penuh satu layar dengan `object-fit: cover` — untuk video/foto rasio potret (9:16), ini berarti bagian atas-bawahnya akan terpotong di layar lebar (PC/desktop) supaya lebarnya tetap penuh, bukan tampil utuh dengan bar kosong di samping.
+- Ada lapisan gelap tipis otomatis di atas video/foto (di `components/SiteBackground.js`) supaya teks & kartu kaca tetap kontras terlepas dari video/foto apa yang dipilih user.
+- Kalau file video/foto-nya gagal dimuat (nama salah, belum diupload, dll), background otomatis kembali polos (warna dasar tema) — tidak bikin halaman rusak/kosong.
+- Video **tidak** dikompres otomatis oleh Next.js seperti gambar lewat `next/image` — pastikan file videonya sudah kamu kompres sendiri sebelum upload (idealnya di bawah beberapa MB, format MP4/H.264, durasi pendek & di-loop).
 
 ## Mengganti nama, logo, dan favicon website
 
