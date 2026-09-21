@@ -17,7 +17,7 @@ export default function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-6">
       <div
-        className="max-h-[88vh] w-full overflow-y-auto rounded-t-3xl border border-white/10 bg-ink-900 p-6 shadow-glow animate-rise sm:max-w-lg sm:rounded-3xl"
+        className="glass-surface-solid max-h-[88vh] w-full overflow-y-auto rounded-t-3xl border border-white/10 bg-ink-900 p-6 shadow-glow animate-rise sm:max-w-lg sm:rounded-3xl"
         role="dialog"
         aria-modal="true"
       >
