@@ -31,6 +31,15 @@ export default function SiteBackground() {
   const theme = getThemeById(themeId);
   if (!theme || theme.kind === "color" || failed) return null;
 
+  // Kalau muncul pesan ini di console (F12 -> Console di browser), berarti
+  // filenya belum ada / salah nama / salah folder di public/assets/backgrounds/
+  // — cek juga tab Network di DevTools untuk lihat status response-nya (404
+  // berarti memang belum ketemu filenya di server).
+  function handleError() {
+    console.error(`[SiteBackground] Gagal memuat "${theme.src}" — cek apakah file itu benar-benar ada di public${theme.src}`);
+    setFailed(true);
+  }
+
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden bg-ink-950">
       {theme.kind === "video" ? (
@@ -41,7 +50,7 @@ export default function SiteBackground() {
           loop
           playsInline
           className="h-full w-full object-cover"
-          onError={() => setFailed(true)}
+          onError={handleError}
         >
           <source src={theme.src} type="video/mp4" />
         </video>
@@ -54,7 +63,7 @@ export default function SiteBackground() {
           priority
           sizes="100vw"
           className="object-cover"
-          onError={() => setFailed(true)}
+          onError={handleError}
         />
       )}
       {/* Lapisan gelap tipis supaya teks & kartu tetap kebaca di atas
