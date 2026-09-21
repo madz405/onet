@@ -41,7 +41,7 @@ export default function SiteBackground() {
   }
 
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden bg-ink-950">
+    <div className="fixed inset-0 -z-10 overflow-hidden bg-black">
       {theme.kind === "video" ? (
         <video
           key={theme.src}
