@@ -97,21 +97,26 @@ body {
    aktifnya "glass" — jadi tidak perlu ubah tiap komponen kartu satu-satu.
    Dipasang juga di background video/foto lewat resolveCssTheme() di
    lib/themes.js, supaya kartu tetap kebaca di atasnya.
-   Dikecualikan: .glass-surface-solid (lihat blok terpisah di bawah) — dipakai
-   khusus untuk modal, karena modal sudah punya lapisan backdrop-blur sendiri
-   di belakangnya; kalau isi modalnya juga dibuat transparan+blur, dua lapis
-   blur itu numpuk dan modalnya jadi nyaris tidak kelihatan/tidak terbaca. */
-[data-theme="glass"] [class*="bg-ink-900"]:not(.glass-surface-solid) {
+   Dikecualikan:
+   - body — <body> sendiri punya class "bg-ink-950" (buat warna dasar
+     halaman), kalau ikut ke-match dia dapat backdrop-filter juga dan itu
+     bikin SELURUH halaman (termasuk konten yang dirender di atasnya)
+     ikut tampak blur — bukan cuma kartunya.
+   - .glass-surface-solid — dipakai khusus modal (lihat blok terpisah di
+     bawah), karena modal sudah punya lapisan backdrop-blur sendiri di
+     belakangnya; kalau isi modalnya juga dibuat transparan+blur, dua lapis
+     blur itu numpuk dan modalnya jadi nyaris tidak kelihatan/tidak terbaca. */
+[data-theme="glass"] [class*="bg-ink-900"]:not(body):not(.glass-surface-solid) {
   background-color: rgb(var(--ink-900) / 0.38) !important;
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
-[data-theme="glass"] [class*="bg-ink-950"]:not(.glass-surface-solid) {
+[data-theme="glass"] [class*="bg-ink-950"]:not(body):not(.glass-surface-solid) {
   background-color: rgb(var(--ink-950) / 0.38) !important;
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
-[data-theme="glass"] [class*="bg-ink-800"]:not(.glass-surface-solid) {
+[data-theme="glass"] [class*="bg-ink-800"]:not(body):not(.glass-surface-solid) {
   background-color: rgb(var(--ink-800) / 0.38) !important;
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
