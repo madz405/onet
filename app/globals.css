@@ -81,14 +81,29 @@ body {
 }
 
 /* Tema Glass: body-nya pakai gradient warna-warni ala contoh (biru → ungu →
-   pink → oranye) dengan blob lembut besar, bukan warna solid seperti tema lain. */
+   pink → oranye) dengan blob lembut besar, bukan warna solid seperti tema lain.
+   Catatan: sengaja TIDAK pakai background-attachment: fixed — properti itu
+   tidak stabil di banyak browser HP (background-nya berhenti "ngikutin" pas
+   halaman panjang di-scroll, jadi warna dasar polos kelihatan nongol di
+   ujung). Tanpa "fixed", gradient-nya otomatis meregang mengikuti tinggi
+   halaman penuh, jadi tidak ada celah warna solid yang kelihatan lagi.
+   html dan body dikasih gradient yang PERSIS SAMA (bukan cuma html dikasih
+   warna solid) — soalnya di beberapa browser HP, pas scroll/bounce di ujung
+   halaman, potongan kecil <html> ikut kelihatan sesaat; kalau warnanya beda
+   sama gradient body, muncul garis warna solid yang norak di situ. */
+[data-theme="glass"] html {
+  background-color: rgb(30 41 130);
+  background-image:
+    radial-gradient(circle at 82% 6%, rgba(147, 179, 255, 0.65), transparent 42%),
+    radial-gradient(circle at 4% 82%, rgba(255, 255, 255, 0.10), transparent 38%),
+    linear-gradient(150deg, #1c3fae 0%, #4a3fc9 26%, #8b3fc4 50%, #d94ea0 74%, #ff8a4c 100%);
+}
 [data-theme="glass"] body {
   background-color: rgb(30 41 130);
   background-image:
     radial-gradient(circle at 82% 6%, rgba(147, 179, 255, 0.65), transparent 42%),
     radial-gradient(circle at 4% 82%, rgba(255, 255, 255, 0.10), transparent 38%),
     linear-gradient(150deg, #1c3fae 0%, #4a3fc9 26%, #8b3fc4 50%, #d94ea0 74%, #ff8a4c 100%);
-  background-attachment: fixed;
 }
 
 /* Efek kaca buram: elemen mana pun yang pakai kelas permukaan kartu standar
