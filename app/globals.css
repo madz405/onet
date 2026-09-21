@@ -81,15 +81,13 @@ body {
 }
 
 /* Tema Glass: body-nya pakai gradient warna-warni ala contoh (biru → ungu →
-   pink → oranye), bukan warna solid seperti tema lain. */
+   pink → oranye) dengan blob lembut besar, bukan warna solid seperti tema lain. */
 [data-theme="glass"] body {
-  background-color: rgb(20 16 43);
+  background-color: rgb(30 41 130);
   background-image:
-    radial-gradient(circle at 12% 12%, rgba(91, 140, 255, 0.55), transparent 45%),
-    radial-gradient(circle at 88% 18%, rgba(168, 92, 255, 0.5), transparent 50%),
-    radial-gradient(circle at 25% 88%, rgba(255, 111, 184, 0.45), transparent 50%),
-    radial-gradient(circle at 92% 92%, rgba(242, 167, 92, 0.5), transparent 45%),
-    linear-gradient(135deg, #16214f 0%, #3c2e7a 45%, #7a3a86 72%, #c96a45 100%);
+    radial-gradient(circle at 82% 6%, rgba(147, 179, 255, 0.65), transparent 42%),
+    radial-gradient(circle at 4% 82%, rgba(255, 255, 255, 0.10), transparent 38%),
+    linear-gradient(150deg, #1c3fae 0%, #4a3fc9 26%, #8b3fc4 50%, #d94ea0 74%, #ff8a4c 100%);
   background-attachment: fixed;
 }
 
@@ -98,25 +96,39 @@ body {
    sama sekali) otomatis kebagian transparansi + blur belakang kalau tema
    aktifnya "glass" — jadi tidak perlu ubah tiap komponen kartu satu-satu.
    Dipasang juga di background video/foto lewat resolveCssTheme() di
-   lib/themes.js, supaya kartu tetap kebaca di atasnya. */
-[data-theme="glass"] [class*="bg-ink-900"] {
-  background-color: rgb(var(--ink-900) / 0.5) !important;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+   lib/themes.js, supaya kartu tetap kebaca di atasnya.
+   Dikecualikan: .glass-surface-solid (lihat blok terpisah di bawah) — dipakai
+   khusus untuk modal, karena modal sudah punya lapisan backdrop-blur sendiri
+   di belakangnya; kalau isi modalnya juga dibuat transparan+blur, dua lapis
+   blur itu numpuk dan modalnya jadi nyaris tidak kelihatan/tidak terbaca. */
+[data-theme="glass"] [class*="bg-ink-900"]:not(.glass-surface-solid) {
+  background-color: rgb(var(--ink-900) / 0.38) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
-[data-theme="glass"] [class*="bg-ink-950"] {
-  background-color: rgb(var(--ink-950) / 0.5) !important;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+[data-theme="glass"] [class*="bg-ink-950"]:not(.glass-surface-solid) {
+  background-color: rgb(var(--ink-950) / 0.38) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
-[data-theme="glass"] [class*="bg-ink-800"] {
-  background-color: rgb(var(--ink-800) / 0.5) !important;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+[data-theme="glass"] [class*="bg-ink-800"]:not(.glass-surface-solid) {
+  background-color: rgb(var(--ink-800) / 0.38) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
 /* Border putih tipis dipertegas dikit biar kelihatan seperti tepi kaca. */
 [data-theme="glass"] [class*="border-white"] {
   border-color: rgb(255 255 255 / 0.25) !important;
+}
+
+/* Permukaan kaca versi "solid": tetap kelihatan seperti kaca (border terang,
+   sedikit blur di baliknya) tapi jauh lebih pekat/legible — dipakai untuk
+   modal (popup input link, popup tool) yang harus tetap mudah dibaca dan
+   jelas ketauan itu popup, bukan cuma penumpukan blur di atas blur. */
+[data-theme="glass"] .glass-surface-solid {
+  background-color: rgb(var(--ink-900) / 0.94) !important;
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
 }
 
 ::selection {
