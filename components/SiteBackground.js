@@ -41,7 +41,18 @@ export default function SiteBackground() {
   }
 
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden bg-black">
+    // "inset-0" biasa (top/right/bottom/left semua 0) itu di banyak browser
+    // HP dihitung ulang telat pas address bar collapse/muncul waktu scroll —
+    // sesaat ada celah di bagian bawah yang nampakin warna di baliknya (baru
+    // kelihatan pas sudah discroll, apalagi kalau tema aktif adalah video/
+    // foto yang warnanya beda jauh dari gradient tema Glass). Diganti pakai
+    // height "100dvh" (dynamic viewport height, otomatis ngikutin ukuran
+    // layar yang benar-benar kelihatan saat itu) plus buffer ekstra di
+    // atas-bawah, supaya tetap nutup penuh walau ada telat sepersekian detik.
+    <div
+      className="fixed inset-x-0 -z-10 overflow-hidden bg-black"
+      style={{ top: "-4vh", height: "108dvh" }}
+    >
       {theme.kind === "video" ? (
         <video
           key={theme.src}
