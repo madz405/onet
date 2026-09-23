@@ -80,30 +80,56 @@ body {
   transition: background-color 0.2s ease;
 }
 
-/* Tema Glass: body-nya pakai gradient warna-warni ala contoh (biru → ungu →
-   pink → oranye) dengan blob lembut besar, bukan warna solid seperti tema lain.
-   Catatan: sengaja TIDAK pakai background-attachment: fixed — properti itu
-   tidak stabil di banyak browser HP (background-nya berhenti "ngikutin" pas
-   halaman panjang di-scroll, jadi warna dasar polos kelihatan nongol di
-   ujung). Tanpa "fixed", gradient-nya otomatis meregang mengikuti tinggi
-   halaman penuh, jadi tidak ada celah warna solid yang kelihatan lagi.
-   html dan body dikasih gradient yang PERSIS SAMA (bukan cuma html dikasih
-   warna solid) — soalnya di beberapa browser HP, pas scroll/bounce di ujung
-   halaman, potongan kecil <html> ikut kelihatan sesaat; kalau warnanya beda
-   sama gradient body, muncul garis warna solid yang norak di situ. */
-[data-theme="glass"] html {
-  background-color: rgb(30 41 130);
+/* Tema Glass (juga dipakai semua background video/foto, karena numpang tema
+   ini): gradient biru → ungu → pink → oranye digambar di lapisan FIXED
+   (html::before), bukan di background body.
+   Kenapa: dulu gradient ditaruh di body dan di-stretch mengikuti tinggi
+   halaman. Waktu di-scroll di HP, address bar browser muncul/hilang dan
+   tinggi viewport berubah — ada beberapa frame di mana bagian bawah layar
+   belum tertutup apa-apa, dan yang kelihatan adalah ujung gradient
+   (pink/oranye) itu = "glitch" warna di bawah.
+   Sekarang:
+   - html dikasih warna solid gelap sebagai dasar terakhir, jadi kalau ada
+     celah sekecil apa pun yang kelihatan cuma warna gelap netral.
+   - body dibuat transparan. PENTING: jangan kasih background ke body lagi
+     di tema ini — kalau body punya background sendiri, dia bakal menutupi
+     lapisan video/foto (z-index negatif) dan background media jadi hilang.
+   - Lapisan gradient & lapisan video/foto tingginya 100lvh (tinggi layar
+     terbesar, saat address bar sudah hilang) + bonus 12vh, jadi ukurannya
+     tidak ikut mengecil/membesar waktu address bar berubah. */
+html[data-theme="glass"] {
+  background-color: rgb(var(--ink-950));
+}
+html[data-theme="glass"] body {
+  background: transparent !important;
+}
+
+/* Ukuran & posisi bersama untuk lapisan background (gradient glass dan
+   video/foto di SiteBackground.js). height ditulis dua kali: baris pertama
+   cadangan untuk browser lama yang belum kenal satuan "lvh". */
+html[data-theme="glass"]::before,
+.site-bg-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(100vh + 12vh);
+  height: calc(100lvh + 12vh);
+  pointer-events: none;
+  transform: translateZ(0);
+}
+html[data-theme="glass"]::before {
+  content: "";
+  z-index: -20;
   background-image:
     radial-gradient(circle at 82% 6%, rgba(147, 179, 255, 0.65), transparent 42%),
     radial-gradient(circle at 4% 82%, rgba(255, 255, 255, 0.10), transparent 38%),
     linear-gradient(150deg, #1c3fae 0%, #4a3fc9 26%, #8b3fc4 50%, #d94ea0 74%, #ff8a4c 100%);
 }
-[data-theme="glass"] body {
-  background-color: rgb(30 41 130);
-  background-image:
-    radial-gradient(circle at 82% 6%, rgba(147, 179, 255, 0.65), transparent 42%),
-    radial-gradient(circle at 4% 82%, rgba(255, 255, 255, 0.10), transparent 38%),
-    linear-gradient(150deg, #1c3fae 0%, #4a3fc9 26%, #8b3fc4 50%, #d94ea0 74%, #ff8a4c 100%);
+.site-bg-layer {
+  z-index: -10;
+  overflow: hidden;
+  background-color: #000;
 }
 
 /* Efek kaca buram: elemen mana pun yang pakai kelas permukaan kartu standar
