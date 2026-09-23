@@ -51,10 +51,22 @@ export default function RootLayout({ children }) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className="font-body bg-ink-950 bg-grain min-h-screen">
+      {/* min-h-screen (100vh statis) diganti min-h-dvh: di browser HP, 100vh
+          dihitung pakai tinggi viewport saat address bar disembunyikan (jadi
+          LEBIH TINGGI dari yang kelihatan waktu address bar masih muncul).
+          Body/main jadi "dipaksa" setinggi itu sejak awal, padahal ruang
+          ekstranya belum kelihatan — begitu discroll dan address bar-nya
+          collapse (viewport asli membesar menyamai 100vh), ruang ekstra tadi
+          baru nongol, isinya cuma warna body polos di baliknya. Untuk tema
+          lain nyaris tidak kelihatan (warnanya rata), tapi di tema Glass yang
+          gradasinya biru->ungu->pink->oranye, ruang ekstra itu nampak sebagai
+          "glitch" warna pink/oranye di bawah pas discroll. min-h-dvh (dynamic
+          viewport height) ikut ukuran viewport yang BENAR-BENAR kelihatan
+          saat itu, jadi tidak ada ruang ekstra yang nongol belakangan. */}
+      <body className="font-body bg-ink-950 bg-grain min-h-dvh">
         <SiteBackground />
         <Navbar />
-        <main className="min-h-[calc(100vh-64px)]">{children}</main>
+        <main className="min-h-[calc(100dvh-64px)]">{children}</main>
         <Footer />
       </body>
     </html>
