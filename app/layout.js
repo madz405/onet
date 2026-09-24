@@ -4,6 +4,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SiteBackground from "@/components/SiteBackground";
 import SplashLoader from "@/components/SplashLoader";
+import MusicPlayerProvider from "@/components/MusicPlayerProvider";
+import MiniPlayer from "@/components/MiniPlayer";
 import { THEME_STORAGE_KEY } from "@/lib/themes";
 import { SITE_NAME, SITE_TAGLINE, SITE_FAVICON } from "@/lib/site";
 
@@ -90,9 +92,14 @@ export default function RootLayout({ children }) {
       <body className="font-body bg-ink-950 bg-grain min-h-dvh">
         <SplashLoader />
         <SiteBackground />
-        <Navbar />
-        <main className="min-h-[calc(100dvh-64px)]">{children}</main>
-        <Footer />
+        {/* Provider membungkus semua halaman supaya <audio> tidak ter-unmount
+            saat pindah halaman; MiniPlayer hanya muncul di "/", "/tools", dan "/chat". */}
+        <MusicPlayerProvider>
+          <Navbar />
+          <MiniPlayer />
+          <main className="min-h-[calc(100dvh-64px)]">{children}</main>
+          <Footer />
+        </MusicPlayerProvider>
       </body>
     </html>
   );
