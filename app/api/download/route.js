@@ -8,12 +8,18 @@ import { scrapeSpotify } from "@/lib/scrapers/spotify";
 import { scrapeYouTube } from "@/lib/scrapers/youtube";
 
 export const runtime = "nodejs";
+// Downloader TikTok sekarang bisa mencoba 3 API + scraper berurutan, jadi
+// beri waktu lebih panjang supaya fallback terakhir tidak terpotong.
+export const maxDuration = 60;
 
 const UA =
   "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36";
 
-async function getJson(url) {
-  const res = await fetch(url, { headers: { "User-Agent": UA } });
+async function getJson(url, timeoutMs) {
+  const res = await fetch(url, {
+    headers: { "User-Agent": UA },
+    ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
+  });
   const text = await res.text();
   let data;
   try {
@@ -64,6 +70,55 @@ function normalizeTiktokScraperResult(result) {
     title: result.title || null,
     author: result.author?.nickname || result.author?.fullname || null,
     thumbnail: result.cover || null,
+    media,
+  };
+}
+
+// Hasil endpoint API nexray dan faa punya bentuk mirip: "data" berisi string
+// URL (video) atau array URL (slide foto), plus music_info.url untuk audio.
+// Kalau ternyata data kosong, dilempar error supaya lanjut ke sumber berikutnya.
+function pushTiktokAudio(media, r) {
+  if (r.music_info?.url) media.push({ type: "audio", label: "Audio latar", url: r.music_info.url });
+}
+
+function normalizeNexrayTiktok(r) {
+  const media = [];
+  const photos = Array.isArray(r.data) ? r.data : Array.isArray(r.images) ? r.images : null;
+  if (photos?.length) {
+    photos.forEach((img, i) => media.push({ type: "image", label: `Foto ${i + 1}`, url: img }));
+  } else if (typeof r.data === "string" && r.data) {
+    media.push({ type: "video", label: "Download (tanpa watermark)", url: r.data });
+  }
+  if (!media.length) throw new Error("empty");
+  pushTiktokAudio(media, r);
+  return {
+    title: r.title || null,
+    author: r.author?.nickname || r.author?.fullname || null,
+    thumbnail: r.cover || null,
+    media,
+  };
+}
+
+function normalizeFaaTiktok(r) {
+  const media = [];
+  if (Array.isArray(r.data)) {
+    r.data.forEach((img, i) => media.push({ type: "image", label: `Foto ${i + 1}`, url: img }));
+  } else {
+    const hd = r.alternatives?.hd || r.data;
+    const sd = r.alternatives?.sd;
+    if (sd && sd !== hd) {
+      media.push({ type: "video", label: "Download (tanpa watermark)", url: sd });
+      media.push({ type: "video", label: "Download HD (tanpa watermark)", url: hd });
+    } else if (hd) {
+      media.push({ type: "video", label: "Download (tanpa watermark)", url: hd });
+    }
+  }
+  if (!media.length) throw new Error("empty");
+  pushTiktokAudio(media, r);
+  return {
+    title: r.title || null,
+    author: r.author?.nickname || r.author?.username || null,
+    thumbnail: r.cover || null,
     media,
   };
 }
@@ -123,13 +178,21 @@ export async function POST(req) {
   try {
     switch (platform) {
       case "tiktok": {
-        // 1) Coba endpoint API (azbry) dulu sebagai metode utama — hasilnya
-        //    lengkap dengan audio. Coba endpoint video dulu, kalau ternyata
-        //    post foto baru coba endpoint slide.
-        const tryEndpoint = async () => {
+        const API_TIMEOUT = 10000;
+
+        // Urutan percobaan: azbry -> faa -> nexray -> scraper (tikwm).
+        // Tiap sumber yang gagal/mengembalikan hasil kosong otomatis lanjut
+        // ke sumber berikutnya.
+
+        // 1) API azbry — coba endpoint video dulu, kalau ternyata post foto
+        //    baru coba endpoint slide.
+        const tryAzbry = async () => {
           const isPhoto = /\/photo\//i.test(url);
           const tryVideo = async () => {
-            const data = await getJson(`https://api.azbry.com/api/download/tiktokv2?url=${link}`);
+            const data = await getJson(
+              `https://api.azbry.com/api/download/tiktokv2?url=${link}`,
+              API_TIMEOUT
+            );
             const r = data.result || {};
             const downloads = (r.downloads || []).map((d) => ({
               type: d.type === "mp3" ? "audio" : "video",
@@ -145,7 +208,10 @@ export async function POST(req) {
             };
           };
           const trySlide = async () => {
-            const data = await getJson(`https://api.azbry.com/api/download/tiktokslide?url=${link}`);
+            const data = await getJson(
+              `https://api.azbry.com/api/download/tiktokslide?url=${link}`,
+              API_TIMEOUT
+            );
             const r = data.result || {};
             const images = (r.images || []).map((img, i) => ({
               type: "image",
@@ -164,9 +230,24 @@ export async function POST(req) {
           return isPhoto ? await trySlide() : await tryVideo().catch(trySlide);
         };
 
-        // 2) Kalau endpoint API gagal, jatuh ke scraper langsung (tikwm) sebagai
-        //    cadangan. Hasil scraper tidak punya audio, jadi pemutar audio dan
-        //    tombol "Audio latar" otomatis tidak muncul.
+        // 2) API faa — satu endpoint untuk video maupun slide.
+        const tryFaa = async () => {
+          const data = await getJson(`https://api-faa.my.id/faa/tiktok?url=${link}`, API_TIMEOUT);
+          return normalizeFaaTiktok(data.result || {});
+        };
+
+        // 3) API nexray — satu endpoint untuk video maupun slide.
+        const tryNexray = async () => {
+          const data = await getJson(
+            `https://api.nexray.eu.cc/downloader/tiktok?url=${link}`,
+            API_TIMEOUT
+          );
+          return normalizeNexrayTiktok(data.result || {});
+        };
+
+        // 4) Scraper langsung (tikwm) — paling terakhir. Hasil scraper tidak
+        //    punya audio, jadi pemutar audio dan tombol "Audio latar"
+        //    otomatis tidak muncul.
         const tryScraper = async () => {
           const res = await tiktokDl(url);
           if (!res.status || !res.data?.length) {
@@ -175,10 +256,26 @@ export async function POST(req) {
           return normalizeTiktokScraperResult(res);
         };
 
-        const result = await tryEndpoint().catch((err) => {
-          console.error("[tiktok] API gagal, pakai scraper cadangan:", err.message);
-          return tryScraper();
-        });
+        const attempts = [
+          ["azbry", tryAzbry],
+          ["faa", tryFaa],
+          ["nexray", tryNexray],
+          ["scraper", tryScraper],
+        ];
+
+        let result = null;
+        for (const [name, run] of attempts) {
+          try {
+            result = await run();
+            if (result?.media?.length) break;
+            result = null;
+          } catch (err) {
+            console.error(`[tiktok] ${name} gagal:`, err.message);
+          }
+        }
+        if (!result) {
+          throw new Error("Semua sumber TikTok gagal memproses link ini. Coba lagi sebentar lagi.");
+        }
 
         return NextResponse.json({ status: true, platform, ...result });
       }
