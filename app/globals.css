@@ -475,3 +475,21 @@ html[data-theme="glass"]::before {
 @keyframes splash-failsafe {
   to { opacity: 0; visibility: hidden; pointer-events: none; }
 }
+
+/* ==========================================================================
+   Proteksi media: cegah menu "Simpan/Salin gambar" & drag-save pada semua
+   <img>/<video>/<picture> di seluruh situs (logo, background, thumbnail,
+   preview hasil unduhan, dsb). Kombinasi CSS ini + listener contextmenu &
+   dragstart di app/layout.js (dijalankan lewat inline script di <head>).
+   Tombol/ikon (svg dari lucide-react) sengaja TIDAK disentuh biar interaksi
+   tombol tetap normal.
+   ========================================================================== */
+img,
+video,
+picture {
+  -webkit-touch-callout: none; /* iOS Safari: matikan callout "Simpan Gambar" saat long-press */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none; /* cegah drag gambar keluar halaman */
+}
