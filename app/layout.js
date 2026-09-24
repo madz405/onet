@@ -25,6 +25,28 @@ const themeInitScript = `
 })();
 `;
 
+// Blokir menu "Simpan gambar/video" yang muncul saat tekan-lama (Android
+// Chrome) atau klik-kanan (desktop) di atas <img>/<video>/<picture>.
+// Long-press di Chrome Android tetap memicu event "contextmenu" (bukan cuma
+// klik kanan), jadi preventDefault() di sini efektif untuk keduanya.
+// -webkit-touch-callout di globals.css menangani kasus Safari iOS yang tidak
+// selalu memicu "contextmenu" saat long-press.
+// Dipasang di <head> (bukan lewat komponen client) supaya listener terpasang
+// di document sejak awal dan tidak hilang saat navigasi client-side.
+const disableMediaContextMenuScript = `
+(function () {
+  function isMediaTarget(el) {
+    return !!(el && el.closest && el.closest("img, video, picture"));
+  }
+  document.addEventListener("contextmenu", function (e) {
+    if (isMediaTarget(e.target)) e.preventDefault();
+  }, false);
+  document.addEventListener("dragstart", function (e) {
+    if (isMediaTarget(e.target)) e.preventDefault();
+  }, false);
+})();
+`;
+
 const display = Space_Grotesk({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
@@ -51,6 +73,7 @@ export default function RootLayout({ children }) {
     <html lang="id" className={`${display.variable} ${body.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: disableMediaContextMenuScript }} />
       </head>
       {/* min-h-screen (100vh statis) diganti min-h-dvh: di browser HP, 100vh
           dihitung pakai tinggi viewport saat address bar disembunyikan (jadi
