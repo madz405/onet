@@ -50,7 +50,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-white/50">
               <li className="flex items-center gap-2">
                 <User size={14} className="flex-shrink-0" />
-                madzmuldi
+                A. muldi
               </li>
               <li className="flex items-center gap-2">
                 <Mail size={14} className="flex-shrink-0" />
