@@ -230,3 +230,248 @@ html[data-theme="glass"]::before {
 .animate-pulse-ring {
   animation: pulse-ring 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* ==========================================================================
+   Layar loading (components/SplashLoader.js)
+   Semua warna diambil dari variabel tema (--ink / --signal / --flare), jadi
+   otomatis ikut tema yang sedang aktif. Class-nya sengaja diawali "splash-"
+   dan tidak memakai class bg-ink-* / border-white*, supaya tidak ikut kena
+   aturan efek kaca (glass) di atas.
+   ========================================================================== */
+@property --splash-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.splash-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100; /* di atas navbar (z-40) dan modal */
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #fff;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.6s ease, visibility 0s linear 0s;
+  /* Pengaman: kalau JS gagal, layar ini hilang sendiri setelah 12 detik. */
+  animation: splash-failsafe 0.5s ease 12s forwards;
+}
+.splash-root.is-leaving {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.6s ease, visibility 0s linear 0.6s;
+}
+/* Warna dasar dibuat lebih tinggi dari layar (100lvh + bonus) supaya tidak
+   ada celah saat address bar HP naik-turun — alasan yang sama dengan
+   lapisan background di atas. */
+.splash-root::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(100vh + 12vh);
+  height: calc(100lvh + 12vh);
+  background: rgb(var(--ink-950));
+  z-index: -1;
+}
+
+/* Dua blob warna lembut di sudut, bergerak sangat pelan. */
+.splash-blob {
+  position: absolute;
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+  animation: splash-drift 9s ease-in-out infinite alternate;
+}
+.splash-blob-a {
+  top: -110px;
+  left: -120px;
+  background: rgb(var(--signal-500) / 0.4);
+}
+.splash-blob-b {
+  right: -120px;
+  bottom: -110px;
+  background: rgb(var(--flare-500) / 0.32);
+  animation-delay: -4.5s;
+}
+
+.splash-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24px;
+}
+
+/* Logo + cincin cahaya yang berputar + gelombang tipis yang memancar. */
+.splash-emblem {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  transition: transform 0.6s ease;
+}
+.is-leaving .splash-emblem {
+  transform: scale(1.15);
+}
+.splash-wave {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border-radius: 50%;
+  border: 1px solid rgb(var(--signal-400) / 0.5);
+  opacity: 0;
+  animation: splash-wave 3s ease-out infinite;
+}
+.splash-wave-late {
+  animation-delay: 1.5s;
+}
+.splash-logo-box {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  animation: splash-pop 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+.splash-logo-img {
+  display: block;
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+  object-fit: cover;
+  background: #000;
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.5),
+    0 0 44px rgb(var(--signal-500) / 0.28),
+    0 0 0 1px rgb(255 255 255 / 0.1);
+}
+.splash-ring-track,
+.splash-ring {
+  position: absolute;
+  inset: -10px;
+  border-radius: 33px;
+  pointer-events: none;
+}
+.splash-ring-track {
+  border: 1px solid rgb(255 255 255 / 0.1);
+}
+.splash-ring {
+  padding: 2.5px;
+  background: conic-gradient(
+    from var(--splash-angle),
+    transparent 0deg,
+    rgb(var(--signal-400)) 80deg,
+    rgb(var(--flare-500)) 150deg,
+    transparent 210deg,
+    transparent 360deg
+  );
+  /* Lubangi bagian tengah, sisakan hanya garis cincinnya. */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: splash-spin 2.2s linear infinite;
+}
+
+.splash-title {
+  margin-top: 34px;
+  font-family: var(--font-display), sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  padding-left: 0.06em; /* imbangi letter-spacing supaya benar-benar di tengah */
+  animation: splash-up 0.6s ease-out 0.3s both;
+}
+.splash-tagline {
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgb(255 255 255 / 0.55);
+  animation: splash-up 0.6s ease-out 0.4s both;
+}
+
+.splash-progress {
+  width: min(280px, 74vw);
+  margin-top: 44px;
+  animation: splash-up 0.6s ease-out 0.5s both;
+}
+.splash-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 9px;
+  font-size: 12px;
+  color: rgb(255 255 255 / 0.6);
+}
+.splash-percent {
+  font-weight: 600;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.splash-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+}
+.splash-fill {
+  position: relative;
+  height: 100%;
+  border-radius: 999px;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--signal-500)),
+    rgb(var(--signal-400)) 55%,
+    rgb(var(--flare-500))
+  );
+  box-shadow: 0 0 14px rgb(var(--signal-500) / 0.55);
+  transition: width 0.18s ease-out;
+}
+/* Kilau yang menyapu bar dari kiri ke kanan. */
+.splash-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.55) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: splash-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (max-height: 520px) {
+  .splash-content {
+    transform: scale(0.8);
+  }
+}
+
+@keyframes splash-pop {
+  from { opacity: 0; transform: scale(0.82); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+@keyframes splash-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes splash-spin {
+  to { --splash-angle: 360deg; }
+}
+@keyframes splash-wave {
+  0% { transform: scale(0.75); opacity: 0.5; }
+  55% { opacity: 0.16; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+@keyframes splash-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(26px, 20px, 0) scale(1.08); }
+}
+@keyframes splash-shimmer {
+  to { transform: translateX(100%); }
+}
+@keyframes splash-failsafe {
+  to { opacity: 0; visibility: hidden; pointer-events: none; }
+}
