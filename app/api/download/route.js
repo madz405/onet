@@ -56,9 +56,9 @@ function normalizeTiktokScraperResult(result) {
         }
   );
 
-  if (result.music_info?.url) {
-    media.push({ type: "audio", label: "Audio latar", url: result.music_info.url });
-  }
+  // Catatan: hasil scraper (tikwm) sengaja TIDAK menyertakan audio latar,
+  // karena link audionya tidak tersedia/tidak bisa diputar. Audio hanya
+  // muncul kalau hasil datang dari endpoint API (lihat case "tiktok").
 
   return {
     title: result.title || null,
@@ -123,19 +123,9 @@ export async function POST(req) {
   try {
     switch (platform) {
       case "tiktok": {
-        // 1) Coba scraper langsung (tikwm) dulu — tidak butuh API key.
-        const tryScraper = async () => {
-          const res = await tiktokDl(url);
-          if (!res.status || !res.data?.length) {
-            throw new Error("Scraper TikTok gagal memproses link ini.");
-          }
-          return normalizeTiktokScraperResult(res);
-        };
-
-        // 2) Kalau scraper gagal (tikwm down/berubah struktur), jatuh ke
-        //    endpoint API azbry sebagai cadangan — logic lama tetap dipakai:
-        //    coba endpoint video dulu, kalau ternyata post foto baru coba
-        //    endpoint slide.
+        // 1) Coba endpoint API (azbry) dulu sebagai metode utama — hasilnya
+        //    lengkap dengan audio. Coba endpoint video dulu, kalau ternyata
+        //    post foto baru coba endpoint slide.
         const tryEndpoint = async () => {
           const isPhoto = /\/photo\//i.test(url);
           const tryVideo = async () => {
@@ -162,6 +152,7 @@ export async function POST(req) {
               label: `Foto ${i + 1}`,
               url: img,
             }));
+            if (!images.length) throw new Error("empty");
             if (r.music) images.push({ type: "audio", label: "Audio latar", url: r.music });
             return {
               title: r.title,
@@ -173,9 +164,20 @@ export async function POST(req) {
           return isPhoto ? await trySlide() : await tryVideo().catch(trySlide);
         };
 
-        const result = await tryScraper().catch((err) => {
-          console.error("[tiktok] scraper gagal, pakai endpoint cadangan:", err.message);
-          return tryEndpoint();
+        // 2) Kalau endpoint API gagal, jatuh ke scraper langsung (tikwm) sebagai
+        //    cadangan. Hasil scraper tidak punya audio, jadi pemutar audio dan
+        //    tombol "Audio latar" otomatis tidak muncul.
+        const tryScraper = async () => {
+          const res = await tiktokDl(url);
+          if (!res.status || !res.data?.length) {
+            throw new Error("Scraper TikTok gagal memproses link ini.");
+          }
+          return normalizeTiktokScraperResult(res);
+        };
+
+        const result = await tryEndpoint().catch((err) => {
+          console.error("[tiktok] API gagal, pakai scraper cadangan:", err.message);
+          return tryScraper();
         });
 
         return NextResponse.json({ status: true, platform, ...result });
