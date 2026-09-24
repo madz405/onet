@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SiteBackground from "@/components/SiteBackground";
+import SplashLoader from "@/components/SplashLoader";
 import { THEME_STORAGE_KEY } from "@/lib/themes";
 import { SITE_NAME, SITE_TAGLINE, SITE_FAVICON } from "@/lib/site";
 
@@ -64,6 +65,7 @@ export default function RootLayout({ children }) {
           viewport height) ikut ukuran viewport yang BENAR-BENAR kelihatan
           saat itu, jadi tidak ada ruang ekstra yang nongol belakangan. */}
       <body className="font-body bg-ink-950 bg-grain min-h-dvh">
+        <SplashLoader />
         <SiteBackground />
         <Navbar />
         <main className="min-h-[calc(100dvh-64px)]">{children}</main>
