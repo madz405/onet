@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { User, Mail } from "lucide-react";
+import { User, Mail, Instagram } from "lucide-react";
 import { SITE_NAME, SITE_LOGO } from "@/lib/site";
 
 export default function Footer() {
@@ -56,6 +56,17 @@ export default function Footer() {
                 <Mail size={14} className="flex-shrink-0" />
                 <a href="mailto:madz@goatmail.uk" className="hover:text-white">
                   madz@goatmail.uk
+                </a>
+              </li>
+              <li className="flex items-center gap-2">
+                <Instagram size={14} className="flex-shrink-0" />
+                <a
+                  href="https://www.instagram.com/madzmuldi_"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white"
+                >
+                  @madzmuldi_
                 </a>
               </li>
             </ul>
