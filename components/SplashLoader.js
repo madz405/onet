@@ -19,7 +19,7 @@ import { SITE_NAME, SITE_TAGLINE, SITE_LOGO } from "@/lib/site";
 //
 // Warna semua ikut tema aktif (pakai variabel CSS --ink / --signal / --flare).
 // Mau ubah durasi? Cukup edit 3 angka di bawah ini.
-const MIN_SHOW_MS = 3800; // waktu minimal layar ini tampil
+const MIN_SHOW_MS = 3000; // waktu minimal layar ini tampil
 const HOLD_AT_100_MS = 300; // jeda di 100% sebelum mulai menghilang
 const FADE_MS = 600; // lamanya fade-out (samakan dengan transition di CSS)
 const MAX_WAIT_MS = 10000; // batas paksa selesai kalau halaman tidak kunjung "load"
