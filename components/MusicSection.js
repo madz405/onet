@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   Search,
   Play,
@@ -16,12 +16,8 @@ import {
   Trash2,
   History,
 } from "lucide-react";
-import {
-  loadMusicHistory,
-  addToMusicHistory,
-  removeFromMusicHistory,
-  makeTrackId,
-} from "@/lib/musicHistory";
+import { makeTrackId } from "@/lib/musicHistory";
+import { useMusicPlayer } from "@/components/MusicPlayerProvider";
 
 const SOURCES = [
   { id: "youtube", label: "YouTube" },
@@ -32,9 +28,6 @@ const SOURCES = [
 function sourceLabel(id) {
   return SOURCES.find((s) => s.id === id)?.label || "YouTube";
 }
-
-// Urutan siklus tombol mode tiap diklik.
-const NEXT_MODE = { sequential: "repeat", repeat: "shuffle", shuffle: "sequential" };
 
 function formatTime(sec) {
   if (!sec || Number.isNaN(sec) || sec < 0) return "0:00";
@@ -58,36 +51,26 @@ export default function MusicSection() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [track, setTrack] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [playMode, setPlayMode] = useState("sequential"); // sequential | repeat | shuffle
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const audioRef = useRef(null);
-
-  // Muat riwayat tersimpan begitu halaman dibuka (termasuk setelah refresh).
-  useEffect(() => {
-    setHistory(loadMusicHistory());
-  }, []);
-
-  useEffect(() => {
-    if (!track) return;
-    setProgress(0);
-    setIsPlaying(true);
-    const t = setTimeout(() => audioRef.current?.play().catch(() => {}), 50);
-    return () => clearTimeout(t);
-  }, [track]);
-
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume;
-  }, [volume]);
-
-  function playTrack(t) {
-    setError("");
-    setTrack(t);
-  }
+  // Semua state pemutaran (audio, lagu aktif, riwayat, mode, progres) ada di
+  // MusicPlayerProvider supaya lagu tetap jalan saat pindah halaman.
+  const {
+    track,
+    history,
+    playMode,
+    isPlaying,
+    progress,
+    duration,
+    volume,
+    playbackError,
+    setVolume,
+    playTrack,
+    addAndPlay,
+    removeFromHistory,
+    togglePlay,
+    playByOffset,
+    seek,
+    cycleMode,
+  } = useMusicPlayer();
 
   async function handleSearch(e) {
     e.preventDefault();
@@ -103,68 +86,18 @@ export default function MusicSection() {
       const data = await res.json();
       if (!data.status || !data.streamUrl) throw new Error(data.message || "Lagu tidak ditemukan.");
 
-      const newTrack = {
+      addAndPlay({
         id: makeTrackId(data),
         source: data.source,
         title: data.title,
         artist: data.artist,
         thumbnail: data.thumbnail,
         streamUrl: data.streamUrl,
-      };
-      setHistory((h) => addToMusicHistory(h, newTrack));
-      playTrack(newTrack);
+      });
     } catch (err) {
       setError(err.message || "Lagu tidak ditemukan.");
     } finally {
       setLoading(false);
-    }
-  }
-
-  function handleDeleteHistory(id) {
-    setHistory((h) => removeFromMusicHistory(h, id));
-  }
-
-  function togglePlay() {
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play().catch(() => {});
-    }
-    setIsPlaying((v) => !v);
-  }
-
-  const currentIndex = track ? history.findIndex((t) => t.id === track.id) : -1;
-
-  function playByOffset(offset) {
-    if (!history.length) return;
-    const base = currentIndex === -1 ? 0 : currentIndex;
-    const nextIndex = (base + offset + history.length) % history.length;
-    playTrack(history[nextIndex]);
-  }
-
-  function playRandom() {
-    if (!history.length) return;
-    if (history.length === 1) return playTrack(history[0]);
-    let idx = Math.floor(Math.random() * history.length);
-    while (idx === currentIndex) idx = Math.floor(Math.random() * history.length);
-    playTrack(history[idx]);
-  }
-
-  function handleEnded() {
-    if (playMode === "repeat") {
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play().catch(() => {});
-      }
-      return;
-    }
-    if (playMode === "shuffle") return playRandom();
-    // sequential: lanjut ke item berikutnya di riwayat, berhenti kalau sudah di ujung.
-    if (currentIndex > -1 && currentIndex < history.length - 1) {
-      playTrack(history[currentIndex + 1]);
-    } else {
-      setIsPlaying(false);
     }
   }
 
@@ -214,13 +147,13 @@ export default function MusicSection() {
         </button>
       </form>
 
-      {error && (
+      {(error || playbackError) && (
         <p className="mt-4 rounded-xl border border-flare-500/30 bg-flare-500/10 px-4 py-3 text-sm text-flare-400">
-          {error}
+          {error || playbackError}
         </p>
       )}
 
-      {!track && !error && history.length === 0 && (
+      {!track && !error && !playbackError && history.length === 0 && (
         <div className="mt-14 flex flex-col items-center gap-3 text-center text-white/40">
           <Music2 size={32} />
           <p className="max-w-sm text-sm">
@@ -232,15 +165,6 @@ export default function MusicSection() {
 
       {track && (
         <div className="mx-auto mt-8 max-w-sm animate-rise overflow-hidden rounded-[2rem] border border-white/8 bg-ink-900/80 p-5 shadow-glow">
-          <audio
-            ref={audioRef}
-            src={track.streamUrl}
-            onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
-            onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-            onEnded={handleEnded}
-            onError={() => setError("Link lagu ini sudah tidak bisa diputar, coba cari ulang.")}
-          />
-
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={track.thumbnail}
@@ -263,11 +187,7 @@ export default function MusicSection() {
               min={0}
               max={duration || 0}
               value={progress}
-              onChange={(e) => {
-                const val = Number(e.target.value);
-                if (audioRef.current) audioRef.current.currentTime = val;
-                setProgress(val);
-              }}
+              onChange={(e) => seek(Number(e.target.value))}
               className="h-1 w-full accent-signal-500"
             />
             <div className="mt-1 flex justify-between text-[11px] tabular-nums text-white/40">
@@ -309,7 +229,7 @@ export default function MusicSection() {
               <SkipForward size={22} />
             </button>
             <button
-              onClick={() => setPlayMode((m) => NEXT_MODE[m])}
+              onClick={cycleMode}
               className={`grid h-11 w-11 place-items-center rounded-full ${
                 playMode === "sequential" ? "text-white/40 hover:text-white/70" : "text-signal-400"
               }`}
@@ -369,7 +289,7 @@ export default function MusicSection() {
                   <Play size={15} className="ml-0.5" />
                 </button>
                 <button
-                  onClick={() => handleDeleteHistory(t.id)}
+                  onClick={() => removeFromHistory(t.id)}
                   className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full text-white/40 hover:bg-flare-500/10 hover:text-flare-400"
                   aria-label={`Hapus ${t.title} dari riwayat`}
                 >
