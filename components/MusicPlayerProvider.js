@@ -68,6 +68,17 @@ export default function MusicPlayerProvider({ children }) {
     setHistory((h) => removeFromMusicHistory(h, id));
   }, []);
 
+  // Dipakai tombol (X) di MiniPlayer: hentikan lagu sepenuhnya dan sembunyikan
+  // mini player (mini player hanya tampil selama ada `track`).
+  const stopPlayback = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsPlaying(false);
+    setTrack(null);
+  }, []);
+
   const togglePlay = useCallback(() => {
     const el = audioRef.current;
     if (!el) return;
@@ -156,13 +167,14 @@ export default function MusicPlayerProvider({ children }) {
       addAndPlay,
       removeFromHistory,
       togglePlay,
+      stopPlayback,
       playByOffset,
       seek,
       cycleMode,
     }),
     [
       track, history, playMode, isPlaying, progress, duration, volume, playbackError,
-      playTrack, addAndPlay, removeFromHistory, togglePlay, playByOffset, seek, cycleMode,
+      playTrack, addAndPlay, removeFromHistory, togglePlay, stopPlayback, playByOffset, seek, cycleMode,
     ]
   );
 
