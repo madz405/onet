@@ -223,6 +223,14 @@ html[data-theme="glass"]::before {
   animation: rise 0.35s ease-out both;
 }
 
+/* Teks berjalan untuk judul lagu yang kepanjangan (mini player & halaman Musik).
+   Diam sebentar di awal & di ujung, baru meluncur, lalu lompat balik ke awal untuk mengulang. */
+@keyframes marquee-scroll {
+  0%, 12% { transform: translateX(0); }
+  50%, 62% { transform: translateX(var(--marquee-distance)); }
+  100% { transform: translateX(var(--marquee-distance)); }
+}
+
 @keyframes pulse-ring {
   0% { box-shadow: 0 0 0 0 rgb(var(--signal-500) / 0.45); }
   100% { box-shadow: 0 0 0 14px rgb(var(--signal-500) / 0); }
