@@ -224,12 +224,11 @@ html[data-theme="glass"]::before {
 }
 
 /* Teks berjalan untuk judul lagu yang kepanjangan (mini player & halaman Musik).
-   Bergerak ke kiri terus-menerus dan berulang mulus seperti running text pada umumnya:
-   kontennya digandakan dua kali berdampingan, lalu digeser separuh lebarnya (-50%),
-   sehingga saat sampai di ujung, salinan kedua persis menggantikan posisi salinan pertama. */
+   Diam sebentar di awal & di ujung, baru meluncur, lalu lompat balik ke awal untuk mengulang. */
 @keyframes marquee-scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  0%, 12% { transform: translateX(0); }
+  50%, 62% { transform: translateX(var(--marquee-distance)); }
+  100% { transform: translateX(var(--marquee-distance)); }
 }
 
 @keyframes pulse-ring {
