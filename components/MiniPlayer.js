@@ -8,14 +8,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Play, Pause, SkipBack, SkipForward, Music2 } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Music2, X } from "lucide-react";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
+import MarqueeText from "@/components/MarqueeText";
 
 const VISIBLE_ON = ["/", "/tools", "/chat"];
 
 export default function MiniPlayer() {
   const pathname = usePathname();
-  const { track, history, isPlaying, progress, duration, togglePlay, playByOffset } = useMusicPlayer();
+  const { track, history, isPlaying, progress, duration, togglePlay, stopPlayback, playByOffset } =
+    useMusicPlayer();
 
   if (!track || !VISIBLE_ON.includes(pathname)) return null;
 
@@ -43,8 +45,8 @@ export default function MiniPlayer() {
                 <Music2 size={18} />
               </span>
             )}
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium text-white">{track.title}</span>
+            <span className="min-w-0 flex-1">
+              <MarqueeText text={track.title} className="text-sm font-medium text-white" />
               <span className="block truncate text-xs text-white/50">{track.artist}</span>
             </span>
           </Link>
@@ -72,6 +74,14 @@ export default function MiniPlayer() {
               aria-label="Lagu berikutnya"
             >
               <SkipForward size={18} />
+            </button>
+            <span className="mx-0.5 h-5 w-px bg-white/10" aria-hidden="true" />
+            <button
+              onClick={stopPlayback}
+              className="grid h-9 w-9 place-items-center rounded-full text-white/50 hover:text-white"
+              aria-label="Hentikan musik"
+            >
+              <X size={18} />
             </button>
           </div>
         </div>
