@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import MarqueeText from "@/components/MarqueeText";
 import {
   Search,
   Play,
@@ -177,7 +178,9 @@ export default function MusicSection() {
             <p className="text-xs font-medium uppercase tracking-wide text-signal-400">
               {sourceLabel(track.source)}
             </p>
-            <h2 className="mt-0.5 truncate font-display text-lg font-semibold text-white">{track.title}</h2>
+            <h2 className="mt-0.5 font-display text-lg font-semibold text-white">
+              <MarqueeText text={track.title} />
+            </h2>
             <p className="truncate text-sm text-white/50">{track.artist}</p>
           </div>
 
