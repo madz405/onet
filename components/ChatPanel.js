@@ -93,7 +93,7 @@ export default function ChatPanel() {
               className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-snug ${
                 m.role === "user"
                   ? "rounded-br-sm bg-signal-500 text-ink-950"
-                  : "rounded-bl-sm bg-white/8 text-white/90"
+                  : "rounded-bl-sm border border-white/10 bg-ink-800 text-white/90"
               }`}
             >
               {m.text}
@@ -102,7 +102,7 @@ export default function ChatPanel() {
         ))}
         {loading && (
           <div className="flex justify-start">
-            <span className="flex items-center gap-2 rounded-2xl rounded-bl-sm bg-white/8 px-4 py-2.5 text-sm text-white/60">
+            <span className="flex items-center gap-2 rounded-2xl rounded-bl-sm border border-white/10 bg-ink-800 px-4 py-2.5 text-sm text-white/60">
               <Loader2 size={14} className="animate-spin" /> mengetik...
             </span>
           </div>
