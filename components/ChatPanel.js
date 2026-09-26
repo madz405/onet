@@ -11,6 +11,27 @@ function LogoBubble() {
   return <Image src={KAYNA_AVATAR} alt={CHAT_BOT_NAME} width={40} height={40} className="h-full w-full object-cover" />;
 }
 
+// ID sesi persisten per pengunjung (disimpan di localStorage), dikirim ke
+// /api/chat supaya fallback Logic Bell bisa mengingat percakapan lintas
+// pesan. Kalau localStorage tidak tersedia, chat tetap jalan tanpa memori.
+function getSessionId() {
+  if (typeof window === "undefined") return null;
+  try {
+    const KEY = "koyen_chat_session_id";
+    let id = localStorage.getItem(KEY);
+    if (!id) {
+      id =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `web-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(KEY, id);
+    }
+    return id;
+  } catch {
+    return null;
+  }
+}
+
 export default function ChatPanel() {
   const [messages, setMessages] = useState([
     { role: "bot", text: `Hai! Aku ${CHAT_BOT_NAME}, ada yang bisa dibantu seputar ${SITE_NAME}? 👋` },
@@ -18,6 +39,11 @@ export default function ChatPanel() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const listRef = useRef(null);
+  const sessionIdRef = useRef(null);
+
+  useEffect(() => {
+    sessionIdRef.current = getSessionId();
+  }, []);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
@@ -34,7 +60,7 @@ export default function ChatPanel() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, sessionId: sessionIdRef.current }),
       });
       const data = await res.json();
       setMessages((m) => [
