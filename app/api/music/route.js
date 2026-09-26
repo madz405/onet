@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { searchSoundCloud } from "@/lib/scrapers/soundcloud";
 
 export const runtime = "nodejs";
 
@@ -67,18 +68,45 @@ export async function POST(req) {
     }
 
     if (source === "soundcloud") {
-      const data = await getJson(`https://api-faa.my.id/faa/soundcloud-play?query=${q}`);
-      const r = data.result || {};
-      return NextResponse.json({
-        status: true,
-        source: "soundcloud",
-        title: r.title,
-        artist: r.user,
-        // API ini mengembalikan durasi dalam milidetik, bukan detik.
-        duration: typeof r.duration === "number" ? Math.round(r.duration / 1000) : null,
-        thumbnail: r.thumbnail,
-        streamUrl: r.download_url,
+      // 1) Scraper langsung ke SoundCloud (API v2 internal + client_id
+      //    publik) — tidak lewat wrapper pihak ketiga, jadi tidak kena
+      //    blokir firewall yang sebelumnya bikin api-faa.my.id sering
+      //    balas 403/HTML dari server (Vercel).
+      const tryScraper = async () => {
+        const r = await searchSoundCloud(query.trim());
+        return {
+          status: true,
+          source: "soundcloud",
+          title: r.title,
+          artist: r.artist,
+          duration: r.duration,
+          thumbnail: r.thumbnail,
+          streamUrl: r.streamUrl,
+        };
+      };
+
+      // 2) Endpoint faa sebagai cadangan kalau scraper gagal (mis. SoundCloud
+      //    mengubah struktur bundle JS-nya sehingga client_id gagal diambil).
+      const tryEndpoint = async () => {
+        const data = await getJson(`https://api-faa.my.id/faa/soundcloud-play?query=${q}`);
+        const r = data.result || {};
+        return {
+          status: true,
+          source: "soundcloud",
+          title: r.title,
+          artist: r.user,
+          // API ini mengembalikan durasi dalam milidetik, bukan detik.
+          duration: typeof r.duration === "number" ? Math.round(r.duration / 1000) : null,
+          thumbnail: r.thumbnail,
+          streamUrl: r.download_url,
+        };
+      };
+
+      const result = await tryScraper().catch((err) => {
+        console.error("[music] scraper SoundCloud gagal, pakai endpoint cadangan:", err.message);
+        return tryEndpoint();
       });
+      return NextResponse.json(result);
     }
 
     // default: youtube
