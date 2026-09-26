@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { searchSoundCloud } from "@/lib/scrapers/soundcloud";
+import { scrapeSoundCloudUrl, resolveSoundCloudFromQuery } from "@/lib/scrapers/soundcloudUrl";
 
 export const runtime = "nodejs";
 
@@ -68,11 +69,29 @@ export async function POST(req) {
     }
 
     if (source === "soundcloud") {
-      // 1) Scraper langsung ke SoundCloud (API v2 internal + client_id
-      //    publik) — tidak lewat wrapper pihak ketiga, jadi tidak kena
-      //    blokir firewall yang sebelumnya bikin api-faa.my.id sering
-      //    balas 403/HTML dari server (Vercel).
-      const tryScraper = async () => {
+      // 1) Prioritas utama: cari URL track paling relevan lewat endpoint
+      //    search SoundCloud (nexray), lalu proses URL itu pakai scraper
+      //    Klickaud buat dapat link stream-nya — scraper yang sama juga
+      //    dipakai downloader SoundCloud.
+      const tryPrimaryScraper = async () => {
+        const hit = await resolveSoundCloudFromQuery(query.trim());
+        const scraped = await scrapeSoundCloudUrl(hit.url);
+        const streamUrl = scraped.media?.[0]?.url;
+        if (!streamUrl) throw new Error("Scraper SoundCloud (Klickaud) tidak menemukan link stream.");
+        return {
+          status: true,
+          source: "soundcloud",
+          title: scraped.title || hit.title,
+          artist: scraped.author || hit.author,
+          duration: hit.duration,
+          thumbnail: scraped.thumbnail || hit.thumbnail,
+          streamUrl,
+        };
+      };
+
+      // 2) Cadangan: scraper langsung ke SoundCloud (API v2 internal +
+      //    client_id publik), kalau prioritas di atas gagal.
+      const trySecondaryScraper = async () => {
         const r = await searchSoundCloud(query.trim());
         return {
           status: true,
@@ -85,8 +104,8 @@ export async function POST(req) {
         };
       };
 
-      // 2) Endpoint faa sebagai cadangan kalau scraper gagal (mis. SoundCloud
-      //    mengubah struktur bundle JS-nya sehingga client_id gagal diambil).
+      // 3) Cadangan terakhir: endpoint faa (kadang diblokir firewall dari
+      //    server, tapi tetap dicoba sebagai jaring pengaman paling akhir).
       const tryEndpoint = async () => {
         const data = await getJson(`https://api-faa.my.id/faa/soundcloud-play?query=${q}`);
         const r = data.result || {};
@@ -102,9 +121,12 @@ export async function POST(req) {
         };
       };
 
-      const result = await tryScraper().catch((err) => {
-        console.error("[music] scraper SoundCloud gagal, pakai endpoint cadangan:", err.message);
-        return tryEndpoint();
+      const result = await tryPrimaryScraper().catch((err) => {
+        console.error("[music] scraper SoundCloud (Klickaud) gagal, coba scraper cadangan:", err.message);
+        return trySecondaryScraper().catch((err2) => {
+          console.error("[music] scraper cadangan SoundCloud gagal, pakai endpoint terakhir:", err2.message);
+          return tryEndpoint();
+        });
       });
       return NextResponse.json(result);
     }
