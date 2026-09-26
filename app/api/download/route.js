@@ -6,6 +6,7 @@ import { scrapeTwitter } from "@/lib/scrapers/twitter";
 import { scrapeAppleMusic } from "@/lib/scrapers/applemusic";
 import { scrapeSpotify } from "@/lib/scrapers/spotify";
 import { scrapeYouTube } from "@/lib/scrapers/youtube";
+import { scrapeDouyin } from "@/lib/scrapers/douyin";
 
 export const runtime = "nodejs";
 // Downloader TikTok sekarang bisa mencoba 3 API + scraper berurutan, jadi
@@ -405,27 +406,14 @@ export async function POST(req) {
         return NextResponse.json({ status: true, platform, ...result });
       }
 
-      case "capcut": {
-        const data = await getJson(`https://api.azbry.com/api/download/capcut?url=${link}`);
-        const r = data.result || {};
-        const labelMap = {
-          hd_no_watermark: "Download HD (tanpa watermark)",
-          no_watermark: "Download (tanpa watermark)",
-          watermark: "Download (dengan watermark)",
-        };
-        const media = (r.medias || []).map((m) => ({
-          type: "video",
-          label: labelMap[m.quality] || m.quality,
-          url: m.url,
-        }));
-        return NextResponse.json({
-          status: true,
-          platform,
-          title: r.title,
-          author: r.author,
-          thumbnail: r.thumbnail,
-          media,
-        });
+      case "douyin": {
+        // Douyin cuma pakai scraper langsung (belum ada endpoint API
+        // cadangan yang stabil untuk platform ini di project ini).
+        const result = await scrapeDouyin(url);
+        if (!result.media?.length) {
+          throw new Error("Scraper Douyin tidak menemukan media yang bisa diunduh.");
+        }
+        return NextResponse.json({ status: true, platform, ...result });
       }
 
       case "applemusic": {
