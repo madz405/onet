@@ -7,6 +7,7 @@ import { scrapeAppleMusic } from "@/lib/scrapers/applemusic";
 import { scrapeSpotify } from "@/lib/scrapers/spotify";
 import { scrapeYouTube } from "@/lib/scrapers/youtube";
 import { scrapeDouyin } from "@/lib/scrapers/douyin";
+import { scrapeSoundCloudUrl } from "@/lib/scrapers/soundcloudUrl";
 
 export const runtime = "nodejs";
 // Downloader TikTok sekarang bisa mencoba 3 API + scraper berurutan, jadi
@@ -440,16 +441,26 @@ export async function POST(req) {
       }
 
       case "soundcloud": {
-        const data = await getJson(`https://api.azbry.com/api/download/soundcloud?url=${link}`);
-        const r = data.result || {};
-        return NextResponse.json({
-          status: true,
-          platform,
-          title: r.title,
-          author: r.artist,
-          thumbnail: r.thumbnail,
-          media: r.download ? [{ type: "audio", label: "Download MP3", url: r.download }] : [],
+        const tryScraper = async () => {
+          const result = await scrapeSoundCloudUrl(url);
+          if (!result.media?.length) throw new Error("Scraper SoundCloud tidak menemukan media.");
+          return result;
+        };
+        const tryEndpoint = async () => {
+          const data = await getJson(`https://api.azbry.com/api/download/soundcloud?url=${link}`);
+          const r = data.result || {};
+          return {
+            title: r.title,
+            author: r.artist,
+            thumbnail: r.thumbnail,
+            media: r.download ? [{ type: "audio", label: "Download MP3", url: r.download }] : [],
+          };
+        };
+        const result = await tryScraper().catch((err) => {
+          console.error("[soundcloud] scraper gagal, pakai endpoint cadangan:", err.message);
+          return tryEndpoint();
         });
+        return NextResponse.json({ status: true, platform, ...result });
       }
 
       case "spotify": {
