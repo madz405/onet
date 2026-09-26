@@ -6,13 +6,29 @@ const UA =
   "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36";
 
 async function getJson(url) {
-  const res = await fetch(url, { headers: { "User-Agent": UA } });
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": UA,
+      Accept: "application/json, text/plain, */*",
+      // Beberapa endpoint API komunitas (termasuk api-faa.my.id) memfilter
+      // request tanpa Referer yang wajar — tanpa ini kadang server langsung
+      // balas halaman blokir/HTML, bukan JSON.
+      Referer: new URL(url).origin + "/",
+    },
+  });
   const text = await res.text();
   let data;
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error("Sumber musik mengembalikan respons tidak valid.");
+    // Log detail asli ke server (kelihatan di log Vercel) supaya penyebab
+    // "respons tidak valid" ketahuan persis — biasanya karena server
+    // (IP datacenter Vercel) diblokir/di-challenge oleh proteksi bot si
+    // endpoint, sedangkan tes manual dari browser (IP rumah) lolos.
+    console.error(
+      `[music] non-JSON dari ${url} — status ${res.status}, cuplikan: ${text.slice(0, 300)}`
+    );
+    throw new Error(`Sumber musik mengembalikan respons tidak valid (status ${res.status}).`);
   }
   if (!res.ok || data?.status === false) {
     throw new Error(data?.message || "Lagu tidak ditemukan.");
