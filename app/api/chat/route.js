@@ -118,9 +118,9 @@ export async function POST(req) {
   }
 
   try {
-    const reply = await askGemini(message).catch((err) => {
-      console.error("[chat] semua model Gemini gagal, coba Logic Bell:", err.message);
-      return callLogicBell(message, sessionId);
+    const reply = await callLogicBell(message, sessionId).catch((err) => {
+      console.error("[chat] Logic Bell gagal, coba Gemini:", err.message);
+      return askGemini(message);
     });
     return NextResponse.json({ status: true, reply });
   } catch (err) {
