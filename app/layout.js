@@ -64,7 +64,7 @@ const body = Inter({
 export const metadata = {
   title: `${SITE_NAME} — ${SITE_TAGLINE}`,
   description:
-    "Unduh video dan foto dari TikTok, Instagram, Facebook, Pinterest, X, CapCut, YouTube, Spotify, SoundCloud, dan Apple Music. Plus tools edit cepat dan pemutar musik.",
+    "Unduh video dan foto dari TikTok, Instagram, Facebook, Pinterest, X, Douyin, YouTube, Spotify, SoundCloud, dan Apple Music. Plus tools edit cepat dan pemutar musik.",
   icons: {
     icon: SITE_FAVICON,
   },
