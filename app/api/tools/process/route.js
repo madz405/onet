@@ -4,12 +4,14 @@ import { proxyMedia } from "@/lib/proxyMedia";
 import { upscaleHd } from "@/lib/scrapers/imgLarger";
 
 export const runtime = "nodejs";
-// Tool "hd" sekarang upload + polling ke imglarger (~15-40 detik), jadi
-// function-nya butuh waktu lebih dari default. Kalau masih kena timeout di
-// Vercel, cek batas maxDuration paket kamu (Hobby biasanya lebih kecil dari
-// Pro) — mungkin perlu upgrade plan atau kecilkan DEADLINE_MS di
-// lib/scrapers/imglarger.js.
-export const maxDuration = 60;
+// Tool "hd" sekarang bisa nunggu lama: endpoint utama (nexray) dicoba dulu,
+// kalau gagal baru fallback ke scraper imglarger yang upload+polling
+// (~15-40 detik sendiri). Worst-case (utama gagal lambat -> lanjut fallback)
+// bisa mendekati/lebih dari 60 detik, makanya maxDuration dinaikkan ke 120.
+// Kalau paket Vercel kamu (mis. Hobby) tidak mengizinkan durasi function
+// sepanjang ini, kecilkan NEXRAY_TIMEOUT_MS di bawah dan/atau DEADLINE_MS di
+// lib/scrapers/imgLarger.js, atau upgrade plan.
+export const maxDuration = 120;
 
 // memegen.link pakai skema escape sendiri untuk teks di dalam path URL
 // (bukan encodeURIComponent biasa), supaya karakter seperti "/" atau "?"
@@ -36,12 +38,51 @@ function memegenEncode(text) {
   return encodeURIComponent(escaped);
 }
 
+const PROXY_UA =
+  "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36";
+const NEXRAY_TIMEOUT_MS = 25000;
+
+// Endpoint UTAMA untuk tool "hd". Beda dari endpoint lain di ENDPOINTS di
+// bawah, ini butuh ditangani manual (bukan lewat proxyMedia langsung) karena
+// hasilnya perlu divalidasi dulu sebelum dipakai — kalau gagal/error, kita
+// mau fallback ke scraper imglarger, bukan langsung balas error ke user.
+// Endpoint ini juga butuh URL gambar publik (bukan file upload langsung),
+// makanya tetap lewat top4top dulu seperti endpoint lama.
+async function fetchNexrayHd(hostedUrl) {
+  const target = `https://api.nexray.eu.cc/tools/v4/upscale?url=${encodeURIComponent(hostedUrl)}&resolusi=4`;
+
+  const res = await fetch(target, {
+    headers: { "User-Agent": PROXY_UA },
+    signal: AbortSignal.timeout(NEXRAY_TIMEOUT_MS),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Endpoint HD utama membalas status ${res.status}.`);
+  }
+
+  const contentType = res.headers.get("content-type") || "";
+  // Endpoint ini memang balas media langsung (bukan JSON) kalau sukses.
+  // Kalau balasannya JSON/HTML, berarti itu pesan error dari servernya.
+  if (contentType.includes("application/json") || contentType.includes("text/html")) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text?.slice(0, 200) || "Endpoint HD utama tidak mengembalikan gambar.");
+  }
+
+  const buffer = await res.arrayBuffer();
+  if (!buffer || buffer.byteLength === 0) {
+    throw new Error("Endpoint HD utama mengembalikan hasil kosong.");
+  }
+
+  return { buffer, contentType: contentType || "image/jpeg" };
+}
+
 // Setiap builder menerima (imageUrl, formData) — imageUrl sudah di-host di
 // top4top, formData dipakai untuk tool yang butuh input tambahan selain foto
 // (contoh: fakeml butuh nickname, meme butuh teks atas/bawah).
-// "hd" TIDAK ada di sini lagi — sekarang ditangani terpisah lewat
-// upscaleHd() (lib/scrapers/imglarger.js) karena butuh alur upload+polling,
-// bukan sekadar satu GET request ke URL seperti tool lain.
+// "hd" TIDAK ada di sini lagi — sekarang ditangani terpisah di bawah
+// (endpoint nexray dulu, fallback ke upscaleHd() dari
+// lib/scrapers/imgLarger.js kalau gagal), bukan sekadar satu GET request
+// ke URL seperti tool lain di map ini.
 const ENDPOINTS = {
   removebg: (imageUrl) => `https://api.azbry.com/api/tools/removebg?url=${encodeURIComponent(imageUrl)}`,
   fakeml: (imageUrl, formData) => {
@@ -95,18 +136,37 @@ export async function POST(req) {
     }
   }
 
-  // Tool "hd" beda alur: imglarger terima file langsung (tidak perlu
-  // di-host dulu ke top4top) lalu diproses async lewat upload+polling.
+  // Tool "hd" sekarang dua lapis:
+  // 1) Coba endpoint utama (nexray) dulu — lebih cepat kalau lagi normal.
+  // 2) Kalau itu gagal (down, rate limit, error apapun), baru fallback ke
+  //    scraper imglarger (upload file langsung + polling).
   if (tool === "hd") {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const filename = file.name || "image.jpg";
+    const contentType = file.type;
+
     try {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const resultUrl = await upscaleHd(buffer, file.name || "image.jpg", file.type);
-      return proxyMedia(resultUrl);
-    } catch (err) {
-      return NextResponse.json(
-        { status: false, message: err.message || "Gagal memperjelas foto." },
-        { status: 500 }
-      );
+      const hostedUrl = await uploadToTop4top(buffer, filename, contentType);
+      const primary = await fetchNexrayHd(hostedUrl);
+      return new NextResponse(primary.buffer, {
+        status: 200,
+        headers: { "Content-Type": primary.contentType, "Cache-Control": "no-store" },
+      });
+    } catch (primaryErr) {
+      try {
+        const resultUrl = await upscaleHd(buffer, filename, contentType);
+        return proxyMedia(resultUrl);
+      } catch (fallbackErr) {
+        return NextResponse.json(
+          {
+            status: false,
+            message:
+              fallbackErr.message ||
+              "Gagal memperjelas foto (endpoint utama & cadangan sama-sama gagal).",
+          },
+          { status: 500 }
+        );
+      }
     }
   }
 
