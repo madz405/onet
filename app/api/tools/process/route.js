@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { uploadToTop4top } from "@/lib/uploadImage";
 import { proxyMedia } from "@/lib/proxyMedia";
+import { upscaleHd } from "@/lib/scrapers/imglarger";
 
 export const runtime = "nodejs";
+// Tool "hd" sekarang upload + polling ke imglarger (~15-40 detik), jadi
+// function-nya butuh waktu lebih dari default. Kalau masih kena timeout di
+// Vercel, cek batas maxDuration paket kamu (Hobby biasanya lebih kecil dari
+// Pro) — mungkin perlu upgrade plan atau kecilkan DEADLINE_MS di
+// lib/scrapers/imglarger.js.
+export const maxDuration = 60;
 
 // memegen.link pakai skema escape sendiri untuk teks di dalam path URL
 // (bukan encodeURIComponent biasa), supaya karakter seperti "/" atau "?"
@@ -32,9 +39,11 @@ function memegenEncode(text) {
 // Setiap builder menerima (imageUrl, formData) — imageUrl sudah di-host di
 // top4top, formData dipakai untuk tool yang butuh input tambahan selain foto
 // (contoh: fakeml butuh nickname, meme butuh teks atas/bawah).
+// "hd" TIDAK ada di sini lagi — sekarang ditangani terpisah lewat
+// upscaleHd() (lib/scrapers/imglarger.js) karena butuh alur upload+polling,
+// bukan sekadar satu GET request ke URL seperti tool lain.
 const ENDPOINTS = {
   removebg: (imageUrl) => `https://api.azbry.com/api/tools/removebg?url=${encodeURIComponent(imageUrl)}`,
-  hd: (imageUrl) => `https://api-faa.my.id/faa/hdv3?image=${encodeURIComponent(imageUrl)}`,
   fakeml: (imageUrl, formData) => {
     const nickname = (formData.get("nickname") || "").toString().trim();
     return `https://api.nexray.web.id/maker/fakelobyml?avatar=${encodeURIComponent(
@@ -54,7 +63,7 @@ export async function POST(req) {
   const { searchParams } = new URL(req.url);
   const tool = searchParams.get("tool");
 
-  if (!ENDPOINTS[tool]) {
+  if (tool !== "hd" && !ENDPOINTS[tool]) {
     return NextResponse.json({ status: false, message: "Tool tidak dikenali." }, { status: 400 });
   }
 
@@ -82,6 +91,21 @@ export async function POST(req) {
       return NextResponse.json(
         { status: false, message: "Isi minimal salah satu: teks atas atau teks bawah." },
         { status: 400 }
+      );
+    }
+  }
+
+  // Tool "hd" beda alur: imglarger terima file langsung (tidak perlu
+  // di-host dulu ke top4top) lalu diproses async lewat upload+polling.
+  if (tool === "hd") {
+    try {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const resultUrl = await upscaleHd(buffer, file.name || "image.jpg", file.type);
+      return proxyMedia(resultUrl);
+    } catch (err) {
+      return NextResponse.json(
+        { status: false, message: err.message || "Gagal memperjelas foto." },
+        { status: 500 }
       );
     }
   }
