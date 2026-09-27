@@ -8,8 +8,8 @@ Web downloader media sosial + tools edit cepat + pemutar musik + chat AI, dibang
 
 ## Fitur
 
-- **Downloader** — TikTok, Instagram, Facebook, Pinterest, X/Twitter, CapCut, YouTube (video/audio), Spotify, SoundCloud, Apple Music. Setiap kartu platform pakai logo asli masing-masing. Hasil slide foto TikTok & Instagram ditampilkan dalam bingkai gaya ponsel.
-- **TikTok, Instagram, Pinterest, X/Twitter, Spotify, Apple Music, dan YouTube pakai scraper langsung** sebagai metode utama (tanpa API pihak ketiga), baru jatuh ke endpoint API sebagai cadangan kalau scraper gagal. Facebook, CapCut, dan SoundCloud masih pakai endpoint API saja (belum ada scraper untuk itu).
+- **Downloader** — TikTok, Instagram, Facebook, Pinterest, X/Twitter, Douyin, YouTube (video/audio), Threads, Bilibili, Spotify, SoundCloud, Apple Music. Setiap kartu platform pakai logo asli masing-masing. Hasil slide foto TikTok & Instagram ditampilkan dalam bingkai gaya ponsel.
+- **TikTok, Instagram, Pinterest, X/Twitter, Spotify, Apple Music, SoundCloud, dan YouTube pakai scraper langsung** sebagai metode utama (tanpa API pihak ketiga), baru jatuh ke endpoint API sebagai cadangan kalau scraper gagal. **Douyin, Threads, dan Bilibili cuma pakai scraper langsung** (belum ada endpoint API cadangan). **Facebook kebalik**: endpoint API (azbry) jadi metode utama, scraper langsung ke halaman Facebook-nya jadi cadangan kalau endpoint gagal.
 - **Tools** — Brat Text, Brat HD (pilih hasil gambar/video), IQC Status Bar, Lobby Free Fire, Lobby Mobile Legends (upload avatar + nickname), Meme Custom (upload foto + teks atas/bawah), Hapus Background, Perjelas Foto (HD).
 - **Musik** — cari lagu dari judul (YouTube / Spotify / SoundCloud), tampil sebagai satu kartu pemutar (artwork, progress bar, previous/next, mode ulangi/acak/berurutan, volume) dan bisa diunduh. Riwayat pencarian tersimpan otomatis di browser (localStorage) — tidak hilang saat refresh, bisa diputar ulang atau dihapus satu-satu.
 - **Chat AI** — halaman tersendiri (`/chat`), ada di menu navigasi bareng Downloader/Tools/Musik.
@@ -63,6 +63,12 @@ lib/
   scrapers/spotify.js   → scraper via spotidown.app (metode utama downloader Spotify)
   scrapers/applemusic.js → scraper via aplmate.com (metode utama downloader Apple Music)
   scrapers/youtube.js   → scraper via ytmp3.mobi (metode utama downloader YouTube)
+  scrapers/douyin.js    → scraper langsung ke iesdouyin.com (satu-satunya metode downloader Douyin)
+  scrapers/facebook.js  → scraper cadangan downloader Facebook (regex langsung dari HTML halaman videonya)
+  scrapers/threads.js   → scraper langsung Threads via threadster.app (satu-satunya metode)
+  scrapers/bilibili.js  → scraper langsung Bilibili (bilibili.com & bilibili.tv, satu-satunya metode)
+  scrapers/soundcloud.js    → scraper cadangan pencarian musik SoundCloud (API v2 internal + client_id)
+  scrapers/soundcloudUrl.js → scraper Klickaud (URL -> link MP3) dipakai downloader & prioritas pencarian musik SoundCloud
   scrapers/scraperUtils.js → helper bersama (parsing HTML tanpa DOMParser, cookie, dll)
 components/          → semua komponen UI (modal, grid, chat panel, footer, theme switcher, dll)
 ```
@@ -83,7 +89,7 @@ public/assets/
   facebook.png
   pinterest.jpg
   x.jpg
-  capcut.png
+  douyin.png
   youtube.png
   spotify.png
   soundcloud.jpg
