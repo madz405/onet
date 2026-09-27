@@ -58,7 +58,7 @@ export default function ThemeSwitcher() {
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-40 cursor-default"
           />
-          <div className="absolute right-0 top-11 z-50 w-52 rounded-xl border border-white/10 bg-ink-900 p-2 shadow-glow">
+          <div className="glass-surface-solid absolute right-0 top-11 z-50 w-52 rounded-xl border border-white/10 bg-ink-900 p-2 shadow-glow">
             <p className="px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
               Tema warna
             </p>
