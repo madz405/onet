@@ -36,6 +36,15 @@ module.exports = {
       boxShadow: {
         glow: "0 0 0 1px rgb(var(--signal-400) / 0.15), 0 8px 30px rgba(0,0,0,0.35)",
       },
+      keyframes: {
+        "typing-dot": {
+          "0%, 60%, 100%": { transform: "translateY(0)", opacity: "0.4" },
+          "30%": { transform: "translateY(-4px)", opacity: "1" },
+        },
+      },
+      animation: {
+        "typing-dot": "typing-dot 1.2s ease-in-out infinite",
+      },
       backgroundImage: {
         grain: "radial-gradient(circle at 20% 20%, rgb(var(--signal-500) / 0.08), transparent 40%), radial-gradient(circle at 80% 0%, rgb(var(--flare-500) / 0.08), transparent 45%)",
       },
