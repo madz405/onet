@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { uploadToTop4top } from "@/lib/uploadImage";
 import { proxyMedia } from "@/lib/proxyMedia";
-import { upscaleHd } from "@/lib/scrapers/imglarger";
+import { upscaleHd } from "@/lib/scrapers/imgLarger";
 
 export const runtime = "nodejs";
 // Tool "hd" sekarang upload + polling ke imglarger (~15-40 detik), jadi
