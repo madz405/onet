@@ -8,6 +8,7 @@ import { scrapeSpotify } from "@/lib/scrapers/spotify";
 import { scrapeYouTube } from "@/lib/scrapers/youtube";
 import { scrapeDouyin } from "@/lib/scrapers/douyin";
 import { scrapeSoundCloudUrl } from "@/lib/scrapers/soundcloudUrl";
+import { scrapeFacebook } from "@/lib/scrapers/facebook";
 
 export const runtime = "nodejs";
 // Downloader TikTok sekarang bisa mencoba 3 API + scraper berurutan, jadi
@@ -338,21 +339,29 @@ export async function POST(req) {
       }
 
       case "facebook": {
-        const data = await getJson(`https://api.azbry.com/api/download/allinonev2?url=${link}`);
-        const r = data.result || {};
-        const media = (r.downloads || []).map((d) => ({
-          type: /mp3/i.test(d.label) ? "audio" : /image/i.test(d.label) ? "image" : "video",
-          label: d.label,
-          url: d.url,
-        }));
-        return NextResponse.json({
-          status: true,
-          platform,
-          title: r.title,
-          author: r.owner,
-          thumbnail: r.thumbnail,
-          media,
+        const tryEndpoint = async () => {
+          const data = await getJson(`https://api.azbry.com/api/download/allinonev2?url=${link}`);
+          const r = data.result || {};
+          const media = (r.downloads || []).map((d) => ({
+            type: /mp3/i.test(d.label) ? "audio" : /image/i.test(d.label) ? "image" : "video",
+            label: d.label,
+            url: d.url,
+          }));
+          if (!media.length) throw new Error("Endpoint azbry tidak mengembalikan media.");
+          return { title: r.title, author: r.owner, thumbnail: r.thumbnail, media };
+        };
+        // Cadangan: scraper langsung ke halaman Facebook-nya sendiri kalau
+        // endpoint azbry gagal (lihat lib/scrapers/facebook.js untuk batasannya).
+        const tryScraper = async () => {
+          const result = await scrapeFacebook(url);
+          if (!result.media?.length) throw new Error("Scraper Facebook tidak menemukan media.");
+          return result;
+        };
+        const result = await tryEndpoint().catch((err) => {
+          console.error("[facebook] endpoint azbry gagal, coba scraper langsung:", err.message);
+          return tryScraper();
         });
+        return NextResponse.json({ status: true, platform, ...result });
       }
 
       case "pinterest": {
