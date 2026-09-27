@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Send, Loader2 } from "lucide-react";
+import { Send } from "lucide-react";
 import { CHAT_BOT_NAME } from "@/lib/chatPersona";
 import { SITE_NAME, KAYNA_AVATAR } from "@/lib/site";
 
@@ -102,8 +102,10 @@ export default function ChatPanel() {
         ))}
         {loading && (
           <div className="flex justify-start">
-            <span className="flex items-center gap-2 rounded-2xl rounded-bl-sm border border-white/10 bg-ink-800 px-4 py-2.5 text-sm text-white/60">
-              <Loader2 size={14} className="animate-spin" /> mengetik...
+            <span className="flex items-center gap-1.5 rounded-2xl rounded-bl-sm border border-white/10 bg-ink-800 px-4 py-3.5">
+              <span className="h-2 w-2 animate-typing-dot rounded-full bg-white/60 [animation-delay:0ms]" />
+              <span className="h-2 w-2 animate-typing-dot rounded-full bg-white/60 [animation-delay:200ms]" />
+              <span className="h-2 w-2 animate-typing-dot rounded-full bg-white/60 [animation-delay:400ms]" />
             </span>
           </div>
         )}
