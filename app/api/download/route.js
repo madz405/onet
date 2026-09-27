@@ -9,6 +9,8 @@ import { scrapeYouTube } from "@/lib/scrapers/youtube";
 import { scrapeDouyin } from "@/lib/scrapers/douyin";
 import { scrapeSoundCloudUrl } from "@/lib/scrapers/soundcloudUrl";
 import { scrapeFacebook } from "@/lib/scrapers/facebook";
+import { scrapeThreads } from "@/lib/scrapers/threads";
+import { scrapeBilibili } from "@/lib/scrapers/bilibili";
 
 export const runtime = "nodejs";
 // Downloader TikTok sekarang bisa mencoba 3 API + scraper berurutan, jadi
@@ -529,6 +531,22 @@ export async function POST(req) {
           console.error("[youtube] scraper gagal, pakai endpoint cadangan:", err.message);
           return tryEndpoint();
         });
+        return NextResponse.json({ status: true, platform, ...result });
+      }
+
+      case "threads": {
+        const result = await scrapeThreads(url);
+        if (!result.media?.length) {
+          throw new Error("Scraper Threads tidak menemukan media yang bisa diunduh.");
+        }
+        return NextResponse.json({ status: true, platform, ...result });
+      }
+
+      case "bilibili": {
+        const result = await scrapeBilibili(url);
+        if (!result.media?.length) {
+          throw new Error("Scraper Bilibili tidak menemukan media yang bisa diunduh.");
+        }
         return NextResponse.json({ status: true, platform, ...result });
       }
 
