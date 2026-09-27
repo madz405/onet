@@ -69,17 +69,6 @@ export default function Footer() {
                   @madzmuldi_
                 </a>
               </li>
-              <li className="flex items-center gap-2">
-                <Telegram size={14} className="flex-shrink-0" />
-                <a
-                  href="https://t.me/madz1805"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-white"
-                >
-                  @madz1805
-                </a>
-              </li>
             </ul>
           </div>
         </div>
