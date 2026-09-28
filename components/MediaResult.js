@@ -6,6 +6,10 @@ import { Download, Play, Pause, ZoomIn } from "lucide-react";
 import PhotoLightbox from "@/components/PhotoLightbox";
 import { getPlatform } from "@/lib/platforms";
 
+// Platform yang hasil fotonya (slide/carousel) ditampilkan sebagai slide kotak
+// + popup zoom. Douyin ikut karena bentuk datanya sama dengan TikTok.
+const GALLERY_PLATFORMS = ["tiktok", "instagram", "douyin"];
+
 function extFor(type) {
   if (type === "video") return "mp4";
   if (type === "audio") return "mp3";
@@ -120,12 +124,11 @@ export default function MediaResult({ result }) {
   const { title, author, thumbnail, media = [] } = result;
   const platformInfo = getPlatform(result.platform);
 
-  // Hasil foto (slide TikTok / carousel Instagram) ditampilkan sebagai slide
+  // Hasil foto (slide TikTok / Douyin / carousel Instagram) ditampilkan sebagai slide
   // kotak yang bisa digeser (lihat .photo-slider & .photo-tile di
   // app/globals.css). Ketuk foto -> popup zoom (components/PhotoLightbox.js).
   const useGallery =
-    (result.platform === "tiktok" || result.platform === "instagram") &&
-    media.some((m) => m.type === "image");
+    GALLERY_PLATFORMS.includes(result.platform) && media.some((m) => m.type === "image");
   const photoItems = useGallery ? lightboxPhotos : [];
   const mainVideo = media.find((m) => m.type === "video");
   const mainAudio = media.find((m) => m.type === "audio");
