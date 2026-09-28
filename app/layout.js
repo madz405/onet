@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SiteBackground from "@/components/SiteBackground";
 import SplashLoader from "@/components/SplashLoader";
+import ChannelPromo from "@/components/ChannelPromo";
 import MusicPlayerProvider from "@/components/MusicPlayerProvider";
 import MiniPlayer from "@/components/MiniPlayer";
 import { THEME_STORAGE_KEY } from "@/lib/themes";
@@ -92,6 +93,8 @@ export default function RootLayout({ children }) {
       <body className="font-body bg-ink-950 bg-grain min-h-dvh">
         <SplashLoader />
         <SiteBackground />
+        {/* Pop up ajakan gabung saluran WhatsApp: muncul setelah splash loader selesai. */}
+        <ChannelPromo />
         {/* Provider membungkus semua halaman supaya <audio> tidak ter-unmount
             saat pindah halaman; MiniPlayer hanya muncul di "/", "/tools", dan "/chat". */}
         <MusicPlayerProvider>
