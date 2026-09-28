@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { Download, Play, Pause } from "lucide-react";
-import PhoneFrame from "@/components/PhoneFrame";
 import { getPlatform } from "@/lib/platforms";
 
 function extFor(type) {
@@ -103,16 +102,18 @@ export default function MediaResult({ result }) {
   const { title, author, thumbnail, media = [] } = result;
   const platformInfo = getPlatform(result.platform);
 
-  const usePhoneFrame =
+  // Hasil foto (slide TikTok / carousel Instagram) ditampilkan sebagai galeri
+  // kotak (lihat .photo-tile di app/globals.css), bukan bingkai HP lagi.
+  const useGallery =
     (result.platform === "tiktok" || result.platform === "instagram") &&
     media.some((m) => m.type === "image");
-  const photoItems = usePhoneFrame ? media.filter((m) => m.type === "image") : [];
+  const photoItems = useGallery ? media.filter((m) => m.type === "image") : [];
   const mainVideo = media.find((m) => m.type === "video");
   const mainAudio = media.find((m) => m.type === "audio");
 
   return (
     <div className="animate-rise space-y-4">
-      {(thumbnail || title) && !usePhoneFrame && (
+      {(thumbnail || title) && !useGallery && (
         <div className="flex gap-3 rounded-xl border border-white/8 bg-ink-950/60 p-3">
           {(thumbnail || platformInfo?.logo) && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -131,27 +132,39 @@ export default function MediaResult({ result }) {
         </div>
       )}
 
+      {/* Judul/caption untuk hasil foto: tampil kalau ada. Thumbnail tidak
+          perlu karena semua fotonya sudah tampil di galeri di bawah. */}
+      {useGallery && (title || author) && (
+        <div className="photo-caption max-h-40 overflow-y-auto whitespace-pre-line p-3">
+          {title && <p className="break-words text-sm font-medium text-white">{title}</p>}
+          {author && <p className="mt-1 break-words text-xs text-white/50">{author}</p>}
+        </div>
+      )}
+
       {media.length === 0 && (
         <p className="rounded-xl border border-white/8 bg-ink-950/60 p-4 text-sm text-white/60">
           Tidak ada media yang bisa diunduh dari link ini.
         </p>
       )}
 
-      {usePhoneFrame && (
-        <div className="flex gap-3 overflow-x-auto pb-1">
+      {useGallery && (
+        <div className={`grid items-start gap-3 ${photoItems.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
           {photoItems.map((m, i) => (
-            <PhoneFrame key={i} className="w-32">
+            <figure key={i} className="photo-tile">
+              <span className="photo-tile-num">{i + 1}</span>
+              {/* Ukuran asli gambar dipertahankan (tinggi menyesuaikan lebar),
+                  jadi tidak ada bagian yang terpotong. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={m.url} alt="" className="aspect-[9/16] w-full object-cover" referrerPolicy="no-referrer" />
-            </PhoneFrame>
+              <img src={m.url} alt={`Foto ${i + 1}`} className="photo-tile-img" loading="lazy" referrerPolicy="no-referrer" />
+            </figure>
           ))}
         </div>
       )}
 
-      {!usePhoneFrame && mainVideo && (
+      {!useGallery && mainVideo && (
         <video controls className="w-full rounded-xl border border-white/8 bg-black" src={mainVideo.url} />
       )}
-      {!usePhoneFrame && !mainVideo && media.some((m) => m.type === "image") && (
+      {!useGallery && !mainVideo && media.some((m) => m.type === "image") && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={media.find((m) => m.type === "image")?.url}
