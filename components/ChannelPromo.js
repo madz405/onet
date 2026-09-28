@@ -8,9 +8,13 @@ import { SITE_NAME, SITE_TAGLINE, WHATSAPP_CHANNEL_URL } from "@/lib/site";
 
 // Pop up ajakan gabung saluran WhatsApp KOYEN.
 //
-// - Muncul sekali setiap web dibuka / di-refresh, SETELAH layar loading
-//   (SplashLoader) selesai. Sinyal "splash selesai" datang dari atribut
-//   data-splash di <html> / event "koyen:splash-done" (lihat SplashLoader.js).
+// - Muncul setelah layar loading (SplashLoader) selesai. Sinyal "splash
+//   selesai" datang dari atribut data-splash di <html> / event
+//   "koyen:splash-done" (lihat SplashLoader.js).
+// - Setelah tampil, TIDAK muncul lagi walau web di-refresh berkali-kali,
+//   sampai lewat COOLDOWN_MINUTES (default 60 menit = 1 jam). Waktu tampil
+//   terakhir disimpan di localStorage, jadi berlaku lintas tab dan tetap
+//   ingat walau browser ditutup.
 // - Tutup otomatis setelah AUTO_CLOSE_SECONDS detik. Tombol silang (atau Esc)
 //   menutupnya langsung kapan saja. Klik tombol gabung juga menutupnya.
 // - Tampilan memakai kelas yang sama dengan Modal.js, jadi otomatis ikut
@@ -20,8 +24,24 @@ import { SITE_NAME, SITE_TAGLINE, WHATSAPP_CHANNEL_URL } from "@/lib/site";
 const AUTO_CLOSE_SECONDS = 30; // lama pop up tampil kalau tidak ditutup manual
 const SHOW_DELAY_MS = 800; // jeda setelah splash hilang sebelum pop up muncul
 const SPLASH_WAIT_MAX_MS = 15000; // kalau sinyal splash tidak pernah datang, tetap tampil
-const SHOW_ONCE_PER_SESSION = false; // true = hanya sekali per sesi tab (tidak muncul lagi saat refresh)
-const SESSION_KEY = "koyen-channel-promo-seen";
+const COOLDOWN_MINUTES = 60; // jeda minimal antar kemunculan pop up (0 = muncul setiap refresh)
+const STORAGE_KEY = "koyen-channel-promo-last-shown";
+
+// True kalau pop up baru saja tampil dan masih dalam masa jeda.
+// Kalau storage tidak bisa dibaca (diblokir/private mode) atau nilainya
+// aneh (mis. jam perangkat diubah sehingga waktunya "di masa depan"), anggap
+// tidak sedang jeda supaya pop up tetap bisa tampil.
+function isCoolingDown() {
+  if (COOLDOWN_MINUTES <= 0) return false;
+  try {
+    const last = Number(localStorage.getItem(STORAGE_KEY));
+    if (!Number.isFinite(last) || last <= 0) return false;
+    const elapsed = Date.now() - last;
+    return elapsed >= 0 && elapsed < COOLDOWN_MINUTES * 60 * 1000;
+  } catch {
+    return false;
+  }
+}
 
 const FEATURES = [
   {
@@ -55,13 +75,7 @@ export default function ChannelPromo() {
 
   // 1) Tunggu splash selesai, lalu munculkan pop up.
   useEffect(() => {
-    if (SHOW_ONCE_PER_SESSION) {
-      try {
-        if (sessionStorage.getItem(SESSION_KEY)) return;
-      } catch {
-        // storage diblokir: lanjut saja, pop up tetap tampil
-      }
-    }
+    if (isCoolingDown()) return;
 
     let showTimer = null;
     let safetyTimer = null;
@@ -96,12 +110,12 @@ export default function ChannelPromo() {
   useEffect(() => {
     if (!visible) return;
 
-    if (SHOW_ONCE_PER_SESSION) {
-      try {
-        sessionStorage.setItem(SESSION_KEY, "1");
-      } catch {
-        // abaikan
-      }
+    // Catat waktu tampil begitu pop up muncul (bukan saat ditutup), jadi kalau
+    // halaman di-refresh selagi pop up masih terbuka, tidak muncul lagi.
+    try {
+      localStorage.setItem(STORAGE_KEY, String(Date.now()));
+    } catch {
+      // storage diblokir: abaikan, pop up tetap jalan normal
     }
 
     // Pakai batas waktu absolut (bukan hitung tick) supaya tetap akurat
