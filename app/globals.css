@@ -834,3 +834,61 @@ html[data-theme="neobrutalism"] {
   background: repeating-linear-gradient(45deg, rgb(10 10 10 / 0.14) 0 8px, transparent 8px 16px), var(--nb-yellow);
   box-shadow: none;
 }
+
+
+/* ==========================================================================
+   Galeri hasil download foto (slide TikTok / carousel Instagram)
+   Kotak kasar di SEMUA tema: sudut tajam, border tebal, bayangan keras tanpa
+   blur. Warna diatur lewat 3 variabel (--pt-*) supaya tiap tema tinggal
+   ganti nilainya:
+   - tema gelap & glass (juga bg video/foto): border putih + bayangan warna
+     aksen tema (--signal-500), latar solid gelap.
+   - neobrutalism: border & bayangan hitam, latar putih.
+   Gambar tampil selebar kotak dengan tinggi otomatis (tidak dipotong).
+   ========================================================================== */
+.photo-tile,
+.photo-caption {
+  --pt-border: #ffffff;
+  --pt-shadow: rgb(var(--signal-500));
+  --pt-bg: rgb(var(--ink-950));
+  border: 3px solid var(--pt-border);
+  border-radius: 0;
+  background: var(--pt-bg);
+  box-shadow: 5px 5px 0 var(--pt-shadow);
+}
+[data-theme="neobrutalism"] .photo-tile,
+[data-theme="neobrutalism"] .photo-caption {
+  --pt-border: var(--nb-ink);
+  --pt-shadow: var(--nb-ink);
+  --pt-bg: #ffffff;
+}
+.photo-tile {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+}
+.photo-tile-img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* Nomor foto: stiker di pojok kiri atas. */
+.photo-tile-num {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  min-width: 28px;
+  padding: 2px 8px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+  color: #0a0a0a;
+  background: rgb(var(--signal-500));
+  border-right: 3px solid #0a0a0a;
+  border-bottom: 3px solid #0a0a0a;
+}
+[data-theme="neobrutalism"] .photo-tile-num {
+  background: var(--nb-yellow);
+}
