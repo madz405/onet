@@ -6,7 +6,7 @@
    Sistem tema: tiap variabel berisi angka "R G B" (tanpa fungsi rgb()),
    supaya bisa dipakai Tailwind dengan modifier opacity (contoh: bg-ink-900/60)
    lewat pola rgb(var(--x) / <alpha-value>) di tailwind.config.js.
-   Ganti tema dengan menaruh atribut data-theme="aurora|sunset|mint|glass" di
+   Ganti tema dengan menaruh atribut data-theme="aurora|sunset|mint|glass|neobrutalism" di
    <html>. Untuk background video/foto, data-theme yang dipasang juga "glass"
    (lihat resolveCssTheme() di lib/themes.js) supaya kartu-kartunya ikut jadi
    kaca buram, cocok ditumpuk di atas video/foto yang ramai.
@@ -67,6 +67,34 @@
   --flare-400: 255 201 138;
   --flare-500: 242 167 92;
   --flare-600: 217 135 48;
+}
+
+/* Neobrutalism: tema TERANG. Variabel ink/signal/flare di sini sengaja "dibalik"
+   dibanding tema gelap: --ink-950 jadi hampir-hitam (dipakai sebagai warna
+   teks di atas tombol kuning/pink & border), sedangkan permukaan kartu/input
+   dibuat putih lewat aturan khusus di bagian Neobrutalism paling bawah file
+   ini. Variabel --nb-* dipakai bersama oleh aturan-aturan itu. */
+[data-theme="neobrutalism"] {
+  --ink-950: 10 10 10;
+  --ink-900: 255 255 255;
+  --ink-800: 255 246 220;
+  --ink-700: 10 10 10;
+  --ink-600: 60 60 60;
+  --signal-400: 43 43 255;
+  --signal-500: 255 214 10;
+  --signal-600: 230 190 0;
+  --flare-400: 170 10 80;
+  --flare-500: 255 92 154;
+  --flare-600: 226 60 128;
+
+  --nb-ink: #0a0a0a;
+  --nb-cream: #fff6dc;
+  --nb-yellow: #ffe94d;
+  --nb-cyan: #7ff0e6;
+  --nb-pink: #ff9cc4;
+  --nb-lilac: #c9b6ff;
+  --nb-orange: #ffb877;
+  --nb-blue: #2b2bff;
 }
 
 html {
@@ -500,4 +528,309 @@ picture {
   -moz-user-select: none;
   user-select: none;
   -webkit-user-drag: none; /* cegah drag gambar keluar halaman */
+}
+
+/* ==========================================================================
+   Tema NEOBRUTALISM  ([data-theme="neobrutalism"])
+   Ciri: latar krem berpola titik, teks hitam, border hitam TEBAL, bayangan
+   keras tanpa blur (offset 4-6px), warna datar cerah (kuning/cyan/pink/lilac).
+   Sama seperti tema Glass, gayanya dipasang lewat selector atribut pada class
+   Tailwind yang sudah dipakai komponen — komponen TIDAK perlu diubah.
+
+   Catatan penting soal selector:
+   - Untuk kelas dengan varian hover (contoh: "hover:bg-white/10") sengaja
+     dipakai [class~="bg-white/10"] (cocok PERSIS satu kelas), BUKAN
+     [class*="bg-white/10"] (cocok potongan teks). Kalau pakai *=, elemen yang
+     cuma punya "hover:bg-white/10" ikut ke-match permanen, bukan cuma saat
+     di-hover.
+   - Aturan sengaja ditaruh paling akhir file + pakai !important seperlunya,
+     supaya menang atas utility Tailwind & aturan tema lain.
+   ========================================================================== */
+
+/* --- Dasar halaman: krem + pola titik --------------------------------- */
+html[data-theme="neobrutalism"] {
+  background-color: var(--nb-cream);
+}
+[data-theme="neobrutalism"] body {
+  background-color: var(--nb-cream) !important;
+  background-image: radial-gradient(rgb(10 10 10 / 0.16) 1.2px, transparent 1.3px) !important;
+  background-size: 22px 22px !important;
+  color: var(--nb-ink);
+}
+
+/* --- Permukaan (kartu, modal, input, panel): putih datar -------------- */
+[data-theme="neobrutalism"] [class*="bg-ink-900"]:not(body),
+[data-theme="neobrutalism"] [class*="bg-ink-950"]:not(body),
+[data-theme="neobrutalism"] [class*="bg-ink-800"]:not(body) {
+  background-color: #fff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+[data-theme="neobrutalism"] header[class*="bg-ink-950"] {
+  background-color: var(--nb-cream) !important;
+  border-bottom-width: 3px;
+}
+[data-theme="neobrutalism"] footer[class*="bg-ink-950"] {
+  background-color: var(--nb-yellow) !important;
+  border-top-width: 3px;
+}
+[data-theme="neobrutalism"] [class~="bg-white/5"] {
+  background-color: #fff !important;
+}
+[data-theme="neobrutalism"] [class~="bg-white/10"] {
+  background-color: rgb(10 10 10 / 0.14) !important;
+}
+/* Tab/menu yang sedang aktif (pill navbar, item tema terpilih): kuning + border. */
+[data-theme="neobrutalism"] a[class~="bg-white/10"],
+[data-theme="neobrutalism"] button[class~="bg-white/10"] {
+  background-color: var(--nb-yellow) !important;
+  border: 2px solid var(--nb-ink);
+  box-shadow: 2px 2px 0 var(--nb-ink);
+}
+/* Titik "sedang mengetik" di chat. */
+[data-theme="neobrutalism"] [class~="bg-white/60"] {
+  background-color: var(--nb-ink) !important;
+}
+/* Status terpilih / pesan error: warna pastel datar. */
+[data-theme="neobrutalism"] [class~="bg-signal-500/10"],
+[data-theme="neobrutalism"] [class~="bg-signal-500/5"] {
+  background-color: var(--nb-yellow) !important;
+}
+[data-theme="neobrutalism"] [class~="bg-flare-500/10"],
+[data-theme="neobrutalism"] [class~="bg-flare-500/15"] {
+  background-color: #ffd6e7 !important;
+}
+
+/* --- Teks: putih -> hitam/abu gelap (tema ini terang) ------------------ */
+[data-theme="neobrutalism"] [class~="text-white"],
+[data-theme="neobrutalism"] [class~="text-white/90"],
+[data-theme="neobrutalism"] [class~="text-white/80"],
+[data-theme="neobrutalism"] [class~="text-white/70"] {
+  color: var(--nb-ink) !important;
+}
+[data-theme="neobrutalism"] [class~="text-white/60"],
+[data-theme="neobrutalism"] [class~="text-white/50"] {
+  color: #27272a !important;
+}
+[data-theme="neobrutalism"] [class~="text-white/40"],
+[data-theme="neobrutalism"] [class~="text-white/35"],
+[data-theme="neobrutalism"] [class~="text-white/30"] {
+  color: #52525b !important;
+}
+[data-theme="neobrutalism"] [class*="hover:text-white"]:hover {
+  color: var(--nb-ink) !important;
+}
+[data-theme="neobrutalism"] ::placeholder {
+  color: #52525b !important;
+  opacity: 1;
+}
+[data-theme="neobrutalism"] [class*="accent-signal-500"] {
+  accent-color: var(--nb-blue);
+}
+
+/* --- Border hitam tebal ------------------------------------------------ */
+[data-theme="neobrutalism"] [class*="border-white"],
+[data-theme="neobrutalism"] [class*="border-ink-"],
+[data-theme="neobrutalism"] [class*="border-signal-"],
+[data-theme="neobrutalism"] [class*="border-flare-"],
+[data-theme="neobrutalism"] [class*="border-black"] {
+  border-color: var(--nb-ink) !important;
+}
+[data-theme="neobrutalism"] [class~="border"] {
+  border-width: 2px;
+}
+[data-theme="neobrutalism"] [class~="border-b"] {
+  border-bottom-width: 2px;
+}
+[data-theme="neobrutalism"] [class~="border-t"] {
+  border-top-width: 2px;
+}
+/* Kartu besar (kartu platform/tools, modal, chat, player): border lebih tebal. */
+[data-theme="neobrutalism"] [class*="rounded-2xl"][class~="border"],
+[data-theme="neobrutalism"] [class*="rounded-3xl"][class~="border"],
+[data-theme="neobrutalism"] [class*="rounded-[2rem]"][class~="border"] {
+  border-width: 3px;
+}
+
+/* --- Bayangan keras (tanpa blur) --------------------------------------- */
+[data-theme="neobrutalism"] [class*="shadow-glow"] {
+  box-shadow: 5px 5px 0 var(--nb-ink) !important;
+}
+[data-theme="neobrutalism"] [class*="rounded-2xl"][class*="bg-ink-9"],
+[data-theme="neobrutalism"] [class*="rounded-3xl"][class*="bg-ink-9"],
+[data-theme="neobrutalism"] [class*="rounded-[2rem]"][class*="bg-ink-9"] {
+  box-shadow: 5px 5px 0 var(--nb-ink) !important;
+}
+/* Input, panel hasil, baris lagu, kolom chat: bayangan lebih kecil. */
+[data-theme="neobrutalism"] [class*="rounded-xl"][class*="bg-ink-9"],
+[data-theme="neobrutalism"] [class*="rounded-xl"][class*="bg-ink-950"],
+[data-theme="neobrutalism"] [class*="rounded-full"][class*="bg-ink-950"],
+[data-theme="neobrutalism"] [class*="rounded-xl"][class~="bg-white/5"],
+[data-theme="neobrutalism"] [class*="rounded-xl"][class~="bg-flare-500/10"] {
+  box-shadow: 3px 3px 0 var(--nb-ink) !important;
+}
+/* Input yang sedang fokus: bayangan berubah biru. */
+[data-theme="neobrutalism"] input[class*="bg-ink-"]:focus-visible,
+[data-theme="neobrutalism"] textarea[class*="bg-ink-"]:focus-visible {
+  box-shadow: 4px 4px 0 var(--nb-blue) !important;
+}
+
+/* --- Tombol utama (kuning) -------------------------------------------- */
+[data-theme="neobrutalism"] [class~="bg-signal-500"]:not([class~="h-full"]) {
+  border: 2px solid var(--nb-ink);
+  box-shadow: 3px 3px 0 var(--nb-ink);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+[data-theme="neobrutalism"] [class~="bg-signal-500"][class*="rounded-lg"]:not([class~="h-full"]) {
+  box-shadow: 2px 2px 0 var(--nb-ink);
+}
+[data-theme="neobrutalism"] [class~="bg-signal-500"]:not([class~="h-full"]):hover:not(:disabled) {
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 4px 4px 0 var(--nb-ink) !important;
+}
+[data-theme="neobrutalism"] [class~="bg-signal-500"]:not([class~="h-full"]):active:not(:disabled) {
+  transform: translate(2px, 2px) !important;
+  box-shadow: 1px 1px 0 var(--nb-ink) !important;
+}
+/* Isi progress bar mini player: biru (kuning tidak kelihatan di atas putih). */
+[data-theme="neobrutalism"] [class~="bg-signal-500"][class~="h-full"] {
+  background-color: var(--nb-blue) !important;
+}
+/* Baris yang berubah kuning saat di-hover (tombol unduh di hasil download). */
+[data-theme="neobrutalism"] [class*="hover:bg-signal-500"]:hover {
+  background-color: rgb(var(--signal-500)) !important;
+  color: var(--nb-ink) !important;
+}
+/* Hover ghost button lain: abu tipis (putih 5-10% tidak kelihatan di latar terang). */
+[data-theme="neobrutalism"] [class*="hover:bg-white/"]:not([class~="bg-white/10"]):hover {
+  background-color: rgb(10 10 10 / 0.08) !important;
+}
+
+/* --- Kartu platform & tools: warna pastel bergantian ------------------- */
+[data-theme="neobrutalism"] .grid > button.group:nth-child(5n + 1) { background-color: var(--nb-cyan) !important; }
+[data-theme="neobrutalism"] .grid > button.group:nth-child(5n + 2) { background-color: var(--nb-yellow) !important; }
+[data-theme="neobrutalism"] .grid > button.group:nth-child(5n + 3) { background-color: var(--nb-pink) !important; }
+[data-theme="neobrutalism"] .grid > button.group:nth-child(5n + 4) { background-color: var(--nb-lilac) !important; }
+[data-theme="neobrutalism"] .grid > button.group:nth-child(5n + 5) { background-color: var(--nb-orange) !important; }
+[data-theme="neobrutalism"] .grid > button.group {
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+[data-theme="neobrutalism"] .grid > button.group:hover {
+  transform: translate(-3px, -3px) !important;
+  box-shadow: 8px 8px 0 var(--nb-ink) !important;
+}
+[data-theme="neobrutalism"] .grid > button.group:active {
+  transform: translate(3px, 3px) !important;
+  box-shadow: 2px 2px 0 var(--nb-ink) !important;
+}
+/* Kotak ikon/logo di dalam kartu. */
+[data-theme="neobrutalism"] .grid > button.group > span:first-child {
+  border: 2px solid var(--nb-ink);
+  box-shadow: 2px 2px 0 var(--nb-ink);
+}
+[data-theme="neobrutalism"] .grid > button.group > span:first-child[class*="bg-flare-500"] {
+  background-color: #fff !important;
+}
+
+/* --- Tipografi & ikon -------------------------------------------------- */
+[data-theme="neobrutalism"] .font-display {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+[data-theme="neobrutalism"] svg.lucide {
+  stroke-width: 2.5;
+}
+/* Label kecil di atas judul halaman: jadi "stiker" berwarna. */
+[data-theme="neobrutalism"] section > p[class*="text-signal-400"],
+[data-theme="neobrutalism"] section > p[class*="text-flare-400"] {
+  display: inline-block;
+  padding: 3px 12px;
+  border: 2px solid var(--nb-ink);
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 var(--nb-ink);
+  color: var(--nb-ink) !important;
+  font-weight: 700;
+}
+[data-theme="neobrutalism"] section > p[class*="text-signal-400"] {
+  background-color: var(--nb-cyan);
+}
+[data-theme="neobrutalism"] section > p[class*="text-flare-400"] {
+  background-color: var(--nb-pink);
+}
+
+/* --- Fokus, scrollbar, seleksi teks ----------------------------------- */
+[data-theme="neobrutalism"] .focus-ring:focus-visible {
+  outline: 3px solid var(--nb-blue);
+  outline-offset: 3px;
+}
+[data-theme="neobrutalism"] ::-webkit-scrollbar-track {
+  background: var(--nb-cream);
+  border-left: 2px solid var(--nb-ink);
+}
+[data-theme="neobrutalism"] ::-webkit-scrollbar-thumb {
+  background: var(--nb-yellow);
+  border: 2px solid var(--nb-ink);
+  border-radius: 999px;
+}
+[data-theme="neobrutalism"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--nb-pink);
+}
+
+/* --- Layar loading (SplashLoader) ------------------------------------- */
+[data-theme="neobrutalism"] .splash-root {
+  color: var(--nb-ink);
+}
+[data-theme="neobrutalism"] .splash-root::before {
+  background-color: var(--nb-cream);
+  background-image: radial-gradient(rgb(10 10 10 / 0.16) 1.2px, transparent 1.3px);
+  background-size: 22px 22px;
+}
+[data-theme="neobrutalism"] .splash-blob {
+  width: 240px;
+  height: 240px;
+  filter: none;
+  opacity: 1;
+  border: 3px solid var(--nb-ink);
+  border-radius: 32px;
+  box-shadow: 6px 6px 0 var(--nb-ink);
+}
+[data-theme="neobrutalism"] .splash-blob-a {
+  background: var(--nb-cyan);
+  rotate: -12deg;
+}
+[data-theme="neobrutalism"] .splash-blob-b {
+  background: var(--nb-pink);
+  rotate: 14deg;
+}
+[data-theme="neobrutalism"] .splash-wave,
+[data-theme="neobrutalism"] .splash-fill::after {
+  display: none;
+}
+[data-theme="neobrutalism"] .splash-ring-track {
+  border-color: rgb(10 10 10 / 0.15);
+}
+[data-theme="neobrutalism"] .splash-logo-img {
+  border: 3px solid var(--nb-ink);
+  box-shadow: 6px 6px 0 var(--nb-ink);
+}
+[data-theme="neobrutalism"] .splash-title {
+  text-shadow: 3px 3px 0 var(--nb-yellow);
+}
+[data-theme="neobrutalism"] .splash-tagline,
+[data-theme="neobrutalism"] .splash-meta {
+  color: #27272a;
+}
+[data-theme="neobrutalism"] .splash-percent {
+  color: var(--nb-ink);
+}
+[data-theme="neobrutalism"] .splash-track {
+  height: 18px;
+  border: 3px solid var(--nb-ink);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 3px 3px 0 var(--nb-ink);
+}
+[data-theme="neobrutalism"] .splash-fill {
+  background: repeating-linear-gradient(45deg, rgb(10 10 10 / 0.14) 0 8px, transparent 8px 16px), var(--nb-yellow);
+  box-shadow: none;
 }
