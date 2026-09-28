@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { uploadToTop4top } from "@/lib/uploadImage";
 import { proxyMedia } from "@/lib/proxyMedia";
 import { upscaleHd } from "@/lib/scrapers/imgLarger";
+import { removeBgILoveImg } from "@/lib/scrapers/iloveimg";
 
 export const runtime = "nodejs";
 // Tool "hd" sekarang bisa nunggu lama: endpoint utama (nexray) dicoba dulu,
@@ -11,6 +12,8 @@ export const runtime = "nodejs";
 // Kalau paket Vercel kamu (mis. Hobby) tidak mengizinkan durasi function
 // sepanjang ini, kecilkan NEXRAY_TIMEOUT_MS di bawah dan/atau DEADLINE_MS di
 // lib/scrapers/imgLarger.js, atau upgrade plan.
+// Tool "removebg" juga dua lapis (azbry -> scraper iLoveIMG), worst-case masih
+// di bawah batas ini.
 export const maxDuration = 120;
 
 // memegen.link pakai skema escape sendiri untuk teks di dalam path URL
@@ -74,6 +77,37 @@ async function fetchNexrayHd(hostedUrl) {
   }
 
   return { buffer, contentType: contentType || "image/jpeg" };
+}
+
+const REMOVEBG_TIMEOUT_MS = 25000;
+
+// Endpoint UTAMA untuk tool "removebg" (azbry). Sama seperti fetchNexrayHd,
+// hasilnya divalidasi dulu (bukan langsung diteruskan lewat proxyMedia) supaya
+// kalau gagal bisa jatuh ke scraper cadangan iLoveIMG, bukan langsung error.
+async function fetchRemoveBgEndpoint(hostedUrl) {
+  const res = await fetch(ENDPOINTS.removebg(hostedUrl), {
+    headers: { "User-Agent": PROXY_UA },
+    signal: AbortSignal.timeout(REMOVEBG_TIMEOUT_MS),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Endpoint removebg utama membalas status ${res.status}.`);
+  }
+
+  const contentType = res.headers.get("content-type") || "";
+  // Kalau sukses, endpoint ini membalas gambar langsung. JSON/HTML berarti
+  // pesan error dari servernya.
+  if (contentType.includes("application/json") || contentType.includes("text/html")) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text?.slice(0, 200) || "Endpoint removebg utama tidak mengembalikan gambar.");
+  }
+
+  const buffer = await res.arrayBuffer();
+  if (!buffer || buffer.byteLength === 0) {
+    throw new Error("Endpoint removebg utama mengembalikan hasil kosong.");
+  }
+
+  return { buffer, contentType: contentType || "image/png" };
 }
 
 // Setiap builder menerima (imageUrl, formData) — imageUrl sudah di-host di
@@ -164,6 +198,42 @@ export async function POST(req) {
               fallbackErr.message ||
               "Gagal memperjelas foto (endpoint utama & cadangan sama-sama gagal).",
           },
+          { status: 500 }
+        );
+      }
+    }
+  }
+
+  // Tool "removebg" dua lapis (pola sama seperti "hd"):
+  // 1) Endpoint utama (azbry) dulu, butuh URL gambar yang sudah di-host.
+  // 2) Kalau gagal (down, rate limit, image host gagal, dll), pakai scraper
+  //    iLoveIMG yang bisa menerima file langsung, jadi tetap jalan walau
+  //    image host sedang bermasalah.
+  if (tool === "removebg") {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const filename = file.name || "image.jpg";
+    const contentType = file.type;
+    let hostedUrl = null;
+
+    try {
+      hostedUrl = await uploadToTop4top(buffer, filename, contentType);
+      const primary = await fetchRemoveBgEndpoint(hostedUrl);
+      return new NextResponse(primary.buffer, {
+        status: 200,
+        headers: { "Content-Type": primary.contentType, "Cache-Control": "no-store" },
+      });
+    } catch (primaryErr) {
+      console.error("[removebg] endpoint utama gagal, pakai scraper iLoveIMG:", primaryErr.message);
+      try {
+        const fallback = await removeBgILoveImg(buffer, filename, contentType, { imageUrl: hostedUrl });
+        return new NextResponse(fallback.buffer, {
+          status: 200,
+          headers: { "Content-Type": fallback.contentType, "Cache-Control": "no-store" },
+        });
+      } catch (fallbackErr) {
+        console.error("[removebg] scraper iLoveIMG juga gagal:", fallbackErr.message);
+        return NextResponse.json(
+          { status: false, message: "Gagal menghapus background (endpoint utama & cadangan sama-sama gagal), coba lagi." },
           { status: 500 }
         );
       }
