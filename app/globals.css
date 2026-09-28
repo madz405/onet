@@ -839,6 +839,8 @@ html[data-theme="neobrutalism"] {
 
 /* ==========================================================================
    Hasil download foto (slide TikTok / carousel Instagram)
+   (Judul/caption di atas slide TIDAK ikut gaya ini: dia memakai kelas tema
+   biasa, sama seperti kartu judul hasil video, jadi mengikuti tema aktif.)
    1) Slide kotak kasar di SEMUA tema: sudut tajam, border tebal, bayangan
       keras tanpa blur. Warna lewat variabel --pt-* supaya tiap tema tinggal
       ganti nilainya:
@@ -849,8 +851,7 @@ html[data-theme="neobrutalism"] {
    2) Popup pratinjau/zoom (.lb-*), dirender oleh components/PhotoLightbox.js
       lewat portal ke <body>.
    ========================================================================== */
-.photo-tile,
-.photo-caption {
+.photo-tile {
   --pt-border: #ffffff;
   --pt-shadow: rgb(var(--signal-500));
   --pt-bg: rgb(var(--ink-950));
@@ -859,8 +860,7 @@ html[data-theme="neobrutalism"] {
   background: var(--pt-bg);
   box-shadow: 5px 5px 0 var(--pt-shadow);
 }
-[data-theme="neobrutalism"] .photo-tile,
-[data-theme="neobrutalism"] .photo-caption {
+[data-theme="neobrutalism"] .photo-tile {
   --pt-border: var(--nb-ink);
   --pt-shadow: var(--nb-ink);
   --pt-bg: #ffffff;
