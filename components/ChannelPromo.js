@@ -170,7 +170,7 @@ export default function ChannelPromo() {
               </span>
               <span className="min-w-0">
                 <span className="block font-display text-sm font-semibold text-white">{title}</span>
-                <span className="mt-0.5 block text-sm leading-snug text-white/55">{desc}</span>
+                <span className="mt-0.5 block text-sm leading-snug text-white/60">{desc}</span>
                 {extra && <span className="mt-1 block text-xs leading-snug text-white/35">{extra}</span>}
               </span>
             </li>
