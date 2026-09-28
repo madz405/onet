@@ -1066,3 +1066,38 @@ html[data-theme="neobrutalism"] {
   min-width: 64px;
   padding: 0 8px;
 }
+
+/* ==========================================================================
+   Pop up saluran WhatsApp (components/ChannelPromo.js)
+   Bar hitung mundur tipis di bawah pop up: penuh -> kosong selama durasi
+   tutup otomatis (durasi diisi lewat inline style dari komponennya).
+   ========================================================================== */
+.promo-countdown-track {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(var(--ink-700));
+}
+.promo-countdown-fill {
+  height: 100%;
+  background: rgb(var(--signal-500));
+  transform-origin: left center;
+  animation: promo-countdown 30s linear forwards;
+}
+@keyframes promo-countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+[data-theme="neobrutalism"] .promo-countdown-track {
+  height: 10px;
+  border-radius: 0;
+  background: #ffffff;
+  border: 2px solid var(--nb-ink);
+}
+[data-theme="neobrutalism"] .promo-countdown-fill {
+  background: var(--nb-yellow);
+  border-right: 2px solid var(--nb-ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .promo-countdown-fill { animation-timing-function: steps(30, end); }
+}
