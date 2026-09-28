@@ -17,6 +17,13 @@ export default function ThemeSwitcher() {
   const [theme, setTheme] = useState(DEFAULT_THEME);
   const [open, setOpen] = useState(false);
 
+  // Pilihan Background (video/foto) hanya relevan untuk tema Glass, karena
+  // background media memang numpang gaya kaca (lihat resolveCssTheme()).
+  // Jadi bagian itu cuma tampil kalau tema aktifnya Glass atau salah satu
+  // background media. Di aurora/sunset/mint/neobrutalism disembunyikan.
+  const showBackgrounds = resolveCssTheme(theme) === "glass";
+  const mediaActive = showBackgrounds && theme !== "glass";
+
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
@@ -26,9 +33,11 @@ export default function ThemeSwitcher() {
     }
   }, []);
 
-  function applyTheme(id) {
+  // keepOpen: dipakai saat memilih Glass, supaya menunya tidak menutup dan
+  // pilihan Background langsung muncul di bawahnya.
+  function applyTheme(id, keepOpen = false) {
     setTheme(id);
-    setOpen(false);
+    setOpen(keepOpen);
     document.documentElement.setAttribute("data-theme", resolveCssTheme(id));
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, id);
@@ -65,9 +74,11 @@ export default function ThemeSwitcher() {
             {COLOR_THEMES.map((t) => (
               <button
                 key={t.id}
-                onClick={() => applyTheme(t.id)}
+                onClick={() => applyTheme(t.id, t.id === "glass")}
                 className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                  theme === t.id ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5 hover:text-white"
+                  theme === t.id || (t.id === "glass" && mediaActive)
+                    ? "bg-white/10 text-white"
+                    : "text-white/60 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 <span className="flex -space-x-1.5">
@@ -84,24 +95,28 @@ export default function ThemeSwitcher() {
               </button>
             ))}
 
-            <p className="mt-2 border-t border-white/8 px-3 pb-1.5 pt-2.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
-              Background
-            </p>
-            {MEDIA_THEMES.map((t) => {
-              const Icon = t.kind === "video" ? Video : ImageIcon;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => applyTheme(t.id)}
-                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                    theme === t.id ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  <Icon size={14} className="flex-shrink-0" />
-                  {t.name}
-                </button>
-              );
-            })}
+            {showBackgrounds && (
+              <>
+                <p className="mt-2 border-t border-white/8 px-3 pb-1.5 pt-2.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
+                  Background
+                </p>
+                {MEDIA_THEMES.map((t) => {
+                  const Icon = t.kind === "video" ? Video : ImageIcon;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => applyTheme(t.id)}
+                      className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                        theme === t.id ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5 hover:text-white"
+                      }`}
+                    >
+                      <Icon size={14} className="flex-shrink-0" />
+                      {t.name}
+                    </button>
+                  );
+                })}
+              </>
+            )}
           </div>
         </>
       )}
