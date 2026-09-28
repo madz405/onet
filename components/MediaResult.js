@@ -151,10 +151,11 @@ export default function MediaResult({ result }) {
         </div>
       )}
 
-      {/* Judul/caption untuk hasil foto: tampil kalau ada. Thumbnail tidak
-          perlu karena semua fotonya sudah tampil di galeri di bawah. */}
+      {/* Judul/caption untuk hasil foto: tampil kalau ada. Kelasnya sama dengan
+          kartu judul hasil video, jadi gayanya otomatis mengikuti tema aktif.
+          Thumbnail tidak perlu karena semua fotonya sudah tampil di slide. */}
       {useGallery && (title || author) && (
-        <div className="photo-caption max-h-40 overflow-y-auto whitespace-pre-line p-3">
+        <div className="max-h-40 overflow-y-auto whitespace-pre-line rounded-xl border border-white/8 bg-ink-950/60 p-3">
           {title && <p className="break-words text-sm font-medium text-white">{title}</p>}
           {author && <p className="mt-1 break-words text-xs text-white/50">{author}</p>}
         </div>
