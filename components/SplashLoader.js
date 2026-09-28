@@ -24,6 +24,15 @@ const HOLD_AT_100_MS = 300; // jeda di 100% sebelum mulai menghilang
 const FADE_MS = 600; // lamanya fade-out (samakan dengan transition di CSS)
 const MAX_WAIT_MS = 10000; // batas paksa selesai kalau halaman tidak kunjung "load"
 
+// Kasih tahu komponen lain (mis. pop up saluran WhatsApp, ChannelPromo.js)
+// bahwa layar loading sudah benar-benar hilang. Ditandai lewat atribut di
+// <html> (kalau komponen lain baru mount belakangan) + event window (kalau
+// komponen lain sudah menunggu).
+function announceSplashDone() {
+  document.documentElement.setAttribute("data-splash", "done");
+  window.dispatchEvent(new Event("koyen:splash-done"));
+}
+
 function statusText(p) {
   if (p >= 100) return "Siap!";
   if (p >= 70) return "Hampir siap…";
@@ -59,7 +68,12 @@ export default function SplashLoader() {
         setTimeout(() => {
           setLeaving(true);
           html.style.overflow = prevOverflow;
-          timers.push(setTimeout(() => setGone(true), FADE_MS));
+          timers.push(
+            setTimeout(() => {
+              setGone(true);
+              announceSplashDone();
+            }, FADE_MS)
+          );
         }, HOLD_AT_100_MS)
       );
     }
