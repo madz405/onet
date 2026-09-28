@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { Download, Play, Pause } from "lucide-react";
+import { Download, Play, Pause, ZoomIn } from "lucide-react";
+import PhotoLightbox from "@/components/PhotoLightbox";
 import { getPlatform } from "@/lib/platforms";
 
 function extFor(type) {
@@ -98,16 +99,34 @@ function downloadHref(result, media, index) {
 
 export default function MediaResult({ result }) {
   const [thumbFailed, setThumbFailed] = useState(false);
+  const [lightboxAt, setLightboxAt] = useState(null);
+
+  // Daftar foto untuk galeri + popup. Tiap foto membawa link unduhnya sendiri
+  // (index-nya mengacu ke posisi di result.media, bukan di daftar foto).
+  const lightboxPhotos = useMemo(() => {
+    if (!result) return [];
+    return (result.media || [])
+      .map((m, idx) => ({ m, idx }))
+      .filter(({ m }) => m.type === "image")
+      .map(({ m, idx }) => ({ url: m.url, download: downloadHref(result, m, idx) }));
+  }, [result]);
+
+  // Hasil baru (link lain diproses) -> tutup popup foto kalau masih terbuka.
+  useEffect(() => {
+    setLightboxAt(null);
+  }, [result]);
+
   if (!result) return null;
   const { title, author, thumbnail, media = [] } = result;
   const platformInfo = getPlatform(result.platform);
 
-  // Hasil foto (slide TikTok / carousel Instagram) ditampilkan sebagai galeri
-  // kotak (lihat .photo-tile di app/globals.css), bukan bingkai HP lagi.
+  // Hasil foto (slide TikTok / carousel Instagram) ditampilkan sebagai slide
+  // kotak yang bisa digeser (lihat .photo-slider & .photo-tile di
+  // app/globals.css). Ketuk foto -> popup zoom (components/PhotoLightbox.js).
   const useGallery =
     (result.platform === "tiktok" || result.platform === "instagram") &&
     media.some((m) => m.type === "image");
-  const photoItems = useGallery ? media.filter((m) => m.type === "image") : [];
+  const photoItems = useGallery ? lightboxPhotos : [];
   const mainVideo = media.find((m) => m.type === "video");
   const mainAudio = media.find((m) => m.type === "audio");
 
@@ -148,17 +167,37 @@ export default function MediaResult({ result }) {
       )}
 
       {useGallery && (
-        <div className={`grid items-start gap-3 ${photoItems.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-          {photoItems.map((m, i) => (
-            <figure key={i} className="photo-tile">
-              <span className="photo-tile-num">{i + 1}</span>
-              {/* Ukuran asli gambar dipertahankan (tinggi menyesuaikan lebar),
-                  jadi tidak ada bagian yang terpotong. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={m.url} alt={`Foto ${i + 1}`} className="photo-tile-img" loading="lazy" referrerPolicy="no-referrer" />
-            </figure>
-          ))}
+        <div className="space-y-2">
+          <div className="photo-slider">
+            {photoItems.map((p, i) => (
+              <button
+                key={i}
+                type="button"
+                className="photo-tile"
+                onClick={() => setLightboxAt(i)}
+                aria-label={`Perbesar foto ${i + 1}`}
+              >
+                <span className="photo-tile-num">{i + 1}</span>
+                {/* Tinggi mengikuti rasio asli gambar, jadi tidak ada yang terpotong. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.url} alt="" className="photo-tile-img" loading="lazy" referrerPolicy="no-referrer" draggable={false} />
+                <span className="photo-tile-zoom" aria-hidden="true">
+                  <ZoomIn size={16} />
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-white/50">Ketuk foto untuk memperbesar{photoItems.length > 1 ? ", geser untuk lihat foto lain." : "."}</p>
         </div>
+      )}
+
+      {lightboxAt !== null && (
+        <PhotoLightbox
+          photos={lightboxPhotos}
+          index={lightboxAt}
+          onIndexChange={setLightboxAt}
+          onClose={() => setLightboxAt(null)}
+        />
       )}
 
       {!useGallery && mainVideo && (
