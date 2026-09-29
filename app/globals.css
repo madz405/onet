@@ -6,7 +6,7 @@
    Sistem tema: tiap variabel berisi angka "R G B" (tanpa fungsi rgb()),
    supaya bisa dipakai Tailwind dengan modifier opacity (contoh: bg-ink-900/60)
    lewat pola rgb(var(--x) / <alpha-value>) di tailwind.config.js.
-   Ganti tema dengan menaruh atribut data-theme="aurora|mint|glass|neobrutalism|neu-light|neu-dark" di
+   Ganti tema dengan menaruh atribut data-theme="aurora|mint|glass|neobrutalism|neu-*|clay-*" di
    <html>. Untuk background video/foto, data-theme yang dipasang juga "glass"
    (lihat resolveCssTheme() di lib/themes.js) supaya kartu-kartunya ikut jadi
    kaca buram, cocok ditumpuk di atas video/foto yang ramai.
@@ -1478,3 +1478,430 @@ html[data-theme="neu-dark"] { color-scheme: dark; }
 :is([data-theme="neu-light"],[data-theme="neu-dark"]) .promo-countdown-fill {
   background: var(--neu-accent);
 }
+
+/* ==========================================================================
+   Tema CLAYMORPHISM  ([data-theme="clay-light"] dan [data-theme="clay-dark"])
+   Gaya "tanah liat": bentuk gemuk & sangat bulat, warna pastel, dan efek 3D
+   empuk dari tiga lapis bayangan (jatuh di bawah + bayangan dalam gelap di
+   kanan-bawah + sorot terang di kiri-atas). Tombol utama berwarna cerah,
+   tab aktif oranye. Dibangun dengan cara yang sama seperti Neumorphism:
+   selector atribut pada class Tailwind yang ada, komponen tidak diubah.
+   Dua mode hanya beda nilai variabel --clay-*.
+   ========================================================================== */
+[data-theme="clay-light"] {
+  --ink-950: 255 255 255;
+  --ink-900: 237 231 255;
+  --ink-800: 237 231 255;
+  --ink-700: 206 197 240;
+  --ink-600: 176 165 218;
+  --signal-400: 108 90 240;
+  --signal-500: 124 107 255;
+  --signal-600: 96 78 230;
+  --flare-400: 232 74 130;
+  --flare-500: 240 90 140;
+  --flare-600: 210 60 110;
+
+  --clay-bg: #ede7ff;
+  --clay-hi: #ffffff;
+  --clay-lo: rgb(90 70 160 / 0.30);
+  --clay-shade: rgb(60 40 130 / 0.14);
+  --clay-edge: rgb(255 255 255 / 0.85);
+  --clay-ring: rgb(90 70 160 / 0.0);
+  --clay-face-a: #ffffff;
+  --clay-face-b: #f7f3ff;
+  --clay-well: #e2daf9;
+  --clay-text: #3b2f63;
+  --clay-soft: #5f5387;
+  --clay-mute: #7a6fa0;
+  --clay-accent: #7c6bff;
+  --clay-ink: #7c6bff;
+  --clay-neon: #ffffff;
+  --clay-pop: #ffb86b;
+  --clay-pop-text: #5a3200;
+  --clay-divider: rgb(90 70 160 / 0.18);
+  --clay-btn-shadow: 7px 9px 16px rgb(80 60 220 / 0.42), inset -6px -6px 12px rgb(40 20 150 / 0.35), inset 6px 6px 12px rgb(255 255 255 / 0.42);
+  --clay-btn-shadow-hover: 9px 12px 20px rgb(80 60 220 / 0.48), inset -6px -6px 12px rgb(40 20 150 / 0.35), inset 6px 6px 12px rgb(255 255 255 / 0.42);
+  --clay-btn-shadow-press: 2px 3px 6px rgb(80 60 220 / 0.4), inset -3px -3px 7px rgb(40 20 150 / 0.35), inset 3px 3px 7px rgb(255 255 255 / 0.35);
+}
+
+/* Dark: ungu tua pekat, permukaan sedikit lebih terang, sorot dalam tipis. */
+[data-theme="clay-dark"] {
+  --ink-950: 255 255 255;
+  --ink-900: 31 27 51;
+  --ink-800: 31 27 51;
+  --ink-700: 58 52 92;
+  --ink-600: 84 76 128;
+  --signal-400: 170 156 255;
+  --signal-500: 139 123 255;
+  --signal-600: 110 92 235;
+  --flare-400: 255 140 170;
+  --flare-500: 255 100 145;
+  --flare-600: 226 72 118;
+
+  --clay-bg: #1f1b33;
+  --clay-hi: #ffffff;
+  --clay-lo: rgb(6 3 20 / 0.62);
+  --clay-shade: rgb(0 0 0 / 0.34);
+  --clay-edge: rgb(255 255 255 / 0.13);
+  --clay-ring: rgb(0 0 0 / 0);
+  --clay-face-a: #322c56;
+  --clay-face-b: #2a2549;
+  --clay-well: #171429;
+  --clay-text: #f1edff;
+  --clay-soft: #b9b0dd;
+  --clay-mute: #9c92c4;
+  --clay-accent: #9b8cff;
+  --clay-ink: #8b7bff;
+  --clay-neon: #ffffff;
+  --clay-pop: #ffb86b;
+  --clay-pop-text: #4a2900;
+  --clay-divider: rgb(0 0 0 / 0.4);
+  --clay-btn-shadow: 7px 9px 16px rgb(0 0 0 / 0.5), inset -6px -6px 12px rgb(30 15 130 / 0.5), inset 6px 6px 12px rgb(255 255 255 / 0.26);
+  --clay-btn-shadow-hover: 9px 12px 20px rgb(0 0 0 / 0.55), inset -6px -6px 12px rgb(30 15 130 / 0.5), inset 6px 6px 12px rgb(255 255 255 / 0.26);
+  --clay-btn-shadow-press: 2px 3px 6px rgb(0 0 0 / 0.5), inset -3px -3px 7px rgb(30 15 130 / 0.5), inset 3px 3px 7px rgb(255 255 255 / 0.2);
+}
+
+/* Bayangan clay: drop shadow + bayangan dalam gelap (kanan-bawah) + sorot terang
+   (kiri-atas). Nilai warna diambil dari variabel tiap mode. */
+[data-theme="clay-light"],
+[data-theme="clay-dark"] {
+  --clay-raised: 10px 12px 24px var(--clay-lo), inset -8px -8px 16px var(--clay-shade), inset 8px 8px 16px var(--clay-edge);
+  --clay-raised-sm: 7px 9px 18px var(--clay-lo), inset -6px -6px 12px var(--clay-shade), inset 6px 6px 12px var(--clay-edge);
+  --clay-raised-xs: 4px 5px 10px var(--clay-lo), inset -3px -3px 6px var(--clay-shade), inset 3px 3px 6px var(--clay-edge);
+  --clay-inset: inset 6px 6px 12px var(--clay-lo), inset -5px -5px 10px var(--clay-edge);
+  --clay-inset-sm: inset 4px 4px 8px var(--clay-lo), inset -3px -3px 6px var(--clay-edge);
+  --clay-hover-lg: 13px 16px 30px var(--clay-lo), inset -8px -8px 16px var(--clay-shade), inset 8px 8px 16px var(--clay-edge);
+  --clay-hover-md: 9px 11px 22px var(--clay-lo), inset -6px -6px 12px var(--clay-shade), inset 6px 6px 12px var(--clay-edge);
+}
+
+/* --- Dasar halaman ------------------------------------------------------ */
+html:is([data-theme="clay-light"],[data-theme="clay-dark"]) {
+  background-color: var(--clay-bg);
+}
+html[data-theme="clay-light"] { color-scheme: light; }
+html[data-theme="clay-dark"] { color-scheme: dark; }
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) body {
+  background-color: var(--clay-bg) !important;
+  background-image: none !important;
+  color: var(--clay-text);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) ::selection {
+  background: var(--clay-accent);
+  color: #fff;
+}
+
+/* --- Permukaan: satu warna dengan latar, dibedakan lewat bayangan ------- */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="bg-ink-900"]:not(body),
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="bg-ink-950"]:not(body),
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="bg-ink-800"]:not(body) {
+  background-color: var(--clay-bg) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Semua tepi/garis border jadi garis pemisah tipis. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="border-white"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="border-ink-"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="border-signal-"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="border-flare-"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="border-black"] {
+  border-color: var(--clay-divider) !important;
+}
+/* Kotak ber-border penuh (tombol toggle, baris unduh, dll): timbul kecil, tanpa garis. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="border"][class*="border-white"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="border"][class*="border-signal-"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="border"][class*="border-flare-"] {
+  border-color: transparent !important;
+  box-shadow: var(--clay-raised-sm);
+}
+/* Kartu besar, modal, chat, player: timbul besar. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="shadow-glow"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-2xl"][class*="bg-ink-9"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-3xl"][class*="bg-ink-9"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-[2rem]"][class*="bg-ink-9"] {
+  border-color: transparent !important;
+  box-shadow: var(--clay-raised) !important;
+}
+/* Permukaan sedikit cembung (gradasi halus) supaya tepinya makin terbaca. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-2xl"][class*="bg-ink-9"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-3xl"][class*="bg-ink-9"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-[2rem]"][class*="bg-ink-9"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-xl"][class*="bg-ink-9"]:not(input):not(textarea):not(select) {
+  background-image: none !important;
+  background-color: var(--clay-face-a) !important;
+}
+/* Panel hasil, baris lagu, dropdown: timbul sedang. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-xl"][class*="bg-ink-9"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-xl"][class*="bg-ink-950"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-full"][class*="bg-ink-950"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-xl"][class~="bg-white/5"] {
+  border-color: transparent !important;
+  box-shadow: var(--clay-raised-sm) !important;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) header[class*="bg-ink-950"] {
+  border-color: transparent !important;
+  box-shadow: 0 12px 20px -8px var(--clay-lo) !important;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) footer[class*="bg-ink-950"] {
+  border-color: transparent !important;
+  box-shadow: 0 -12px 20px -8px var(--clay-lo) !important;
+}
+/* Latar gelap di belakang modal: pakai warna tema supaya menyatu. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="bg-black/60"] {
+  background-color: color-mix(in srgb, var(--clay-bg) 78%, transparent) !important;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="bg-black/60"] > [class*="bg-ink-9"] {
+  border-color: transparent !important;
+}
+
+/* --- Input: tenggelam ---------------------------------------------------- */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) input[class*="bg-ink-"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) textarea[class*="bg-ink-"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) select[class*="bg-ink-"] {
+  border-color: transparent !important;
+  background-color: var(--clay-well) !important;
+  box-shadow: var(--clay-inset) !important;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) input[class*="bg-ink-"]:focus-visible,
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) textarea[class*="bg-ink-"]:focus-visible {
+  box-shadow: var(--clay-inset), 0 0 0 2px var(--clay-accent) !important;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) ::placeholder {
+  color: var(--clay-mute) !important;
+  opacity: 1;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="accent-signal-500"] {
+  accent-color: var(--clay-accent);
+}
+
+/* --- Bagian putih transparan (ghost/aktif) ------------------------------- */
+/* Tab/menu yang sedang aktif (pill navbar, item tema terpilih): tenggelam + teks aksen. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) a[class~="bg-white/10"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) button[class~="bg-white/10"] {
+  background-color: var(--clay-ink) !important;
+  background-image: none !important;
+  box-shadow: var(--clay-raised-xs);
+  color: var(--clay-neon) !important;
+  text-shadow: 0 0 10px rgb(85 198 255 / 0.55);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="bg-white/5"] {
+  background-color: var(--clay-bg) !important;
+  background-color: var(--clay-face-a) !important;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) div[class~="bg-white/10"] {
+  background-color: var(--clay-divider) !important;
+}
+/* Hover pada tombol ghost: timbul tipis. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="hover:bg-white/"]:not([class~="bg-white/10"]):hover,
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="hover:bg-flare-500/10"]:hover {
+  background-color: var(--clay-bg) !important;
+  box-shadow: var(--clay-raised-xs);
+}
+/* Titik "sedang mengetik" di chat. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="bg-white/60"] {
+  background-color: var(--clay-soft) !important;
+}
+
+/* --- Teks: putih -> abu gelap (light) / abu terang (dark) --------------- */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="text-white"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="text-white/90"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="text-white/80"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="text-white/70"] {
+  color: var(--clay-text) !important;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="text-white/60"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="text-white/50"] {
+  color: var(--clay-soft) !important;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="text-white/40"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="text-white/35"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="text-white/30"] {
+  color: var(--clay-mute) !important;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="hover:text-white"]:hover {
+  color: var(--clay-text) !important;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) a[class~="bg-white/10"] svg,
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) button[class~="bg-white/10"] svg {
+  color: inherit;
+}
+
+/* --- Elemen berwarna aksen ------------------------------------------------ */
+/* Tombol utama: timbul berwarna aksen, teks putih. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="bg-signal-500"]:not([class~="h-full"]) {
+  background-color: var(--clay-ink) !important;
+  color: var(--clay-neon) !important;
+  text-shadow: 0 0 10px rgb(85 198 255 / 0.5);
+  box-shadow: var(--clay-raised-sm);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="bg-signal-500"]:not([class~="h-full"]):hover:not(:disabled) {
+  box-shadow: var(--clay-hover-md);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="bg-signal-500"]:not([class~="h-full"]):active:not(:disabled) {
+  box-shadow: var(--clay-inset-sm);
+}
+/* Isi progress bar mini player. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="bg-signal-500"][class~="h-full"] {
+  background-color: var(--clay-accent) !important;
+  border-radius: 999px;
+}
+/* Baris unduh yang berubah warna saat di-hover. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="hover:bg-signal-500"]:hover {
+  background-color: var(--clay-ink) !important;
+  color: var(--clay-neon) !important;
+}
+/* Status terpilih (toggle format): tenggelam + teks aksen. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="bg-signal-500/10"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="bg-signal-500/5"] {
+  background-color: var(--clay-bg) !important;
+  box-shadow: var(--clay-inset-sm) !important;
+}
+/* Kotak ikon (tool card, pesan error): tenggelam. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="bg-flare-500/15"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="bg-flare-500/10"] {
+  background-color: var(--clay-bg) !important;
+  box-shadow: var(--clay-inset-sm) !important;
+}
+
+/* --- Kartu platform & tools --------------------------------------------- */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .grid > button.group {
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .grid > button.group:hover {
+  box-shadow: var(--clay-hover-lg) !important;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .grid > button.group:active {
+  transform: none !important;
+  box-shadow: var(--clay-inset) !important;
+}
+/* Kotak logo platform: timbul kecil. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .grid > button.group > span:first-child {
+  box-shadow: var(--clay-raised-xs);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .grid > button.group > span:first-child[class*="bg-flare-500"] {
+  box-shadow: var(--clay-inset-sm);
+}
+
+/* --- Fokus & scrollbar --------------------------------------------------- */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .focus-ring:focus-visible {
+  outline: 2px solid var(--clay-accent);
+  outline-offset: 3px;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) ::-webkit-scrollbar-thumb {
+  background: var(--clay-lo);
+  border: 2px solid var(--clay-bg);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) ::-webkit-scrollbar-thumb:hover {
+  background: var(--clay-mute);
+}
+
+/* --- Layar loading (SplashLoader) ---------------------------------------- */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .splash-root {
+  color: var(--clay-text);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .splash-root::before {
+  background: var(--clay-bg);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .splash-blob {
+  width: 260px;
+  height: 260px;
+  filter: none;
+  opacity: 1;
+  background: var(--clay-bg) !important;
+  box-shadow: var(--clay-raised);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .splash-wave {
+  border-color: var(--clay-lo);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .splash-logo-img {
+  box-shadow: var(--clay-raised);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .splash-ring-track {
+  border: 0;
+  box-shadow: var(--clay-inset-sm);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .splash-tagline,
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .splash-meta {
+  color: var(--clay-soft);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .splash-percent {
+  color: var(--clay-text);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .splash-track {
+  height: 12px;
+  background: var(--clay-bg);
+  box-shadow: var(--clay-inset-sm);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .splash-fill {
+  background: var(--clay-accent);
+  box-shadow: none;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .splash-fill::after {
+  display: none;
+}
+
+/* --- Hasil download foto (slide TikTok/Instagram) ------------------------- */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .photo-tile {
+  --pt-border: var(--clay-bg);
+  --pt-bg: var(--clay-bg);
+  border-width: 6px;
+  border-radius: 20px;
+  box-shadow: var(--clay-raised-sm);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .photo-tile:hover {
+  transform: none;
+  box-shadow: var(--clay-hover-md);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .photo-tile:active {
+  transform: none;
+  box-shadow: var(--clay-inset-sm);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .photo-tile-num,
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .photo-tile-zoom {
+  background: var(--clay-ink);
+  color: var(--clay-neon);
+  border: 0;
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .photo-tile-num { border-bottom-right-radius: 12px; }
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .photo-tile-zoom { border-top-left-radius: 12px; }
+
+/* --- Pop up saluran WhatsApp: bar hitung mundur --------------------------- */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .promo-countdown-track {
+  height: 8px;
+  background: var(--clay-bg);
+  box-shadow: var(--clay-inset-sm);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .promo-countdown-fill {
+  background: var(--clay-accent);
+}
+
+/* --- Khas Claymorphism (menimpa aturan turunan Neumorphism di atas) ------ */
+/* Tab/menu aktif: oranye pastel seperti "adonan" berwarna. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) a[class~="bg-white/10"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) button[class~="bg-white/10"] {
+  background-color: var(--clay-pop) !important;
+  color: var(--clay-pop-text) !important;
+  text-shadow: none;
+}
+/* Tombol utama: warna cerah dengan bayangan berwarna, mengempis saat ditekan. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="bg-signal-500"]:not([class~="h-full"]) {
+  text-shadow: none;
+  box-shadow: var(--clay-btn-shadow);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="bg-signal-500"]:not([class~="h-full"]):hover:not(:disabled) {
+  box-shadow: var(--clay-btn-shadow-hover);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class~="bg-signal-500"]:not([class~="h-full"]):active:not(:disabled) {
+  transform: scale(0.97);
+  box-shadow: var(--clay-btn-shadow-press);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .grid > button.group:active {
+  transform: scale(0.97) !important;
+  box-shadow: var(--clay-raised-sm) !important;
+}
+/* Bentuk gemuk: semua sudut dibulatkan lebih besar. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-lg"] { border-radius: 16px; }
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-xl"] { border-radius: 22px; }
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-2xl"] { border-radius: 28px; }
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-3xl"],
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-[2rem]"] { border-radius: 34px; }
