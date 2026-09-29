@@ -257,7 +257,12 @@ export default function PhotoLightbox({ photos, index, onIndexChange, onClose })
         </span>
         <div className="lb-group">
           {photo.download && (
-            <a href={photo.download} className="lb-btn" aria-label="Unduh foto ini">
+            <a
+              href={photo.download}
+              download={photo.filename || undefined}
+              className="lb-btn"
+              aria-label="Unduh foto ini"
+            >
               <Download size={18} />
             </a>
           )}
