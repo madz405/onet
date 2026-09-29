@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { X, Download, Wand2, Music2, Bot, ArrowUpRight } from "lucide-react";
+import { X, Download, Wand2, Music2, Bot, ArrowUpRight, ChevronDown } from "lucide-react";
 import { PLATFORMS } from "@/lib/platforms";
 import { TOOLS } from "@/lib/tools";
 import { SITE_NAME, SITE_TAGLINE, WHATSAPP_CHANNEL_URL } from "@/lib/site";
@@ -70,6 +70,8 @@ const FEATURES = [
 export default function ChannelPromo() {
   const [visible, setVisible] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(AUTO_CLOSE_SECONDS);
+  // Baris fitur yang sedang terbuka (accordion). null = semua tertutup.
+  const [openFeature, setOpenFeature] = useState(null);
 
   const close = useCallback(() => setVisible(false), []);
 
@@ -173,22 +175,50 @@ export default function ChannelPromo() {
 
         <p className="text-sm leading-relaxed text-white/60">
           {SITE_NAME} adalah {SITE_TAGLINE.toLowerCase()} yang bisa dipakai langsung dari browser, tanpa perlu install
-          aplikasi. Ini yang bisa kamu lakukan di sini:
+          aplikasi. Ketuk salah satu di bawah untuk lihat apa saja yang bisa kamu lakukan:
         </p>
 
-        <ul className="mt-4 space-y-3.5">
-          {FEATURES.map(({ icon: Icon, title, desc, extra }) => (
-            <li key={title} className="flex gap-3">
-              <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl bg-flare-500/15 text-flare-400">
-                <Icon size={18} />
-              </span>
-              <span className="min-w-0">
-                <span className="block font-display text-sm font-semibold text-white">{title}</span>
-                <span className="mt-0.5 block text-sm leading-snug text-white/60">{desc}</span>
-                {extra && <span className="mt-1 block text-xs leading-snug text-white/35">{extra}</span>}
-              </span>
-            </li>
-          ))}
+        {/* Daftar fitur berbentuk accordion: ikon + judul + panah bawah. Ketuk
+            barisnya untuk membuka/menutup penjelasannya. */}
+        <ul className="mt-4 border-t border-white/10">
+          {FEATURES.map(({ icon: Icon, title, desc, extra }) => {
+            const isOpen = openFeature === title;
+            const panelId = `promo-feature-${title.replace(/\s+/g, "-").toLowerCase()}`;
+            return (
+              <li key={title} className="border-b border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setOpenFeature(isOpen ? null : title)}
+                  aria-expanded={isOpen}
+                  aria-controls={panelId}
+                  className="flex w-full items-center gap-3 py-3.5 text-left focus-ring"
+                >
+                  <Icon size={20} className="flex-shrink-0 text-white/80" />
+                  <span className="flex-1 font-display text-[15px] font-medium text-white">{title}</span>
+                  <ChevronDown
+                    size={18}
+                    className={`flex-shrink-0 text-white/70 transition-transform duration-200 ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
+                    aria-hidden="true"
+                  />
+                </button>
+                <div
+                  id={panelId}
+                  role="region"
+                  className="grid transition-[grid-template-rows] duration-200 ease-out"
+                  style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
+                >
+                  <div className="overflow-hidden">
+                    <div className="pb-3.5 pl-8">
+                      <p className="text-sm leading-snug text-white/60">{desc}</p>
+                      {extra && <p className="mt-1.5 text-xs leading-snug text-white/40">{extra}</p>}
+                    </div>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
         </ul>
 
         <div className="mt-6 border-t border-white/10 pt-5">
