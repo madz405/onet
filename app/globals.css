@@ -1113,7 +1113,10 @@ html[data-theme="neobrutalism"] {
 
   --neu-bg: #e0e5ec;
   --neu-hi: #ffffff;
-  --neu-lo: #a3b1c6;
+  --neu-lo: #8c9bb3;
+  --neu-edge: rgb(255 255 255 / 0.85);
+  --neu-face-a: #e9eef5;
+  --neu-face-b: #d5dbe4;
   --neu-text: #38434f;
   --neu-soft: #556372;
   --neu-mute: #6b7787;
@@ -1134,8 +1137,11 @@ html[data-theme="neobrutalism"] {
   --flare-600: 226 70 110;
 
   --neu-bg: #2b2f36;
-  --neu-hi: #383d46;
-  --neu-lo: #1b1e23;
+  --neu-hi: #444a55;
+  --neu-lo: #121417;
+  --neu-edge: rgb(255 255 255 / 0.09);
+  --neu-face-a: #31353d;
+  --neu-face-b: #25282e;
   --neu-text: #e6e9ef;
   --neu-soft: #aab1bd;
   --neu-mute: #8a93a1;
@@ -1144,11 +1150,11 @@ html[data-theme="neobrutalism"] {
 }
 [data-theme="neu-light"],
 [data-theme="neu-dark"] {
-  --neu-raised: 9px 9px 18px var(--neu-lo), -9px -9px 18px var(--neu-hi);
-  --neu-raised-sm: 5px 5px 10px var(--neu-lo), -5px -5px 10px var(--neu-hi);
-  --neu-raised-xs: 3px 3px 6px var(--neu-lo), -3px -3px 6px var(--neu-hi);
-  --neu-inset: inset 6px 6px 12px var(--neu-lo), inset -6px -6px 12px var(--neu-hi);
-  --neu-inset-sm: inset 3px 3px 6px var(--neu-lo), inset -3px -3px 6px var(--neu-hi);
+  --neu-raised: 14px 14px 28px var(--neu-lo), -14px -14px 28px var(--neu-hi), inset 1px 1px 1px var(--neu-edge);
+  --neu-raised-sm: 8px 8px 16px var(--neu-lo), -8px -8px 16px var(--neu-hi), inset 1px 1px 1px var(--neu-edge);
+  --neu-raised-xs: 4px 4px 8px var(--neu-lo), -4px -4px 8px var(--neu-hi);
+  --neu-inset: inset 7px 7px 14px var(--neu-lo), inset -7px -7px 14px var(--neu-hi);
+  --neu-inset-sm: inset 4px 4px 8px var(--neu-lo), inset -4px -4px 8px var(--neu-hi);
 }
 
 /* --- Dasar halaman ------------------------------------------------------ */
@@ -1198,6 +1204,13 @@ html[data-theme="neu-dark"] { color-scheme: dark; }
   border-color: transparent !important;
   box-shadow: var(--neu-raised) !important;
 }
+/* Permukaan sedikit cembung (gradasi halus) supaya tepinya makin terbaca. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="rounded-2xl"][class*="bg-ink-9"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="rounded-3xl"][class*="bg-ink-9"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="rounded-[2rem]"][class*="bg-ink-9"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="rounded-xl"][class*="bg-ink-9"]:not(input):not(textarea):not(select) {
+  background-image: linear-gradient(145deg, var(--neu-face-a), var(--neu-face-b)) !important;
+}
 /* Panel hasil, baris lagu, dropdown: timbul sedang. */
 :is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="rounded-xl"][class*="bg-ink-9"],
 :is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="rounded-xl"][class*="bg-ink-950"],
@@ -1208,11 +1221,11 @@ html[data-theme="neu-dark"] { color-scheme: dark; }
 }
 :is([data-theme="neu-light"],[data-theme="neu-dark"]) header[class*="bg-ink-950"] {
   border-color: transparent !important;
-  box-shadow: 0 10px 18px -10px var(--neu-lo) !important;
+  box-shadow: 0 12px 20px -8px var(--neu-lo) !important;
 }
 :is([data-theme="neu-light"],[data-theme="neu-dark"]) footer[class*="bg-ink-950"] {
   border-color: transparent !important;
-  box-shadow: 0 -10px 18px -10px var(--neu-lo) !important;
+  box-shadow: 0 -12px 20px -8px var(--neu-lo) !important;
 }
 /* Latar gelap di belakang modal: pakai warna tema supaya menyatu. */
 :is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="bg-black/60"] {
@@ -1298,7 +1311,7 @@ html[data-theme="neu-dark"] { color-scheme: dark; }
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 :is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="bg-signal-500"]:not([class~="h-full"]):hover:not(:disabled) {
-  box-shadow: 7px 7px 14px var(--neu-lo), -7px -7px 14px var(--neu-hi);
+  box-shadow: 10px 10px 20px var(--neu-lo), -10px -10px 20px var(--neu-hi);
 }
 :is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="bg-signal-500"]:not([class~="h-full"]):active:not(:disabled) {
   box-shadow: var(--neu-inset-sm);
@@ -1331,7 +1344,7 @@ html[data-theme="neu-dark"] { color-scheme: dark; }
   transition: box-shadow 0.18s ease, transform 0.18s ease;
 }
 :is([data-theme="neu-light"],[data-theme="neu-dark"]) .grid > button.group:hover {
-  box-shadow: 12px 12px 22px var(--neu-lo), -12px -12px 22px var(--neu-hi) !important;
+  box-shadow: 18px 18px 34px var(--neu-lo), -18px -18px 34px var(--neu-hi), inset 1px 1px 1px var(--neu-edge) !important;
 }
 :is([data-theme="neu-light"],[data-theme="neu-dark"]) .grid > button.group:active {
   transform: none !important;
@@ -1413,7 +1426,7 @@ html[data-theme="neu-dark"] { color-scheme: dark; }
 }
 :is([data-theme="neu-light"],[data-theme="neu-dark"]) .photo-tile:hover {
   transform: none;
-  box-shadow: 8px 8px 16px var(--neu-lo), -8px -8px 16px var(--neu-hi);
+  box-shadow: 11px 11px 22px var(--neu-lo), -11px -11px 22px var(--neu-hi);
 }
 :is([data-theme="neu-light"],[data-theme="neu-dark"]) .photo-tile:active {
   transform: none;
