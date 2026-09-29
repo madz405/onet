@@ -1100,10 +1100,10 @@ html[data-theme="neobrutalism"] {
    ========================================================================== */
 [data-theme="neu-light"] {
   --ink-950: 255 255 255;  /* dipakai sebagai warna teks di atas tombol aksen */
-  --ink-900: 230 232 236;
-  --ink-800: 230 232 236;
-  --ink-700: 196 200 208;
-  --ink-600: 165 171 182;
+  --ink-900: 216 221 230;
+  --ink-800: 216 221 230;
+  --ink-700: 182 189 202;
+  --ink-600: 155 163 178;
   --signal-400: 38 130 224;
   --signal-500: 56 160 240;
   --signal-600: 30 110 200;
@@ -1114,27 +1114,28 @@ html[data-theme="neobrutalism"] {
   /* Meniru contoh: latar abu sangat terang, permukaan timbul LEBIH TERANG
      dari latar (hampir putih), bayangan lebar & lembut, aksen gelap navy
      dengan teks biru neon. */
-  --neu-bg: #e6e8ec;
+  --neu-bg: #d8dde6;
   --neu-hi: #ffffff;
-  --neu-lo: rgb(126 135 152 / 0.46);
+  --neu-lo: rgb(104 116 138 / 0.58);
+  --neu-ring: rgb(120 132 154 / 0.22);
   --neu-edge: rgb(255 255 255 / 0.95);
-  --neu-face-a: #f8f9fb;
-  --neu-face-b: #eceef2;
-  --neu-well: #dcdfe5;
+  --neu-face-a: #f6f8fb;
+  --neu-face-b: #e8ecf2;
+  --neu-well: #c9cfda;
   --neu-text: #2b313d;
-  --neu-soft: #565e6e;
-  --neu-mute: #7b8394;
+  --neu-soft: #4d5567;
+  --neu-mute: #687086;
   --neu-accent: #2f8fe8;
   --neu-ink: #10162b;
   --neu-neon: #55c6ff;
-  --neu-divider: rgb(126 135 152 / 0.25);
+  --neu-divider: rgb(104 116 138 / 0.32);
 
-  --neu-raised: 12px 14px 30px var(--neu-lo), -10px -10px 24px var(--neu-hi), inset 1px 1px 1px var(--neu-edge);
-  --neu-raised-sm: 7px 8px 18px var(--neu-lo), -6px -6px 14px var(--neu-hi), inset 1px 1px 1px var(--neu-edge);
+  --neu-raised: 12px 14px 30px var(--neu-lo), -10px -10px 24px var(--neu-hi), 0 0 0 1px var(--neu-ring), inset 1px 1px 1px var(--neu-edge);
+  --neu-raised-sm: 7px 8px 18px var(--neu-lo), -6px -6px 14px var(--neu-hi), 0 0 0 1px var(--neu-ring), inset 1px 1px 1px var(--neu-edge);
   --neu-raised-xs: 4px 5px 10px var(--neu-lo), -4px -4px 8px var(--neu-hi);
   --neu-inset: inset 6px 6px 12px var(--neu-lo), inset -6px -6px 12px var(--neu-hi);
   --neu-inset-sm: inset 4px 4px 8px var(--neu-lo), inset -4px -4px 8px var(--neu-hi);
-  --neu-hover-lg: 16px 18px 36px var(--neu-lo), -12px -12px 28px var(--neu-hi), inset 1px 1px 1px var(--neu-edge);
+  --neu-hover-lg: 16px 18px 36px var(--neu-lo), -12px -12px 28px var(--neu-hi), 0 0 0 1px var(--neu-ring), inset 1px 1px 1px var(--neu-edge);
   --neu-hover-md: 9px 10px 22px var(--neu-lo), -8px -8px 18px var(--neu-hi);
 }
 
