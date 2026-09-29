@@ -15,11 +15,19 @@ import {
 } from "@/lib/themes";
 
 const COLOR_THEMES = THEMES.filter((t) => t.kind === "color");
-const MEDIA_THEMES = THEMES.filter((t) => t.kind === "video" || t.kind === "photo");
+const VIDEO_THEMES = THEMES.filter((t) => t.kind === "video");
+const PHOTO_THEMES = THEMES.filter((t) => t.kind === "photo");
+// Tab pada bagian Background (Glass): video / foto.
+const BG_TABS = [
+  { id: "video", label: "Video", icon: Video, items: VIDEO_THEMES },
+  { id: "photo", label: "Foto", icon: ImageIcon, items: PHOTO_THEMES },
+];
 
 export default function ThemeSwitcher() {
   const [theme, setTheme] = useState(DEFAULT_THEME);
   const [open, setOpen] = useState(false);
+  // Tab Background yang sedang dibuka ("video" | "photo").
+  const [bgTab, setBgTab] = useState("video");
 
   // Pilihan Background (video/foto) hanya relevan untuk tema Glass, karena
   // background media memang numpang gaya kaca (lihat resolveCssTheme()).
@@ -30,6 +38,12 @@ export default function ThemeSwitcher() {
 
   // Pilihan mode Light/Dark hanya tampil kalau tema aktifnya Neumorphism.
   const showNeuModes = isNeuTheme(theme);
+
+  // Kalau background aktifnya foto/video, buka tab yang sesuai.
+  useEffect(() => {
+    const t = getThemeById(theme);
+    if (t && (t.kind === "video" || t.kind === "photo")) setBgTab(t.kind);
+  }, [theme]);
 
   useEffect(() => {
     try {
@@ -91,7 +105,9 @@ export default function ThemeSwitcher() {
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-40 cursor-default"
           />
-          <div className="glass-surface-solid absolute right-0 top-11 z-50 w-52 rounded-xl border border-white/10 bg-ink-900 p-2 shadow-glow">
+          <div className={`glass-surface-solid absolute right-0 top-11 z-50 max-w-[calc(100vw-2rem)] rounded-xl border border-white/10 bg-ink-900 p-2 shadow-glow ${
+              showBackgrounds ? "w-72" : "w-52"
+            }`}>
             <p className="px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
               Tema warna
             </p>
@@ -151,21 +167,46 @@ export default function ThemeSwitcher() {
                 <p className="mt-2 border-t border-white/8 px-3 pb-1.5 pt-2.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
                   Background
                 </p>
-                {MEDIA_THEMES.map((t) => {
-                  const Icon = t.kind === "video" ? Video : ImageIcon;
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => applyTheme(t.id)}
-                      className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                        theme === t.id ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5 hover:text-white"
-                      }`}
-                    >
-                      <Icon size={14} className="flex-shrink-0" />
-                      {t.name}
-                    </button>
-                  );
-                })}
+                {/* Tab Video / Foto, lalu pilihan background sebagai kotak 2 kolom
+                    (lebih pendek dibanding daftar satu kolom panjang). */}
+                <div className="flex gap-1 px-1 pb-2">
+                  {BG_TABS.map((tab) => {
+                    const TabIcon = tab.icon;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setBgTab(tab.id)}
+                        className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[13px] font-medium transition-colors ${
+                          bgTab === tab.id ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5 hover:text-white"
+                        }`}
+                      >
+                        <TabIcon size={14} className="flex-shrink-0" />
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 px-1 pb-1">
+                  {(BG_TABS.find((tab) => tab.id === bgTab)?.items || []).map((t) => {
+                    const Icon = t.kind === "video" ? Video : ImageIcon;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => applyTheme(t.id)}
+                        className={`flex min-h-[44px] items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-[13px] transition-colors ${
+                          theme === t.id
+                            ? "border-white/30 bg-white/10 text-white"
+                            : "border-white/10 text-white/60 hover:bg-white/5 hover:text-white"
+                        }`}
+                      >
+                        <Icon size={14} className="flex-shrink-0" />
+                        <span className="truncate">{t.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </>
             )}
           </div>
