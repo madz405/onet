@@ -20,6 +20,7 @@ const themeInitScript = `
 (function () {
   try {
     var theme = localStorage.getItem("${THEME_STORAGE_KEY}");
+    if (theme === "sunset") theme = null; // tema Sunset sudah diganti Neumorphism
     if (theme) {
       var isMedia = theme.indexOf("video-") === 0 || theme.indexOf("foto-") === 0;
       document.documentElement.setAttribute("data-theme", isMedia ? "glass" : theme);
