@@ -6,7 +6,7 @@ import { THEME_STORAGE_KEY, THEME_CHANGE_EVENT, DEFAULT_THEME, getThemeById } fr
 
 // Menampilkan video/foto background di paling belakang (fixed, di bawah
 // semua konten) kalau pilihan tema aktif jenisnya "video" atau "photo".
-// Untuk tema warna solid (aurora/sunset/mint/glass), komponen ini tidak
+// Untuk tema warna solid (aurora/mint/glass/neumorphism), komponen ini tidak
 // merender apa-apa — background solid bawaan tema di globals.css yang jalan.
 export default function SiteBackground() {
   const [themeId, setThemeId] = useState(DEFAULT_THEME);
@@ -29,7 +29,7 @@ export default function SiteBackground() {
   }, []);
 
   const theme = getThemeById(themeId);
-  if (!theme || theme.kind === "color" || failed) return null;
+  if (!theme || theme.kind === "color" || theme.kind === "neu" || failed) return null;
 
   // Kalau muncul pesan ini di console (F12 -> Console di browser), berarti
   // filenya belum ada / salah nama / salah folder di public/assets/backgrounds/
