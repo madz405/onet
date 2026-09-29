@@ -11,6 +11,9 @@ import {
   NEU_MODE_STORAGE_KEY,
   getThemeById,
   isNeuTheme,
+  CLAY_MODES,
+  CLAY_MODE_STORAGE_KEY,
+  isClayTheme,
   resolveCssTheme,
 } from "@/lib/themes";
 
@@ -38,6 +41,9 @@ export default function ThemeSwitcher() {
 
   // Pilihan mode Light/Dark hanya tampil kalau tema aktifnya Neumorphism.
   const showNeuModes = isNeuTheme(theme);
+  const showClayModes = isClayTheme(theme);
+  const showModes = showNeuModes || showClayModes;
+  const modeList = showClayModes ? CLAY_MODES : NEU_MODES;
 
   // Kalau background aktifnya foto/video, buka tab yang sesuai.
   useEffect(() => {
@@ -66,6 +72,7 @@ export default function ThemeSwitcher() {
       // Ingat mode terakhir Neumorphism, supaya klik ulang item
       // "Neumorphism" kembali ke mode yang terakhir dipakai.
       if (isNeuTheme(id)) window.localStorage.setItem(NEU_MODE_STORAGE_KEY, id);
+      if (isClayTheme(id)) window.localStorage.setItem(CLAY_MODE_STORAGE_KEY, id);
     } catch {
       // abaikan kalau localStorage diblokir
     }
@@ -80,6 +87,18 @@ export default function ThemeSwitcher() {
     try {
       const last = window.localStorage.getItem(NEU_MODE_STORAGE_KEY);
       if (isNeuTheme(last)) mode = last;
+    } catch {
+      // abaikan
+    }
+    applyTheme(mode, true);
+  }
+
+  // Sama seperti Neumorphism, untuk Claymorphism.
+  function pickClaymorphism() {
+    let mode = "clay-light";
+    try {
+      const last = window.localStorage.getItem(CLAY_MODE_STORAGE_KEY);
+      if (isClayTheme(last)) mode = last;
     } catch {
       // abaikan
     }
@@ -114,13 +133,16 @@ export default function ThemeSwitcher() {
             {COLOR_THEMES.map((t) => (
               <button
                 key={t.id}
-                onClick={() =>
-                  t.id === "neu-light" ? pickNeumorphism() : applyTheme(t.id, t.id === "glass")
-                }
+                onClick={() => {
+                  if (t.id === "neu-light") pickNeumorphism();
+                  else if (t.id === "clay-light") pickClaymorphism();
+                  else applyTheme(t.id, t.id === "glass");
+                }}
                 className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
                   theme === t.id ||
                   (t.id === "glass" && mediaActive) ||
-                  (t.id === "neu-light" && showNeuModes)
+                  (t.id === "neu-light" && showNeuModes) ||
+                  (t.id === "clay-light" && showClayModes)
                     ? "bg-white/10 text-white"
                     : "text-white/60 hover:bg-white/5 hover:text-white"
                 }`}
@@ -139,13 +161,13 @@ export default function ThemeSwitcher() {
               </button>
             ))}
 
-            {showNeuModes && (
+            {showModes && (
               <>
                 <p className="mt-2 border-t border-white/8 px-3 pb-1.5 pt-2.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
                   Mode
                 </p>
-                {NEU_MODES.map((m) => {
-                  const Icon = m.id === "neu-dark" ? Moon : Sun;
+                {modeList.map((m) => {
+                  const Icon = m.id.endsWith("dark") ? Moon : Sun;
                   return (
                     <button
                       key={m.id}
