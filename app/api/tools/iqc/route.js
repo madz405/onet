@@ -20,7 +20,8 @@ function jamWIB() {
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-  const statusBarTime = searchParams.get("statusBarTime") || "";
+  const timestampInput = (searchParams.get("timestamp") || "").trim();
+  const statusBarInput = (searchParams.get("statusBarTime") || "").trim();
   const signal = searchParams.get("signal") || "4";
   const battery = searchParams.get("battery") || "90";
   const carrier = searchParams.get("carrier") || "telkomsel";
@@ -28,15 +29,11 @@ export async function GET(req) {
 
   // Gaya emoji selalu "ios" (pilihan lain sudah dihapus dari form).
   const emojiType = "ios";
-  // Jam saat ini selalu otomatis WIB, tidak diambil dari input user.
-  const timestamp = jamWIB();
+  // Kedua jam opsional: kalau dikosongkan, pakai jam WIB sekarang.
+  const nowWIB = jamWIB();
+  const timestamp = timestampInput || nowWIB;
+  const statusBarTime = statusBarInput || nowWIB;
 
-  if (!statusBarTime.trim()) {
-    return NextResponse.json(
-      { status: false, message: "Jam pesan dikirim wajib diisi." },
-      { status: 400 }
-    );
-  }
   if (!text.trim()) {
     return NextResponse.json(
       { status: false, message: "Teks tambahan wajib diisi." },
