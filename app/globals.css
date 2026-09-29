@@ -6,7 +6,7 @@
    Sistem tema: tiap variabel berisi angka "R G B" (tanpa fungsi rgb()),
    supaya bisa dipakai Tailwind dengan modifier opacity (contoh: bg-ink-900/60)
    lewat pola rgb(var(--x) / <alpha-value>) di tailwind.config.js.
-   Ganti tema dengan menaruh atribut data-theme="aurora|sunset|mint|glass|neobrutalism" di
+   Ganti tema dengan menaruh atribut data-theme="aurora|mint|glass|neobrutalism|neu-light|neu-dark" di
    <html>. Untuk background video/foto, data-theme yang dipasang juga "glass"
    (lihat resolveCssTheme() di lib/themes.js) supaya kartu-kartunya ikut jadi
    kaca buram, cocok ditumpuk di atas video/foto yang ramai.
@@ -25,20 +25,6 @@
   --flare-400: 255 138 107;
   --flare-500: 255 107 74;
   --flare-600: 228 80 47;
-}
-
-[data-theme="sunset"] {
-  --ink-950: 23 15 10;
-  --ink-900: 36 24 17;
-  --ink-800: 51 34 26;
-  --ink-700: 69 45 34;
-  --ink-600: 90 58 44;
-  --signal-400: 255 217 138;
-  --signal-500: 255 176 32;
-  --signal-600: 219 147 8;
-  --flare-400: 255 159 178;
-  --flare-500: 255 77 109;
-  --flare-600: 219 47 78;
 }
 
 [data-theme="mint"] {
@@ -1100,4 +1086,354 @@ html[data-theme="neobrutalism"] {
 }
 @media (prefers-reduced-motion: reduce) {
   .promo-countdown-fill { animation-timing-function: steps(30, end); }
+}
+
+/* ==========================================================================
+   Tema NEUMORPHISM  ([data-theme="neu-light"] dan [data-theme="neu-dark"])
+   Menggantikan tema Sunset. Ciri: permukaan SEDIKIT timbul/tenggelam dari
+   latar yang warnanya sama, dibentuk oleh dua bayangan (satu gelap, satu
+   terang) — tanpa border. Elemen "timbul" = raised (kartu, tombol, modal);
+   elemen "tenggelam" = inset (input, tab aktif, progress track).
+   Sama seperti Glass & Neobrutalism, gayanya dipasang lewat selector atribut
+   pada class Tailwind yang sudah ada — komponen TIDAK perlu diubah.
+   Dua mode hanya beda nilai variabel --neu-* (warna latar, bayangan, aksen).
+   ========================================================================== */
+[data-theme="neu-light"] {
+  --ink-950: 255 255 255;  /* dipakai sebagai warna teks di atas tombol aksen */
+  --ink-900: 224 229 236;
+  --ink-800: 224 229 236;
+  --ink-700: 190 198 210;
+  --ink-600: 163 177 198;
+  --signal-400: 63 91 240;
+  --signal-500: 79 107 255;
+  --signal-600: 52 78 220;
+  --flare-400: 214 51 108;
+  --flare-500: 233 69 128;
+  --flare-600: 200 40 100;
+
+  --neu-bg: #e0e5ec;
+  --neu-hi: #ffffff;
+  --neu-lo: #a3b1c6;
+  --neu-text: #38434f;
+  --neu-soft: #556372;
+  --neu-mute: #6b7787;
+  --neu-accent: #4f6bff;
+  --neu-divider: rgb(163 177 198 / 0.35);
+}
+[data-theme="neu-dark"] {
+  --ink-950: 255 255 255;
+  --ink-900: 43 47 54;
+  --ink-800: 43 47 54;
+  --ink-700: 60 66 76;
+  --ink-600: 78 85 97;
+  --signal-400: 255 122 74;
+  --signal-500: 255 90 31;
+  --signal-600: 226 70 15;
+  --flare-400: 255 140 170;
+  --flare-500: 255 95 135;
+  --flare-600: 226 70 110;
+
+  --neu-bg: #2b2f36;
+  --neu-hi: #383d46;
+  --neu-lo: #1b1e23;
+  --neu-text: #e6e9ef;
+  --neu-soft: #aab1bd;
+  --neu-mute: #8a93a1;
+  --neu-accent: #ff5a1f;
+  --neu-divider: rgb(0 0 0 / 0.35);
+}
+[data-theme="neu-light"],
+[data-theme="neu-dark"] {
+  --neu-raised: 9px 9px 18px var(--neu-lo), -9px -9px 18px var(--neu-hi);
+  --neu-raised-sm: 5px 5px 10px var(--neu-lo), -5px -5px 10px var(--neu-hi);
+  --neu-raised-xs: 3px 3px 6px var(--neu-lo), -3px -3px 6px var(--neu-hi);
+  --neu-inset: inset 6px 6px 12px var(--neu-lo), inset -6px -6px 12px var(--neu-hi);
+  --neu-inset-sm: inset 3px 3px 6px var(--neu-lo), inset -3px -3px 6px var(--neu-hi);
+}
+
+/* --- Dasar halaman ------------------------------------------------------ */
+html:is([data-theme="neu-light"],[data-theme="neu-dark"]) {
+  background-color: var(--neu-bg);
+}
+html[data-theme="neu-light"] { color-scheme: light; }
+html[data-theme="neu-dark"] { color-scheme: dark; }
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) body {
+  background-color: var(--neu-bg) !important;
+  background-image: none !important;
+  color: var(--neu-text);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) ::selection {
+  background: var(--neu-accent);
+  color: #fff;
+}
+
+/* --- Permukaan: satu warna dengan latar, dibedakan lewat bayangan ------- */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="bg-ink-900"]:not(body),
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="bg-ink-950"]:not(body),
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="bg-ink-800"]:not(body) {
+  background-color: var(--neu-bg) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Semua tepi/garis border jadi garis pemisah tipis. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="border-white"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="border-ink-"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="border-signal-"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="border-flare-"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="border-black"] {
+  border-color: var(--neu-divider) !important;
+}
+/* Kotak ber-border penuh (tombol toggle, baris unduh, dll): timbul kecil, tanpa garis. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="border"][class*="border-white"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="border"][class*="border-signal-"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="border"][class*="border-flare-"] {
+  border-color: transparent !important;
+  box-shadow: var(--neu-raised-sm);
+}
+/* Kartu besar, modal, chat, player: timbul besar. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="shadow-glow"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="rounded-2xl"][class*="bg-ink-9"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="rounded-3xl"][class*="bg-ink-9"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="rounded-[2rem]"][class*="bg-ink-9"] {
+  border-color: transparent !important;
+  box-shadow: var(--neu-raised) !important;
+}
+/* Panel hasil, baris lagu, dropdown: timbul sedang. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="rounded-xl"][class*="bg-ink-9"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="rounded-xl"][class*="bg-ink-950"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="rounded-full"][class*="bg-ink-950"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="rounded-xl"][class~="bg-white/5"] {
+  border-color: transparent !important;
+  box-shadow: var(--neu-raised-sm) !important;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) header[class*="bg-ink-950"] {
+  border-color: transparent !important;
+  box-shadow: 0 10px 18px -10px var(--neu-lo) !important;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) footer[class*="bg-ink-950"] {
+  border-color: transparent !important;
+  box-shadow: 0 -10px 18px -10px var(--neu-lo) !important;
+}
+/* Latar gelap di belakang modal: pakai warna tema supaya menyatu. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="bg-black/60"] {
+  background-color: color-mix(in srgb, var(--neu-bg) 78%, transparent) !important;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="bg-black/60"] > [class*="bg-ink-9"] {
+  border-color: transparent !important;
+}
+
+/* --- Input: tenggelam ---------------------------------------------------- */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) input[class*="bg-ink-"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) textarea[class*="bg-ink-"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) select[class*="bg-ink-"] {
+  border-color: transparent !important;
+  box-shadow: var(--neu-inset) !important;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) input[class*="bg-ink-"]:focus-visible,
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) textarea[class*="bg-ink-"]:focus-visible {
+  box-shadow: var(--neu-inset), 0 0 0 2px var(--neu-accent) !important;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) ::placeholder {
+  color: var(--neu-mute) !important;
+  opacity: 1;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="accent-signal-500"] {
+  accent-color: var(--neu-accent);
+}
+
+/* --- Bagian putih transparan (ghost/aktif) ------------------------------- */
+/* Tab/menu yang sedang aktif (pill navbar, item tema terpilih): tenggelam + teks aksen. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) a[class~="bg-white/10"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) button[class~="bg-white/10"] {
+  background-color: var(--neu-bg) !important;
+  box-shadow: var(--neu-inset-sm);
+  color: var(--neu-accent) !important;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="bg-white/5"] {
+  background-color: var(--neu-bg) !important;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) div[class~="bg-white/10"] {
+  background-color: var(--neu-divider) !important;
+}
+/* Hover pada tombol ghost: timbul tipis. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="hover:bg-white/"]:not([class~="bg-white/10"]):hover,
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="hover:bg-flare-500/10"]:hover {
+  background-color: var(--neu-bg) !important;
+  box-shadow: var(--neu-raised-xs);
+}
+/* Titik "sedang mengetik" di chat. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="bg-white/60"] {
+  background-color: var(--neu-soft) !important;
+}
+
+/* --- Teks: putih -> abu gelap (light) / abu terang (dark) --------------- */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="text-white"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="text-white/90"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="text-white/80"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="text-white/70"] {
+  color: var(--neu-text) !important;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="text-white/60"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="text-white/50"] {
+  color: var(--neu-soft) !important;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="text-white/40"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="text-white/35"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="text-white/30"] {
+  color: var(--neu-mute) !important;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="hover:text-white"]:hover {
+  color: var(--neu-text) !important;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) a[class~="bg-white/10"] svg,
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) button[class~="bg-white/10"] svg {
+  color: inherit;
+}
+
+/* --- Elemen berwarna aksen ------------------------------------------------ */
+/* Tombol utama: timbul berwarna aksen, teks putih. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="bg-signal-500"]:not([class~="h-full"]) {
+  color: #fff !important;
+  box-shadow: var(--neu-raised-sm);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="bg-signal-500"]:not([class~="h-full"]):hover:not(:disabled) {
+  box-shadow: 7px 7px 14px var(--neu-lo), -7px -7px 14px var(--neu-hi);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="bg-signal-500"]:not([class~="h-full"]):active:not(:disabled) {
+  box-shadow: var(--neu-inset-sm);
+}
+/* Isi progress bar mini player. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="bg-signal-500"][class~="h-full"] {
+  background-color: var(--neu-accent) !important;
+  border-radius: 999px;
+}
+/* Baris unduh yang berubah warna saat di-hover. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class*="hover:bg-signal-500"]:hover {
+  background-color: var(--neu-accent) !important;
+  color: #fff !important;
+}
+/* Status terpilih (toggle format): tenggelam + teks aksen. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="bg-signal-500/10"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="bg-signal-500/5"] {
+  background-color: var(--neu-bg) !important;
+  box-shadow: var(--neu-inset-sm) !important;
+}
+/* Kotak ikon (tool card, pesan error): tenggelam. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="bg-flare-500/15"],
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) [class~="bg-flare-500/10"] {
+  background-color: var(--neu-bg) !important;
+  box-shadow: var(--neu-inset-sm) !important;
+}
+
+/* --- Kartu platform & tools --------------------------------------------- */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .grid > button.group {
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .grid > button.group:hover {
+  box-shadow: 12px 12px 22px var(--neu-lo), -12px -12px 22px var(--neu-hi) !important;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .grid > button.group:active {
+  transform: none !important;
+  box-shadow: var(--neu-inset) !important;
+}
+/* Kotak logo platform: timbul kecil. */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .grid > button.group > span:first-child {
+  box-shadow: var(--neu-raised-xs);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .grid > button.group > span:first-child[class*="bg-flare-500"] {
+  box-shadow: var(--neu-inset-sm);
+}
+
+/* --- Fokus & scrollbar --------------------------------------------------- */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .focus-ring:focus-visible {
+  outline: 2px solid var(--neu-accent);
+  outline-offset: 3px;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) ::-webkit-scrollbar-thumb {
+  background: var(--neu-lo);
+  border: 2px solid var(--neu-bg);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) ::-webkit-scrollbar-thumb:hover {
+  background: var(--neu-mute);
+}
+
+/* --- Layar loading (SplashLoader) ---------------------------------------- */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .splash-root {
+  color: var(--neu-text);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .splash-root::before {
+  background: var(--neu-bg);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .splash-blob {
+  width: 260px;
+  height: 260px;
+  filter: none;
+  opacity: 1;
+  background: var(--neu-bg) !important;
+  box-shadow: var(--neu-raised);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .splash-wave {
+  border-color: var(--neu-lo);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .splash-logo-img {
+  box-shadow: var(--neu-raised);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .splash-ring-track {
+  border: 0;
+  box-shadow: var(--neu-inset-sm);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .splash-tagline,
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .splash-meta {
+  color: var(--neu-soft);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .splash-percent {
+  color: var(--neu-text);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .splash-track {
+  height: 12px;
+  background: var(--neu-bg);
+  box-shadow: var(--neu-inset-sm);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .splash-fill {
+  background: var(--neu-accent);
+  box-shadow: none;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .splash-fill::after {
+  display: none;
+}
+
+/* --- Hasil download foto (slide TikTok/Instagram) ------------------------- */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .photo-tile {
+  --pt-border: var(--neu-bg);
+  --pt-bg: var(--neu-bg);
+  border-width: 6px;
+  border-radius: 20px;
+  box-shadow: var(--neu-raised-sm);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .photo-tile:hover {
+  transform: none;
+  box-shadow: 8px 8px 16px var(--neu-lo), -8px -8px 16px var(--neu-hi);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .photo-tile:active {
+  transform: none;
+  box-shadow: var(--neu-inset-sm);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .photo-tile-num,
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .photo-tile-zoom {
+  background: var(--neu-accent);
+  color: #fff;
+  border: 0;
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .photo-tile-num { border-bottom-right-radius: 12px; }
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .photo-tile-zoom { border-top-left-radius: 12px; }
+
+/* --- Pop up saluran WhatsApp: bar hitung mundur --------------------------- */
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .promo-countdown-track {
+  height: 8px;
+  background: var(--neu-bg);
+  box-shadow: var(--neu-inset-sm);
+}
+:is([data-theme="neu-light"],[data-theme="neu-dark"]) .promo-countdown-fill {
+  background: var(--neu-accent);
 }
