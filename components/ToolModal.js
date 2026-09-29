@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Download, Upload } from "lucide-react";
+import { Loader2, Download, Upload, ZoomIn } from "lucide-react";
+import PhotoLightbox from "@/components/PhotoLightbox";
 import Modal from "@/components/Modal";
 
 function buildInitialState(fields = []) {
@@ -20,6 +21,11 @@ export default function ToolModal({ tool, onClose }) {
   const [error, setError] = useState("");
   const [resultUrl, setResultUrl] = useState(null);
   const [resultKind, setResultKind] = useState(null); // "image" | "video"
+  const [zoomOpen, setZoomOpen] = useState(false);
+  // Hasil gambar bisa diketuk untuk pratinjau + zoom (PhotoLightbox), sama
+  // seperti hasil foto TikTok/Instagram/Douyin. Tool dengan noZoom: true
+  // (Brat & Brat HD) tetap tampil biasa.
+  const canZoom = resultKind === "image" && !tool.noZoom;
 
   function updateField(name, value) {
     setValues((v) => ({ ...v, [name]: value }));
@@ -49,6 +55,7 @@ export default function ToolModal({ tool, onClose }) {
     setLoading(true);
     setError("");
     setResultUrl(null);
+    setZoomOpen(false);
     try {
       const params = new URLSearchParams();
       Object.entries(values).forEach(([k, v]) => params.set(k, v));
@@ -76,6 +83,7 @@ export default function ToolModal({ tool, onClose }) {
     setLoading(true);
     setError("");
     setResultUrl(null);
+    setZoomOpen(false);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -147,10 +155,26 @@ export default function ToolModal({ tool, onClose }) {
                 backgroundColor: "#141225",
               }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={resultUrl} alt="Hasil" className="mx-auto max-h-80 w-auto rounded-lg" />
+              {canZoom ? (
+                <button
+                  type="button"
+                  onClick={() => setZoomOpen(true)}
+                  className="relative mx-auto block cursor-zoom-in focus-ring"
+                  aria-label="Perbesar hasil"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={resultUrl} alt="Hasil" className="mx-auto max-h-80 w-auto rounded-lg" draggable={false} />
+                  <span className="photo-tile-zoom" aria-hidden="true">
+                    <ZoomIn size={16} />
+                  </span>
+                </button>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={resultUrl} alt="Hasil" className="mx-auto max-h-80 w-auto rounded-lg" />
+              )}
             </div>
           )}
+          {canZoom && <p className="text-xs text-white/50">Ketuk gambar untuk memperbesar.</p>}
           <a
             href={resultUrl}
             download={`${tool.id}-result.${resultKind === "video" ? "mp4" : "png"}`}
@@ -160,6 +184,14 @@ export default function ToolModal({ tool, onClose }) {
             Unduh hasil
           </a>
         </div>
+      )}
+      {zoomOpen && canZoom && resultUrl && (
+        <PhotoLightbox
+          photos={[{ url: resultUrl, download: resultUrl, filename: `${tool.id}-result.png` }]}
+          index={0}
+          onIndexChange={() => {}}
+          onClose={() => setZoomOpen(false)}
+        />
       )}
     </Modal>
   );
