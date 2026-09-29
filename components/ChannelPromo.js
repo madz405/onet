@@ -24,7 +24,7 @@ import { SITE_NAME, SITE_TAGLINE, WHATSAPP_CHANNEL_URL } from "@/lib/site";
 const AUTO_CLOSE_SECONDS = 60; // lama pop up tampil kalau tidak ditutup manual
 const SHOW_DELAY_MS = 800; // jeda setelah splash hilang sebelum pop up muncul
 const SPLASH_WAIT_MAX_MS = 15000; // kalau sinyal splash tidak pernah datang, tetap tampil
-const COOLDOWN_MINUTES = 60; // jeda minimal antar kemunculan pop up (0 = muncul setiap refresh)
+const COOLDOWN_MINUTES = 0; // jeda minimal antar kemunculan pop up (0 = muncul setiap refresh)
 const STORAGE_KEY = "koyen-channel-promo-last-shown";
 
 // True kalau pop up baru saja tampil dan masih dalam masa jeda.
