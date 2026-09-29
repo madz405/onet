@@ -29,7 +29,7 @@ export default function SiteBackground() {
   }, []);
 
   const theme = getThemeById(themeId);
-  if (!theme || theme.kind === "color" || theme.kind === "neu" || failed) return null;
+  if (!theme || theme.kind === "color" || theme.kind === "neu" || theme.kind === "clay" || failed) return null;
 
   // Kalau muncul pesan ini di console (F12 -> Console di browser), berarti
   // filenya belum ada / salah nama / salah folder di public/assets/backgrounds/
