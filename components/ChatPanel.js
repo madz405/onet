@@ -82,7 +82,7 @@ export default function ChatPanel() {
         </span>
         <div>
           <p className="text-sm font-semibold text-white">{CHAT_BOT_NAME}</p>
-          <p className="text-xs text-white/40">Biasanya balas dalam beberapa detik</p>
+          <p className="text-xs text-white/40">asisten pintar</p>
         </div>
       </div>
 
