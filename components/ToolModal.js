@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, Download, Upload } from "lucide-react";
 import Modal from "@/components/Modal";
 
@@ -178,7 +178,28 @@ function SubmitButton({ loading, disabled }) {
   );
 }
 
+// Jam WIB sekarang, format "16.42" (dipakai sebagai placeholder field jam).
+function jamWIB() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Jakarta",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const hh = parts.find((p) => p.type === "hour")?.value ?? "00";
+  const mm = parts.find((p) => p.type === "minute")?.value ?? "00";
+  return `${hh}.${mm}`;
+}
+
 function Field({ field, value, onChange }) {
+  const [wibNow, setWibNow] = useState(null);
+  useEffect(() => {
+    if (!field.wibTime) return;
+    setWibNow(jamWIB());
+    const t = setInterval(() => setWibNow(jamWIB()), 15000);
+    return () => clearInterval(t);
+  }, [field.wibTime]);
+
   const base =
     "w-full rounded-xl border border-white/10 bg-ink-950 px-4 py-3 text-sm text-white placeholder:text-white/30 focus-ring";
 
@@ -238,7 +259,7 @@ function Field({ field, value, onChange }) {
         type={field.type}
         required={field.required}
         value={value}
-        placeholder={field.placeholder}
+        placeholder={field.wibTime && wibNow ? wibNow : field.placeholder}
         onChange={(e) => onChange(field.name, e.target.value)}
         className={base}
       />
