@@ -1905,3 +1905,34 @@ html[data-theme="clay-dark"] { color-scheme: dark; }
 :is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-2xl"] { border-radius: 28px; }
 :is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-3xl"],
 :is([data-theme="clay-light"],[data-theme="clay-dark"]) [class*="rounded-[2rem]"] { border-radius: 34px; }
+
+/* --- Kartu platform & tools berwarna-warni (pastel bergiliran) ------------ */
+/* Enam warna diulang berurutan pada tiap kartu di halaman unduh & tools. */
+[data-theme="clay-light"] {
+  --clay-c1: #ffd3e6; /* pink */
+  --clay-c2: #ffe1c4; /* peach */
+  --clay-c3: #fff1b0; /* yellow */
+  --clay-c4: #c8f2dd; /* mint */
+  --clay-c5: #cbe4ff; /* sky */
+  --clay-c6: #e0d5ff; /* lilac */
+  --clay-icon-bg: rgb(255 255 255 / 0.7);
+}
+[data-theme="clay-dark"] {
+  --clay-c1: #5b2f4f; /* pink */
+  --clay-c2: #5a3d2d; /* peach */
+  --clay-c3: #544928; /* yellow */
+  --clay-c4: #22504a; /* mint */
+  --clay-c5: #27406a; /* sky */
+  --clay-c6: #40356f; /* lilac */
+  --clay-icon-bg: rgb(255 255 255 / 0.12);
+}
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .grid > button.group:nth-child(6n+1) { background-color: var(--clay-c1) !important; }
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .grid > button.group:nth-child(6n+2) { background-color: var(--clay-c2) !important; }
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .grid > button.group:nth-child(6n+3) { background-color: var(--clay-c3) !important; }
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .grid > button.group:nth-child(6n+4) { background-color: var(--clay-c4) !important; }
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .grid > button.group:nth-child(6n+5) { background-color: var(--clay-c5) !important; }
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .grid > button.group:nth-child(6n+6) { background-color: var(--clay-c6) !important; }
+/* Kotak ikon tools: putih semi-transparan supaya kontras dengan kartu berwarna. */
+:is([data-theme="clay-light"],[data-theme="clay-dark"]) .grid > button.group > span:first-child[class*="bg-flare-500"] {
+  background-color: var(--clay-icon-bg) !important;
+}
