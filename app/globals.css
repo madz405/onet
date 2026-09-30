@@ -122,6 +122,7 @@ html[data-theme="glass"] body {
    video/foto di SiteBackground.js). height ditulis dua kali: baris pertama
    cadangan untuk browser lama yang belum kenal satuan "lvh". */
 html[data-theme="glass"]::before,
+html[data-theme="glass"]::after,
 .site-bg-layer {
   position: fixed;
   top: 0;
@@ -135,10 +136,25 @@ html[data-theme="glass"]::before,
 html[data-theme="glass"]::before {
   content: "";
   z-index: -20;
+  /* Latar mirip kaca sungguhan: biru tua di kiri-atas -> periwinkle -> lavender
+     -> pink -> oranye di kanan-bawah, dengan sorot lembut supaya kaca punya
+     sesuatu yang "dibiaskan" di belakangnya. */
   background-image:
-    radial-gradient(circle at 82% 6%, rgba(147, 179, 255, 0.65), transparent 42%),
-    radial-gradient(circle at 4% 82%, rgba(255, 255, 255, 0.10), transparent 38%),
-    linear-gradient(150deg, #1c3fae 0%, #4a3fc9 26%, #8b3fc4 50%, #d94ea0 74%, #ff8a4c 100%);
+    radial-gradient(circle at 78% 30%, rgba(214, 170, 255, 0.55), transparent 46%),
+    radial-gradient(circle at 12% 62%, rgba(120, 150, 255, 0.45), transparent 44%),
+    radial-gradient(circle at 92% 88%, rgba(255, 190, 90, 0.55), transparent 42%),
+    linear-gradient(155deg, #123a9c 0%, #3f63d8 22%, #7a7fe6 42%, #b48ee6 58%, #f07fb0 78%, #ffa45a 100%);
+}
+/* Bola-bola kaca transparan besar di latar (seperti di referensi) — tepinya
+   sedikit lebih terang supaya terlihat seperti bola kaca. Hanya tampil di
+   latar gradient; di background video/foto tertutup lapisan media. */
+html[data-theme="glass"]::after {
+  content: "";
+  z-index: -15;
+  background-image:
+    radial-gradient(circle min(56vw, 360px) at 104% 0%, rgba(150, 180, 255, 0.55) 0%, rgba(150, 165, 255, 0.40) 64%, rgba(255, 255, 255, 0.42) 68.5%, rgba(255, 255, 255, 0) 72%),
+    radial-gradient(circle min(70vw, 440px) at -14% 84%, rgba(205, 210, 255, 0.42) 0%, rgba(190, 190, 255, 0.28) 64%, rgba(255, 255, 255, 0.36) 68.5%, rgba(255, 255, 255, 0) 72%),
+    radial-gradient(circle min(46vw, 300px) at 112% 68%, rgba(255, 175, 100, 0.40) 0%, rgba(255, 160, 110, 0.26) 64%, rgba(255, 255, 255, 0.30) 68.5%, rgba(255, 255, 255, 0) 72%);
 }
 .site-bg-layer {
   z-index: -10;
@@ -161,34 +177,86 @@ html[data-theme="glass"]::before {
      bawah), karena modal sudah punya lapisan backdrop-blur sendiri di
      belakangnya; kalau isi modalnya juga dibuat transparan+blur, dua lapis
      blur itu numpuk dan modalnya jadi nyaris tidak kelihatan/tidak terbaca. */
-[data-theme="glass"] [class*="bg-ink-900"]:not(body):not(.glass-surface-solid) {
-  background-color: rgb(var(--ink-900) / 0.38) !important;
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-}
-[data-theme="glass"] [class*="bg-ink-950"]:not(body):not(.glass-surface-solid) {
-  background-color: rgb(var(--ink-950) / 0.38) !important;
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-}
+/* Kaca sungguhan: putih transparan (bukan ungu gelap), blur kuat + saturasi
+   tinggi supaya warna di belakangnya "menembus", tepi atas lebih terang
+   seperti pantulan cahaya, dan bayangan lembut berwarna. */
+[data-theme="glass"] [class*="bg-ink-900"]:not(body):not(.glass-surface-solid),
+[data-theme="glass"] [class*="bg-ink-950"]:not(body):not(.glass-surface-solid),
 [data-theme="glass"] [class*="bg-ink-800"]:not(body):not(.glass-surface-solid) {
-  background-color: rgb(var(--ink-800) / 0.38) !important;
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  background-color: rgb(255 255 255 / 0.13) !important;
+  background-image: linear-gradient(135deg, rgb(255 255 255 / 0.20), rgb(255 255 255 / 0.04) 60%);
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+}
+/* Tepi kaca + bayangan hanya untuk panel/kartu besar (bukan tiap elemen kecil
+   di dalamnya, supaya tidak ramai). */
+[data-theme="glass"] [class*="rounded-xl"][class*="bg-ink-"]:not(.glass-surface-solid):not(input):not(textarea):not(select),
+[data-theme="glass"] [class*="rounded-2xl"][class*="bg-ink-"]:not(.glass-surface-solid):not(input):not(textarea):not(select),
+[data-theme="glass"] [class*="rounded-3xl"][class*="bg-ink-"]:not(.glass-surface-solid):not(input):not(textarea):not(select),
+[data-theme="glass"] [class*="rounded-[2rem]"][class*="bg-ink-"]:not(.glass-surface-solid):not(input):not(textarea):not(select) {
+  border-color: rgb(255 255 255 / 0.34) !important;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55),
+    inset 0 -1px 0 rgb(255 255 255 / 0.10),
+    0 10px 34px rgb(28 20 110 / 0.28) !important;
+}
+/* Header & footer: kaca lebar penuh dengan garis terang tipis. */
+[data-theme="glass"] header[class*="bg-ink-"],
+[data-theme="glass"] footer[class*="bg-ink-"] {
+  border-color: rgb(255 255 255 / 0.28) !important;
+  background-color: rgb(255 255 255 / 0.10) !important;
+}
+/* Input: kaca yang terlihat sedikit "cekung" (lebih gelap dari kartunya). */
+[data-theme="glass"] input[class*="bg-ink-"]:not(.glass-surface-solid),
+[data-theme="glass"] textarea[class*="bg-ink-"]:not(.glass-surface-solid),
+[data-theme="glass"] select[class*="bg-ink-"]:not(.glass-surface-solid) {
+  background-color: rgb(20 14 70 / 0.22) !important;
+  background-image: none;
+  border-color: rgb(255 255 255 / 0.30) !important;
+  box-shadow: inset 0 2px 6px rgb(20 10 80 / 0.25) !important;
 }
 /* Border putih tipis dipertegas dikit biar kelihatan seperti tepi kaca. */
 [data-theme="glass"] [class*="border-white"] {
-  border-color: rgb(255 255 255 / 0.25) !important;
+  border-color: rgb(255 255 255 / 0.28) !important;
+}
+/* Teks di atas kaca diberi bayangan sangat tipis supaya tetap terbaca di area
+   latar yang terang (pink/oranye). */
+[data-theme="glass"] [class~="text-white"],
+[data-theme="glass"] [class~="text-white/90"],
+[data-theme="glass"] [class~="text-white/80"],
+[data-theme="glass"] [class~="text-white/70"],
+[data-theme="glass"] [class~="text-white/60"] {
+  text-shadow: 0 1px 2px rgb(20 10 70 / 0.28);
+}
+[data-theme="glass"] [class~="text-white/60"] {
+  color: rgb(255 255 255 / 0.78) !important;
+}
+[data-theme="glass"] [class~="text-white/50"] {
+  color: rgb(255 255 255 / 0.68) !important;
 }
 
-/* Permukaan kaca versi "solid": tetap kelihatan seperti kaca (border terang,
-   sedikit blur di baliknya) tapi jauh lebih pekat/legible — dipakai untuk
-   modal (popup input link, popup tool) yang harus tetap mudah dibaca dan
-   jelas ketauan itu popup, bukan cuma penumpukan blur di atas blur. */
+/* Popup (modal & menu tema): kaca yang sama, tapi lebih buram & sedikit lebih
+   pekat agar tulisannya tetap jelas, dan ikut gaya kaca dengan tepi terang
+   (sebelumnya berupa panel ungu tua yang beda sendiri dari tema). */
 [data-theme="glass"] .glass-surface-solid {
-  background-color: rgb(var(--ink-900) / 0.94) !important;
-  backdrop-filter: blur(24px) saturate(140%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  background-color: rgb(255 255 255 / 0.17) !important;
+  background-image:
+    linear-gradient(135deg, rgb(255 255 255 / 0.26), rgb(255 255 255 / 0.05) 62%),
+    linear-gradient(rgb(40 28 130 / 0.30), rgb(40 28 130 / 0.30));
+  backdrop-filter: blur(34px) saturate(180%);
+  -webkit-backdrop-filter: blur(34px) saturate(180%);
+  border-color: rgb(255 255 255 / 0.40) !important;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.60),
+    inset 0 -1px 0 rgb(255 255 255 / 0.10),
+    0 18px 50px rgb(20 12 90 / 0.38) !important;
+}
+/* Lapisan di belakang popup: bukan hitam pekat, cukup kabut lembut ungu-biru
+   sehingga latar kaca di belakangnya masih tampak. */
+[data-theme="glass"] [class*="bg-black/60"] {
+  background-color: rgb(24 18 80 / 0.28) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(12px) saturate(140%);
 }
 
 ::selection {
