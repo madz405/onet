@@ -1586,38 +1586,41 @@ html[data-theme="neu-dark"] { color-scheme: dark; }
    ========================================================================== */
 [data-theme="clay-light"] {
   --ink-950: 255 255 255;
-  --ink-900: 237 231 255;
-  --ink-800: 237 231 255;
-  --ink-700: 206 197 240;
-  --ink-600: 176 165 218;
-  --signal-400: 108 90 240;
-  --signal-500: 124 107 255;
-  --signal-600: 96 78 230;
+  --ink-900: 246 231 207;
+  --ink-800: 246 231 207;
+  --ink-700: 226 205 172;
+  --ink-600: 200 175 140;
+  --signal-400: 138 98 216;
+  --signal-500: 155 127 224;
+  --signal-600: 122 84 204;
   --flare-400: 232 74 130;
   --flare-500: 240 90 140;
   --flare-600: 210 60 110;
 
-  --clay-bg: #ede7ff;
+  /* Meniru referensi "Clayful": latar krem hangat (bukan putih/lavender
+     terang), kartu krem, teks cokelat tua, bayangan cokelat hangat, dan
+     aksen ungu + pink seperti tanah liat mainan. */
+  --clay-bg: #f6e7cf;
   --clay-hi: #ffffff;
-  --clay-lo: rgb(90 70 160 / 0.30);
-  --clay-shade: rgb(60 40 130 / 0.14);
-  --clay-edge: rgb(255 255 255 / 0.85);
-  --clay-ring: rgb(90 70 160 / 0.0);
-  --clay-face-a: #ffffff;
-  --clay-face-b: #f7f3ff;
-  --clay-well: #e2daf9;
-  --clay-text: #3b2f63;
-  --clay-soft: #5f5387;
-  --clay-mute: #7a6fa0;
-  --clay-accent: #7c6bff;
-  --clay-ink: #7c6bff;
+  --clay-lo: rgb(150 100 60 / 0.30);
+  --clay-shade: rgb(125 75 40 / 0.16);
+  --clay-edge: rgb(255 250 240 / 0.85);
+  --clay-ring: rgb(0 0 0 / 0);
+  --clay-face-a: #fff3e0;
+  --clay-face-b: #f8e6cc;
+  --clay-well: #ebd8bb;
+  --clay-text: #4b2e2a;
+  --clay-soft: #7a574c;
+  --clay-mute: #97756a;
+  --clay-accent: #9b7fe0;
+  --clay-ink: #9b7fe0;
   --clay-neon: #ffffff;
-  --clay-pop: #ffb86b;
-  --clay-pop-text: #5a3200;
-  --clay-divider: rgb(90 70 160 / 0.18);
-  --clay-btn-shadow: 7px 9px 16px rgb(80 60 220 / 0.42), inset -6px -6px 12px rgb(40 20 150 / 0.35), inset 6px 6px 12px rgb(255 255 255 / 0.42);
-  --clay-btn-shadow-hover: 9px 12px 20px rgb(80 60 220 / 0.48), inset -6px -6px 12px rgb(40 20 150 / 0.35), inset 6px 6px 12px rgb(255 255 255 / 0.42);
-  --clay-btn-shadow-press: 2px 3px 6px rgb(80 60 220 / 0.4), inset -3px -3px 7px rgb(40 20 150 / 0.35), inset 3px 3px 7px rgb(255 255 255 / 0.35);
+  --clay-pop: #f76c9b;
+  --clay-pop-text: #ffffff;
+  --clay-divider: rgb(150 100 60 / 0.22);
+  --clay-btn-shadow: 7px 9px 16px rgb(120 80 200 / 0.38), inset -6px -6px 12px rgb(80 40 170 / 0.32), inset 6px 6px 12px rgb(255 255 255 / 0.45);
+  --clay-btn-shadow-hover: 9px 12px 20px rgb(120 80 200 / 0.44), inset -6px -6px 12px rgb(80 40 170 / 0.32), inset 6px 6px 12px rgb(255 255 255 / 0.45);
+  --clay-btn-shadow-press: 2px 3px 6px rgb(120 80 200 / 0.4), inset -3px -3px 7px rgb(80 40 170 / 0.32), inset 3px 3px 7px rgb(255 255 255 / 0.35);
 }
 
 /* Dark: ungu tua pekat, permukaan sedikit lebih terang, sorot dalam tipis. */
@@ -2005,13 +2008,13 @@ html[data-theme="clay-dark"] { color-scheme: dark; }
 /* --- Kartu platform & tools berwarna-warni (pastel bergiliran) ------------ */
 /* Enam warna diulang berurutan pada tiap kartu di halaman unduh & tools. */
 [data-theme="clay-light"] {
-  --clay-c1: #ffd3e6; /* pink */
-  --clay-c2: #ffe1c4; /* peach */
-  --clay-c3: #fff1b0; /* yellow */
-  --clay-c4: #c8f2dd; /* mint */
-  --clay-c5: #cbe4ff; /* sky */
-  --clay-c6: #e0d5ff; /* lilac */
-  --clay-icon-bg: rgb(255 255 255 / 0.7);
+  --clay-c1: #c5b0f1; /* lavender */
+  --clay-c2: #f9c3d3; /* pink */
+  --clay-c3: #b9e3b4; /* mint */
+  --clay-c4: #f6d46b; /* yellow */
+  --clay-c5: #fbcfa8; /* peach */
+  --clay-c6: #b7dbf0; /* sky */
+  --clay-icon-bg: rgb(255 250 240 / 0.7);
 }
 [data-theme="clay-dark"] {
   --clay-c1: #5b2f4f; /* pink */
