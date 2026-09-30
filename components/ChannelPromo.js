@@ -5,6 +5,7 @@ import { X, Download, Wand2, Music2, Bot, ArrowUpRight, ChevronDown } from "luci
 import { PLATFORMS } from "@/lib/platforms";
 import { TOOLS } from "@/lib/tools";
 import { SITE_NAME, SITE_TAGLINE, WHATSAPP_CHANNEL_URL } from "@/lib/site";
+import WhatsAppIcon from "@/components/WhatsAppIcon";
 
 // Pop up ajakan gabung saluran WhatsApp KOYEN.
 //
@@ -156,21 +157,24 @@ export default function ChannelPromo() {
         aria-labelledby="channel-promo-title"
         className="glass-surface-solid max-h-[88dvh] w-full max-w-md overflow-y-auto rounded-3xl border border-white/10 bg-ink-900 p-6 shadow-glow animate-rise"
       >
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-signal-400">Info {SITE_NAME}</p>
-            <h2 id="channel-promo-title" className="mt-1 font-display text-xl font-semibold leading-tight text-white">
-              Kenalan dulu sama {SITE_NAME}
-            </h2>
-          </div>
+        {/* Tombol tutup: menempel di atas (sticky) supaya tetap kelihatan waktu
+            isi popup di-scroll. Wrapper setinggi 0 agar tidak menambah jarak. */}
+        <div className="sticky top-0 z-20 flex h-0 justify-end">
           <button
             type="button"
             onClick={close}
-            className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white focus-ring"
+            className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-white/25 bg-ink-800/90 text-white shadow-lg transition-transform hover:scale-105 hover:bg-ink-700 active:scale-95 focus-ring"
             aria-label="Tutup"
           >
-            <X size={18} />
+            <X size={18} strokeWidth={2.4} />
           </button>
+        </div>
+
+        <div className="mb-3 pr-11">
+          <p className="text-xs font-medium uppercase tracking-wide text-signal-400">Info {SITE_NAME}</p>
+          <h2 id="channel-promo-title" className="mt-1 font-display text-xl font-semibold leading-tight text-white">
+            Kenalan dulu sama {SITE_NAME}
+          </h2>
         </div>
 
         <p className="text-sm leading-relaxed text-white/60">
@@ -234,6 +238,7 @@ export default function ChannelPromo() {
             onClick={close}
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-signal-500 px-4 py-3 text-sm font-semibold text-ink-950 transition-transform hover:scale-[1.01] focus-ring"
           >
+            <WhatsAppIcon size={18} className="flex-shrink-0" />
             Gabung Saluran
             <ArrowUpRight size={16} />
           </a>
