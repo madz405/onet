@@ -11,6 +11,11 @@ import { scrapeSoundCloudUrl } from "@/lib/scrapers/soundcloudUrl";
 import { scrapeFacebook } from "@/lib/scrapers/facebook";
 import { scrapeThreads } from "@/lib/scrapers/threads";
 import { scrapeBilibili } from "@/lib/scrapers/bilibili";
+import { scrapeReddit } from "@/lib/scrapers/reddit";
+import { scrapePixiv } from "@/lib/scrapers/pixiv";
+import { scrapeRedNote } from "@/lib/scrapers/rednote";
+import { scrapeTerabox } from "@/lib/scrapers/terabox";
+import { scrapeBandcamp } from "@/lib/scrapers/bandcamp";
 
 export const runtime = "nodejs";
 // Downloader TikTok sekarang bisa mencoba 3 API + scraper berurutan, jadi
@@ -546,6 +551,28 @@ export async function POST(req) {
         const result = await scrapeBilibili(url);
         if (!result.media?.length) {
           throw new Error("Scraper Bilibili tidak menemukan media yang bisa diunduh.");
+        }
+        return NextResponse.json({ status: true, platform, ...result });
+      }
+
+      case "reddit":
+      case "pixiv":
+      case "rednote":
+      case "terabox":
+      case "bandcamp": {
+        // Platform tambahan: scraper langsung saja (belum ada endpoint API
+        // cadangan). Semua scraper melempar Error dengan pesan yang jelas
+        // kalau gagal, pesannya diteruskan ke pengguna lewat catch di bawah.
+        const scrapers = {
+          reddit: scrapeReddit,
+          pixiv: scrapePixiv,
+          rednote: scrapeRedNote,
+          terabox: scrapeTerabox,
+          bandcamp: scrapeBandcamp,
+        };
+        const result = await scrapers[platform](url.trim());
+        if (!result.media?.length) {
+          throw new Error("Tidak ada media yang bisa diunduh dari link ini.");
         }
         return NextResponse.json({ status: true, platform, ...result });
       }
