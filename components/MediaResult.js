@@ -8,7 +8,7 @@ import { getPlatform } from "@/lib/platforms";
 
 // Platform yang hasil fotonya (slide/carousel) ditampilkan sebagai slide kotak
 // + popup zoom. Douyin ikut karena bentuk datanya sama dengan TikTok.
-const GALLERY_PLATFORMS = ["tiktok", "instagram", "douyin"];
+const GALLERY_PLATFORMS = ["tiktok", "instagram", "douyin", "pixiv", "rednote"];
 
 function extFor(type) {
   if (type === "video") return "mp4";
@@ -94,9 +94,11 @@ function AudioPlayer({ src }) {
 // langsung terunduh (lihat komentar di route tersebut untuk alasannya),
 // bukan membuka tab baru seperti sebelumnya.
 function downloadHref(result, media, index) {
-  const filename = `${result.platform}-${slug(result.title || media.label)}-${index + 1}.${extFor(
-    media.type
-  )}`;
+  // Scraper boleh menentukan nama file sendiri (media.filename), misalnya
+  // TeraBox (ekstensi file bebas), Bandcamp, atau gambar Pixiv (png/gif).
+  const filename =
+    media.filename ||
+    `${result.platform}-${slug(result.title || media.label)}-${index + 1}.${extFor(media.type)}`;
   const params = new URLSearchParams({ url: media.url, filename });
   return `/api/fetch-media?${params.toString()}`;
 }
