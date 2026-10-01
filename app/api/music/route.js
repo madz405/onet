@@ -121,10 +121,12 @@ export async function POST(req) {
         };
       };
 
-      const result = await tryPrimaryScraper().catch((err) => {
-        console.error("[music] scraper SoundCloud (Klickaud) gagal, coba scraper cadangan:", err.message);
-        return trySecondaryScraper().catch((err2) => {
-          console.error("[music] scraper cadangan SoundCloud gagal, pakai endpoint terakhir:", err2.message);
+      // Urutan: scraper langsung ke SoundCloud dulu (link stream CDN-nya bisa
+      // diputar langsung di browser), baru Klickaud, terakhir endpoint faa.
+      const result = await trySecondaryScraper().catch((err) => {
+        console.error("[music] scraper langsung SoundCloud gagal, coba Klickaud:", err.message);
+        return tryPrimaryScraper().catch((err2) => {
+          console.error("[music] scraper Klickaud gagal, pakai endpoint terakhir:", err2.message);
           return tryEndpoint();
         });
       });
