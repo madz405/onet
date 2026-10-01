@@ -10,6 +10,69 @@ import { getPlatform } from "@/lib/platforms";
 // + popup zoom. Douyin ikut karena bentuk datanya sama dengan TikTok.
 const GALLERY_PLATFORMS = ["tiktok", "instagram", "douyin", "pixiv", "rednote"];
 
+// Platform yang CDN-nya menolak pemutaran langsung dari browser (cek Referer /
+// link http yang diblokir sebagai mixed content). Untuk platform ini pratinjau
+// video diputar lewat /api/fetch-media?inline=1 (server kita yang menarik
+// videonya), sama seperti tombol unduhnya yang memang sudah berhasil.
+const PROXY_PREVIEW_PLATFORMS = ["douyin", "bilibili", "rednote"];
+
+const toHttps = (u) => (typeof u === "string" ? u.replace(/^http:\/\//i, "https://") : u);
+
+function previewSrc(result, media) {
+  if (!media?.url) return "";
+  if (PROXY_PREVIEW_PLATFORMS.includes(result.platform)) {
+    const params = new URLSearchParams({ url: media.url, inline: "1", type: media.type });
+    return `/api/fetch-media?${params.toString()}`;
+  }
+  return toHttps(media.url);
+}
+
+// Gambar kecil di kartu judul. Logo platform selalu dipasang sebagai alas,
+// lalu thumbnail asli ditumpuk di atasnya HANYA kalau berhasil dimuat (bukan
+// gambar kosong/rusak). Jadi kalau thumbnail tidak ada, diblokir CDN, atau
+// gagal dimuat, yang tampil logo platform — tidak pernah kotak kosong.
+function Thumb({ thumbnail, platformInfo }) {
+  const [thumbOk, setThumbOk] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
+
+  useEffect(() => {
+    setThumbOk(false);
+  }, [thumbnail]);
+
+  const showLogo = Boolean(platformInfo?.logo) && !logoFailed;
+
+  return (
+    <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-white/5">
+      {showLogo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={platformInfo.logo}
+          alt=""
+          className="h-full w-full object-cover"
+          onError={() => setLogoFailed(true)}
+        />
+      ) : (
+        <span className="grid h-full w-full place-items-center text-sm font-semibold text-white/60">
+          {platformInfo?.mono || "?"}
+        </span>
+      )}
+      {thumbnail && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={toHttps(thumbnail)}
+          alt=""
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity ${
+            thumbOk ? "opacity-100" : "opacity-0"
+          }`}
+          referrerPolicy="no-referrer"
+          onLoad={(e) => setThumbOk(e.currentTarget.naturalWidth > 1)}
+          onError={() => setThumbOk(false)}
+        />
+      )}
+    </div>
+  );
+}
+
 function extFor(type) {
   if (type === "video") return "mp4";
   if (type === "audio") return "mp3";
@@ -104,7 +167,6 @@ function downloadHref(result, media, index) {
 }
 
 export default function MediaResult({ result }) {
-  const [thumbFailed, setThumbFailed] = useState(false);
   const [lightboxAt, setLightboxAt] = useState(null);
 
   // Daftar foto untuk galeri + popup. Tiap foto membawa link unduhnya sendiri
@@ -139,16 +201,7 @@ export default function MediaResult({ result }) {
     <div className="animate-rise space-y-4">
       {(thumbnail || title) && !useGallery && (
         <div className="flex gap-3 rounded-xl border border-white/8 bg-ink-950/60 p-3">
-          {(thumbnail || platformInfo?.logo) && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={thumbnail && !thumbFailed ? thumbnail : platformInfo?.logo}
-              alt=""
-              className="h-16 w-16 flex-shrink-0 rounded-lg object-cover"
-              referrerPolicy="no-referrer"
-              onError={() => setThumbFailed(true)}
-            />
-          )}
+          <Thumb thumbnail={thumbnail} platformInfo={platformInfo} />
           <div className="min-w-0">
             {title && <p className="break-words text-sm font-medium text-white">{title}</p>}
             {author && <p className="break-words text-xs text-white/50">{author}</p>}
@@ -186,7 +239,7 @@ export default function MediaResult({ result }) {
                 <span className="photo-tile-num">{i + 1}</span>
                 {/* Tinggi mengikuti rasio asli gambar, jadi tidak ada yang terpotong. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.url} alt="" className="photo-tile-img" loading="lazy" referrerPolicy="no-referrer" draggable={false} />
+                <img src={toHttps(p.url)} alt="" className="photo-tile-img" loading="lazy" referrerPolicy="no-referrer" draggable={false} />
                 <span className="photo-tile-zoom" aria-hidden="true">
                   <ZoomIn size={16} />
                 </span>
@@ -207,12 +260,20 @@ export default function MediaResult({ result }) {
       )}
 
       {!useGallery && mainVideo && (
-        <video controls className="w-full rounded-xl border border-white/8 bg-black" src={mainVideo.url} />
+        <video
+          key={previewSrc(result, mainVideo)}
+          controls
+          playsInline
+          preload="metadata"
+          referrerPolicy="no-referrer"
+          className="w-full rounded-xl border border-white/8 bg-black"
+          src={previewSrc(result, mainVideo)}
+        />
       )}
       {!useGallery && !mainVideo && media.some((m) => m.type === "image") && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={media.find((m) => m.type === "image")?.url}
+          src={toHttps(media.find((m) => m.type === "image")?.url)}
           alt=""
           className="w-full rounded-xl border border-white/8"
           referrerPolicy="no-referrer"
@@ -221,7 +282,7 @@ export default function MediaResult({ result }) {
 
       {/* Pemutar audio: muncul untuk hasil musik (YouTube MP3, Spotify,
           SoundCloud, Apple Music) maupun audio latar pada slide TikTok. */}
-      {mainAudio && <AudioPlayer src={mainAudio.url} />}
+      {mainAudio && <AudioPlayer src={previewSrc(result, mainAudio)} />}
 
       <div className="flex flex-col gap-2">
         {media.map((m, i) => (
