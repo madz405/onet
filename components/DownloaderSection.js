@@ -1,15 +1,154 @@
 "use client";
 
-import { useState } from "react";
-import { PLATFORMS } from "@/lib/platforms";
+import { useMemo, useState } from "react";
+import { Link2, Loader2, ClipboardPaste, X } from "lucide-react";
+import { PLATFORMS, getPlatform } from "@/lib/platforms";
+import { detectPlatformId, extractUrl } from "@/lib/detectPlatform";
 import PlatformCard from "@/components/PlatformCard";
 import DownloaderModal from "@/components/DownloaderModal";
+import MediaResult from "@/components/MediaResult";
 
 export default function DownloaderSection() {
   const [active, setActive] = useState(null);
 
+  // Kolom link universal
+  const [input, setInput] = useState("");
+  const [format, setFormat] = useState("video");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+
+  const detectedId = useMemo(() => detectPlatformId(input), [input]);
+  const detected = detectedId ? getPlatform(detectedId) : null;
+  const hasInput = input.trim().length > 0;
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setResult(null);
+
+    const url = extractUrl(input);
+    if (!url) {
+      setError("Tempel link yang valid, misalnya https://vt.tiktok.com/...");
+      return;
+    }
+    if (!detected) {
+      setError(
+        "Platform dari link ini belum dikenali. Pilih platformnya manual dari daftar di bawah."
+      );
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform: detected.id, url, format }),
+      });
+      const data = await res.json();
+      if (!data.status) throw new Error(data.message || "Gagal memproses link.");
+      setResult(data);
+    } catch (err) {
+      setError(err.message || "Terjadi kesalahan.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handlePaste() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) setInput(text);
+    } catch {
+      /* izin clipboard ditolak, user bisa tempel manual */
+    }
+  }
+
+  function clearAll() {
+    setInput("");
+    setError("");
+    setResult(null);
+  }
+
   return (
     <>
+      <form onSubmit={handleSubmit} className="mb-8 space-y-3">
+        <div className="relative">
+          <Link2 size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Tempel link TikTok, Instagram, YouTube, dll..."
+            inputMode="url"
+            autoComplete="off"
+            className="w-full rounded-xl border border-white/10 bg-ink-900/60 py-3 pl-11 pr-12 text-sm text-white placeholder:text-white/30 focus-ring"
+          />
+          <button
+            type="button"
+            onClick={hasInput ? clearAll : handlePaste}
+            className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-white/40 hover:text-white/80"
+            aria-label={hasInput ? "Hapus link" : "Tempel dari clipboard"}
+            title={hasInput ? "Hapus" : "Tempel"}
+          >
+            {hasInput ? <X size={16} /> : <ClipboardPaste size={16} />}
+          </button>
+        </div>
+
+        {hasInput && (
+          <p className="px-1 text-xs text-white/50">
+            {detected ? (
+              <>
+                Terdeteksi: <span className="font-semibold" style={{ color: detected.accent }}>{detected.name}</span>
+              </>
+            ) : (
+              "Platform belum terdeteksi dari link ini."
+            )}
+          </p>
+        )}
+
+        {detected?.hasFormat && (
+          <div className="flex gap-2">
+            {["video", "audio"].map((f) => (
+              <button
+                type="button"
+                key={f}
+                onClick={() => setFormat(f)}
+                className={`flex-1 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+                  format === f
+                    ? "border-signal-500 bg-signal-500/10 text-signal-400"
+                    : "border-white/10 text-white/60 hover:bg-white/5"
+                }`}
+              >
+                {f === "video" ? "Video (MP4)" : "Audio (MP3)"}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-signal-500 px-6 py-3 text-sm font-semibold text-ink-950 disabled:opacity-60"
+        >
+          {loading && <Loader2 size={16} className="animate-spin" />}
+          {loading ? "Memproses..." : "Proses link"}
+        </button>
+
+        {error && (
+          <p className="rounded-xl border border-flare-500/30 bg-flare-500/10 px-4 py-3 text-sm text-flare-400">
+            {error}
+          </p>
+        )}
+
+        {result && (
+          <div className="pt-2">
+            <MediaResult result={result} />
+          </div>
+        )}
+      </form>
+
+      <p className="mb-3 text-sm font-medium text-white/50">Atau pilih platform manual</p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {PLATFORMS.map((platform) => (
           <PlatformCard key={platform.id} platform={platform} onClick={() => setActive(platform)} />
