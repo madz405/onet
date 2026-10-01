@@ -27,30 +27,52 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const url = searchParams.get("url");
   const filename = safeFilename(searchParams.get("filename"));
+  // Mode pratinjau (inline=1): dipakai tag <video>/<audio> di hasil downloader
+  // untuk platform yang CDN-nya menolak diputar langsung dari browser
+  // (Douyin, Bilibili, RedNote: cek Referer / link http biasa yang diblokir
+  // sebagai mixed content di halaman https). Bedanya dengan unduhan biasa:
+  // Content-Disposition "inline" dan permintaan Range diteruskan, supaya
+  // pemutar bisa memuat sebagian video dan melompat (seek).
+  const inline = searchParams.get("inline") === "1";
+  const kind = searchParams.get("type");
 
   if (!url || !/^https?:\/\//i.test(url)) {
     return NextResponse.json({ status: false, message: "URL tidak valid." }, { status: 400 });
   }
 
   try {
-    const res = await fetch(url, { headers: { "User-Agent": UA } });
+    const upstreamHeaders = { "User-Agent": UA };
+    const range = req.headers.get("range");
+    if (inline && range) upstreamHeaders.Range = range;
+
+    const res = await fetch(url, { headers: upstreamHeaders });
     if (!res.ok || !res.body) {
       throw new Error("File sumber tidak bisa diakses (mungkin link sudah kedaluwarsa).");
     }
 
-    const contentType = res.headers.get("content-type") || "application/octet-stream";
+    let contentType = res.headers.get("content-type") || "application/octet-stream";
+    if (inline && kind === "video" && !/^video\//i.test(contentType)) contentType = "video/mp4";
+    if (inline && kind === "audio" && !/^audio\//i.test(contentType)) contentType = "audio/mpeg";
     const contentLength = res.headers.get("content-length");
 
     const headers = {
       "Content-Type": contentType,
-      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Disposition": inline
+        ? "inline"
+        : `attachment; filename="${filename}"`,
       "Cache-Control": "no-store",
     };
     if (contentLength) headers["Content-Length"] = contentLength;
+    if (inline) {
+      headers["Accept-Ranges"] = res.headers.get("accept-ranges") || "bytes";
+      const contentRange = res.headers.get("content-range");
+      if (contentRange) headers["Content-Range"] = contentRange;
+    }
 
     // Streaming langsung (tanpa buffer penuh di memori) supaya file besar
-    // seperti video tetap aman diteruskan.
-    return new NextResponse(res.body, { status: 200, headers });
+    // seperti video tetap aman diteruskan. Status 206 (sebagian) ikut
+    // diteruskan untuk permintaan Range.
+    return new NextResponse(res.body, { status: inline ? res.status : 200, headers });
   } catch (err) {
     return NextResponse.json(
       { status: false, message: err.message || "Gagal mengunduh file." },
