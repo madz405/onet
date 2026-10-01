@@ -41,12 +41,29 @@ export async function GET(req) {
   }
 
   try {
-    const upstreamHeaders = { "User-Agent": UA };
+    const baseHeaders = { "User-Agent": UA };
     const range = req.headers.get("range");
-    if (inline && range) upstreamHeaders.Range = range;
+    if (inline && range) baseHeaders.Range = range;
 
-    const res = await fetch(url, { headers: upstreamHeaders });
-    if (!res.ok || !res.body) {
+    // Banyak CDN menolak permintaan tanpa Referer yang masuk akal. Dicoba
+    // berurutan: tanpa Referer (cara lama yang tetap berhasil untuk sebagian
+    // besar), Referer dari parameter `referer` (kalau scraper menyertakan),
+    // lalu Referer asal domain file itu sendiri.
+    const target = new URL(url);
+    const referer = searchParams.get("referer");
+    const candidates = [null];
+    if (referer && /^https?:\/\//i.test(referer)) candidates.push(referer);
+    candidates.push(`${target.origin}/`);
+
+    let res = null;
+    for (const ref of [...new Set(candidates)]) {
+      const attempt = await fetch(url, {
+        headers: ref ? { ...baseHeaders, Referer: ref, Origin: new URL(ref).origin } : baseHeaders,
+      });
+      res = attempt;
+      if (attempt.ok && attempt.body) break;
+    }
+    if (!res || !res.ok || !res.body) {
       throw new Error("File sumber tidak bisa diakses (mungkin link sudah kedaluwarsa).");
     }
 
