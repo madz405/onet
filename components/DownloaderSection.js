@@ -140,13 +140,13 @@ export default function DownloaderSection() {
             {error}
           </p>
         )}
-
-        {result && (
-          <div className="pt-2">
-            <MediaResult result={result} />
-          </div>
-        )}
       </form>
+
+      {result && (
+        <div className="-mt-4 mb-8">
+          <MediaResult result={result} />
+        </div>
+      )}
 
       <p className="mb-3 text-sm font-medium text-white/50">Atau pilih platform manual</p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
