@@ -8,6 +8,7 @@ import { scrapeSpotify } from "@/lib/scrapers/spotify";
 import { scrapeYouTube } from "@/lib/scrapers/youtube";
 import { scrapeDouyin } from "@/lib/scrapers/douyin";
 import { scrapeSoundCloudUrl } from "@/lib/scrapers/soundcloudUrl";
+import { resolveSoundCloudUrl } from "@/lib/scrapers/soundcloud";
 import { scrapeFacebook } from "@/lib/scrapers/facebook";
 import { scrapeThreads } from "@/lib/scrapers/threads";
 import { scrapeBilibili } from "@/lib/scrapers/bilibili";
@@ -457,6 +458,18 @@ export async function POST(req) {
       }
 
       case "soundcloud": {
+        // Jalur utama: langsung ke API SoundCloud (link CDN-nya bisa diputar &
+        // diunduh dari server maupun browser). Klickaud jadi cadangan pertama
+        // karena link unduhannya sering menolak diakses dari server kita.
+        const tryDirect = async () => {
+          const r = await resolveSoundCloudUrl(url);
+          return {
+            title: r.title,
+            author: r.artist,
+            thumbnail: r.thumbnail,
+            media: [{ type: "audio", label: "MP3 (128kbps)", url: r.streamUrl }],
+          };
+        };
         const tryScraper = async () => {
           const result = await scrapeSoundCloudUrl(url);
           if (!result.media?.length) throw new Error("Scraper SoundCloud tidak menemukan media.");
@@ -472,9 +485,12 @@ export async function POST(req) {
             media: r.download ? [{ type: "audio", label: "Download MP3", url: r.download }] : [],
           };
         };
-        const result = await tryScraper().catch((err) => {
-          console.error("[soundcloud] scraper gagal, pakai endpoint cadangan:", err.message);
-          return tryEndpoint();
+        const result = await tryDirect().catch((err) => {
+          console.error("[soundcloud] jalur langsung gagal, coba Klickaud:", err.message);
+          return tryScraper().catch((err2) => {
+            console.error("[soundcloud] Klickaud gagal, pakai endpoint cadangan:", err2.message);
+            return tryEndpoint();
+          });
         });
         return NextResponse.json({ status: true, platform, ...result });
       }
