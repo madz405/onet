@@ -14,7 +14,17 @@ const GALLERY_PLATFORMS = ["tiktok", "instagram", "douyin", "pixiv", "rednote"];
 // link http yang diblokir sebagai mixed content). Untuk platform ini pratinjau
 // video diputar lewat /api/fetch-media?inline=1 (server kita yang menarik
 // videonya), sama seperti tombol unduhnya yang memang sudah berhasil.
-const PROXY_PREVIEW_PLATFORMS = ["douyin", "bilibili", "rednote"];
+const PROXY_PREVIEW_PLATFORMS = [
+  "douyin",
+  "bilibili",
+  "rednote",
+  // Pemutar audio Spotify/SoundCloud/Apple Music juga diputar lewat server:
+  // link dari scraper-nya bisa diunduh lewat server kita tapi sering ditolak
+  // kalau diputar langsung oleh browser (Referer/CORS/mixed content).
+  "spotify",
+  "soundcloud",
+  "applemusic",
+];
 
 const toHttps = (u) => (typeof u === "string" ? u.replace(/^http:\/\//i, "https://") : u);
 
