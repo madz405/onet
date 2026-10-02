@@ -1,7 +1,12 @@
 import MusicSection from "@/components/MusicSection";
 import { SITE_NAME } from "@/lib/site";
 
-export const metadata = { title: `Musik — ${SITE_NAME}` };
+export const metadata = {
+  title: `Musik — ${SITE_NAME}`,
+  description:
+    "Cari dan putar lagu dari judul atau nama artis lewat YouTube, Spotify, atau SoundCloud, lalu unduh sebagai MP3 di KOYEN.",
+  alternates: { canonical: "/musik" },
+};
 
 export default function MusicPage() {
   return (
