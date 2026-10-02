@@ -16,6 +16,7 @@ import { scrapeReddit } from "@/lib/scrapers/reddit";
 import { scrapePixiv } from "@/lib/scrapers/pixiv";
 import { scrapeRedNote } from "@/lib/scrapers/rednote";
 import { scrapeTerabox } from "@/lib/scrapers/terabox";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 export const runtime = "nodejs";
 // Downloader TikTok sekarang bisa mencoba 3 API + scraper berurutan, jadi
@@ -178,7 +179,13 @@ export async function POST(req) {
     return fail("Body permintaan tidak valid.");
   }
 
-  const { platform, url, format } = body || {};
+  const { platform, url, format, turnstileToken } = body || {};
+
+  // Verifikasi Cloudflare Turnstile sebelum scraper apa pun dijalankan.
+  const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || undefined;
+  const human = await verifyTurnstile(turnstileToken, ip);
+  if (!human.ok) return fail(human.message, 403);
+
   if (!platform) return fail("Platform belum dipilih.");
   if (!url || typeof url !== "string" || !/^https?:\/\//i.test(url.trim())) {
     return fail("Masukkan link yang valid (harus diawali http:// atau https://).");
