@@ -47,7 +47,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <p className="mb-3 text-sm font-semibold text-white">Developer</p>
+            <p className="mb-3 text-sm font-semibold text-white">INFORMATION</p>
             <ul className="space-y-2 text-sm text-white/50">
               <li className="flex items-center gap-2">
                 <User size={14} className="flex-shrink-0" />
@@ -56,7 +56,7 @@ export default function Footer() {
               <li className="flex items-center gap-2">
                 <Mail size={14} className="flex-shrink-0" />
                 <a href="mailto:madz@goatmail.uk" className="hover:text-white">
-                  madz@goatmail.uk
+                  koyenid@goatmail.uk
                 </a>
               </li>
               <li className="flex items-center gap-2">
