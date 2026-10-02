@@ -2065,3 +2065,43 @@ html[data-theme="clay-dark"] { color-scheme: dark; }
 :is([data-theme="clay-light"],[data-theme="clay-dark"]) .grid > button.group > span:first-child[class*="bg-flare-500"] {
   background-color: var(--clay-icon-bg) !important;
 }
+
+
+/* ==========================================================================
+   Widget verifikasi Cloudflare Turnstile (.ts-wrap)
+   Isi widget digambar Cloudflare di dalam iframe (hanya bisa terang/gelap),
+   jadi yang disesuaikan per tema adalah bingkai, sudut, dan bayangannya.
+   Terang/gelap isinya diatur di components/TurnstileWidget.js.
+   ========================================================================== */
+.ts-wrap {
+  width: 100%;
+  min-height: 65px;
+  overflow: hidden;
+  line-height: 0;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 12px;
+}
+.ts-wrap iframe {
+  display: block;
+  max-width: 100%;
+}
+[data-theme="glass"] .ts-wrap {
+  border: 1px solid rgb(255 255 255 / 0.45);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 8px 24px rgb(60 36 170 / 0.30);
+}
+[data-theme="neobrutalism"] .ts-wrap {
+  border: 3px solid var(--nb-ink);
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 var(--nb-ink);
+}
+:is([data-theme="neu-light"], [data-theme="neu-dark"]) .ts-wrap {
+  border: 0;
+  border-radius: 16px;
+  box-shadow: var(--neu-raised-xs);
+}
+:is([data-theme="clay-light"], [data-theme="clay-dark"]) .ts-wrap {
+  border: 3px solid var(--clay-edge);
+  border-radius: 22px;
+  box-shadow: 6px 8px 14px var(--clay-lo);
+}
