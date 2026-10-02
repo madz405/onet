@@ -16,7 +16,6 @@ import { scrapeReddit } from "@/lib/scrapers/reddit";
 import { scrapePixiv } from "@/lib/scrapers/pixiv";
 import { scrapeRedNote } from "@/lib/scrapers/rednote";
 import { scrapeTerabox } from "@/lib/scrapers/terabox";
-import { scrapeBandcamp } from "@/lib/scrapers/bandcamp";
 
 export const runtime = "nodejs";
 // Downloader TikTok sekarang bisa mencoba 3 API + scraper berurutan, jadi
@@ -574,8 +573,7 @@ export async function POST(req) {
       case "reddit":
       case "pixiv":
       case "rednote":
-      case "terabox":
-      case "bandcamp": {
+      case "terabox": {
         // Platform tambahan: scraper langsung saja (belum ada endpoint API
         // cadangan). Semua scraper melempar Error dengan pesan yang jelas
         // kalau gagal, pesannya diteruskan ke pengguna lewat catch di bawah.
@@ -584,7 +582,6 @@ export async function POST(req) {
           pixiv: scrapePixiv,
           rednote: scrapeRedNote,
           terabox: scrapeTerabox,
-          bandcamp: scrapeBandcamp,
         };
         const result = await scrapers[platform](url.trim());
         if (!result.media?.length) {
