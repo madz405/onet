@@ -8,7 +8,7 @@ import ChannelPromo from "@/components/ChannelPromo";
 import MusicPlayerProvider from "@/components/MusicPlayerProvider";
 import MiniPlayer from "@/components/MiniPlayer";
 import { THEME_STORAGE_KEY } from "@/lib/themes";
-import { SITE_NAME, SITE_TAGLINE, SITE_FAVICON } from "@/lib/site";
+import { SITE_NAME, SITE_TAGLINE, SITE_FAVICON, SITE_LOGO, SITE_URL } from "@/lib/site";
 
 // Dijalankan sebelum React hydrate, supaya tema tersimpan langsung
 // terpasang sejak render pertama (tidak ada kedipan balik ke tema default).
@@ -63,13 +63,51 @@ const body = Inter({
   variable: "--font-body",
 });
 
+const SITE_DESCRIPTION =
+  "Unduh video dan foto dari TikTok, Instagram, Facebook, Pinterest, X, Douyin, YouTube, Spotify, SoundCloud, dan Apple Music. Plus tools edit cepat dan pemutar musik.";
+
 export const metadata = {
-  title: `${SITE_NAME} — ${SITE_TAGLINE}`,
-  description:
-    "Unduh video dan foto dari TikTok, Instagram, Facebook, Pinterest, X, Douyin, YouTube, Spotify, SoundCloud, dan Apple Music. Plus tools edit cepat dan pemutar musik.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    template: `%s`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: [
+    "download video tiktok tanpa watermark",
+    "download video instagram",
+    "download reels",
+    "download video facebook",
+    "download youtube mp3",
+    "downloader sosial media",
+    "pemutar musik online",
+    "KOYEN",
+  ],
   icons: {
     icon: SITE_FAVICON,
   },
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    locale: "id_ID",
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+    images: [{ url: SITE_LOGO, alt: SITE_NAME }],
+  },
+  twitter: {
+    card: "summary",
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+    images: [SITE_LOGO],
+  },
+  robots: { index: true, follow: true },
+  // Kode verifikasi Google Search Console (metode meta tag). Isi lewat
+  // environment variable NEXT_PUBLIC_GSC_VERIFICATION kalau dipakai.
+  verification: process.env.NEXT_PUBLIC_GSC_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION }
+    : undefined,
 };
 
 export default function RootLayout({ children }) {
