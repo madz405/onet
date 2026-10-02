@@ -299,7 +299,7 @@ export default function MediaResult({ result }) {
           <a
             key={i}
             href={downloadHref(result, m, i)}
-            className="flex items-center justify-between rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-signal-500 hover:text-ink-950"
+            className="dl-btn flex items-center justify-between rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-signal-500 hover:text-ink-950"
           >
             <span className="flex items-center gap-2">
               <Download size={16} />
