@@ -63,6 +63,10 @@ const body = Inter({
   variable: "--font-body",
 });
 
+export const viewport = {
+  themeColor: "#0b0a14",
+};
+
 const SITE_DESCRIPTION =
   "Unduh video dan foto dari TikTok, Instagram, Facebook, Pinterest, X, Douyin, YouTube, Spotify, SoundCloud, dan Apple Music. Plus tools edit cepat dan pemutar musik.";
 
@@ -86,6 +90,13 @@ export const metadata = {
   ],
   icons: {
     icon: SITE_FAVICON,
+    apple: "/icons/apple-touch-icon.png",
+  },
+  // PWA: manifest dibuat otomatis dari app/manifest.js.
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: "black-translucent",
   },
   openGraph: {
     type: "website",
