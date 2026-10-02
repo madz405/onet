@@ -168,7 +168,7 @@ function AudioPlayer({ src }) {
 // bukan membuka tab baru seperti sebelumnya.
 function downloadHref(result, media, index) {
   // Scraper boleh menentukan nama file sendiri (media.filename), misalnya
-  // TeraBox (ekstensi file bebas), Bandcamp, atau gambar Pixiv (png/gif).
+  // TeraBox (ekstensi file bebas) atau gambar Pixiv (png/gif).
   const filename =
     media.filename ||
     `${result.platform}-${slug(result.title || media.label)}-${index + 1}.${extFor(media.type)}`;
