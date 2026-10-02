@@ -1,12 +1,16 @@
 // Service worker KOYEN (PWA). Sengaja minimal: tidak menyimpan hasil API atau
 // media supaya data download selalu segar. Hanya menyediakan halaman offline
 // saat HP tidak ada internet.
-const CACHE = "koyen-shell-v1";
+const CACHE = "koyen-shell-v2";
 const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll([OFFLINE_URL, "/icons/icon-192.png"]))
+    caches.open(CACHE).then((cache) =>
+      // cache: "reload" = ambil versi terbaru dari server, bukan dari cache HTTP.
+      // Ikon sudah disematkan langsung di offline.html, jadi cukup satu file ini.
+      cache.add(new Request(OFFLINE_URL, { cache: "reload" }))
+    )
   );
   self.skipWaiting();
 });
