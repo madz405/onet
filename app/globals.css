@@ -279,6 +279,36 @@ html[data-theme="glass"]::after {
   background-color: rgb(var(--signal-600)) !important;
 }
 
+/* Tombol download hasil (Foto 1, Video HD, dst) tema Glass: kaca buram putih
+   dengan sorot terang di tepi atas dan bayangan ungu lembut, seperti tombol
+   utama. Saat ditekan/disentuh berubah jadi ungu menyala. */
+[data-theme="glass"] a.dl-btn {
+  color: #fff !important;
+  background-color: rgb(255 255 255 / 0.20) !important;
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.30), rgb(255 255 255 / 0.06) 70%);
+  border-color: rgb(255 255 255 / 0.45) !important;
+  backdrop-filter: blur(18px) saturate(170%);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.65),
+    inset 0 -1px 0 rgb(255 255 255 / 0.12),
+    0 8px 24px rgb(60 36 170 / 0.30) !important;
+  text-shadow: 0 1px 2px rgb(20 10 70 / 0.35);
+  transition: background-color 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+[data-theme="glass"] a.dl-btn:hover,
+[data-theme="glass"] a.dl-btn:active {
+  color: #fff !important;
+  background-color: rgb(var(--signal-500) / 0.85) !important;
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0) 60%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55),
+    0 8px 26px rgb(109 60 220 / 0.55) !important;
+}
+[data-theme="glass"] a.dl-btn:active {
+  transform: scale(0.98);
+}
+
 /* Lapisan di belakang popup: bukan hitam pekat, cukup kabut lembut ungu-biru
    sehingga latar kaca di belakangnya masih tampak. */
 [data-theme="glass"] [class*="bg-black/60"] {
