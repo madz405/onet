@@ -7,6 +7,7 @@ import { detectPlatformId, extractUrl } from "@/lib/detectPlatform";
 import PlatformCard from "@/components/PlatformCard";
 import DownloaderModal from "@/components/DownloaderModal";
 import MediaResult from "@/components/MediaResult";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 export default function DownloaderSection() {
   const [active, setActive] = useState(null);
@@ -17,6 +18,8 @@ export default function DownloaderSection() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [token, setToken] = useState("");
+  const [tsReset, setTsReset] = useState(0);
 
   const detectedId = useMemo(() => detectPlatformId(input), [input]);
   const detected = detectedId ? getPlatform(detectedId) : null;
@@ -39,12 +42,17 @@ export default function DownloaderSection() {
       return;
     }
 
+    if (!token) {
+      setError("Verifikasi keamanan belum selesai. Tunggu sebentar lalu coba lagi.");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/download", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform: detected.id, url, format }),
+        body: JSON.stringify({ platform: detected.id, url, format, turnstileToken: token }),
       });
       const data = await res.json();
       if (!data.status) throw new Error(data.message || "Gagal memproses link.");
@@ -53,6 +61,9 @@ export default function DownloaderSection() {
       setError(err.message || "Terjadi kesalahan.");
     } finally {
       setLoading(false);
+      // Token Turnstile sekali pakai: minta yang baru untuk proses berikutnya.
+      setToken("");
+      setTsReset((n) => n + 1);
     }
   }
 
@@ -125,6 +136,8 @@ export default function DownloaderSection() {
             ))}
           </div>
         )}
+
+        <TurnstileWidget onToken={setToken} resetKey={tsReset} />
 
         <button
           type="submit"
