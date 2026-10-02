@@ -1,7 +1,12 @@
 import ToolsSection from "@/components/ToolsSection";
 import { SITE_NAME } from "@/lib/site";
 
-export const metadata = { title: `Tools — ${SITE_NAME}` };
+export const metadata = {
+  title: `Tools — ${SITE_NAME}`,
+  description:
+    "Tools edit cepat untuk konten harian: hapus background gambar, upload gambar ke URL, dan lainnya, langsung dari browser tanpa install.",
+  alternates: { canonical: "/tools" },
+};
 
 export default function ToolsPage() {
   return (
