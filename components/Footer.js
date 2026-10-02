@@ -85,9 +85,8 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col gap-2 border-t border-white/8 pt-6 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between">
-          <p>&copy; {new Date().getFullYear()} {SITE_NAME}. All right reserved by madz.</p>
-          <p></p>
+        <div className="mt-8 flex flex-col items-center gap-2 border-t border-white/8 pt-6 text-center text-xs text-white/35">
+          <p>&copy; {new Date().getFullYear()} {SITE_NAME}. All right reserved.</p>
         </div>
       </div>
     </footer>
