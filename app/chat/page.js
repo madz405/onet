@@ -2,7 +2,12 @@ import ChatPanel from "@/components/ChatPanel";
 import { CHAT_BOT_NAME } from "@/lib/chatPersona";
 import { SITE_NAME } from "@/lib/site";
 
-export const metadata = { title: `Chat AI — ${SITE_NAME}` };
+export const metadata = {
+  title: `Chat AI — ${SITE_NAME}`,
+  description:
+    "Ngobrol dengan Kayna, asisten AI KOYEN, untuk bantuan cara memakai fitur downloader, tools, dan musik.",
+  alternates: { canonical: "/chat" },
+};
 
 export default function ChatPage() {
   return (
