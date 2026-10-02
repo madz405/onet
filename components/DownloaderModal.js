@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import Modal from "@/components/Modal";
 import MediaResult from "@/components/MediaResult";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 export default function DownloaderModal({ platform, onClose }) {
   const [url, setUrl] = useState("");
@@ -11,10 +12,16 @@ export default function DownloaderModal({ platform, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [token, setToken] = useState("");
+  const [tsReset, setTsReset] = useState(0);
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!url.trim()) return;
+    if (!token) {
+      setError("Verifikasi keamanan belum selesai. Tunggu sebentar lalu coba lagi.");
+      return;
+    }
     setLoading(true);
     setError("");
     setResult(null);
@@ -22,7 +29,7 @@ export default function DownloaderModal({ platform, onClose }) {
       const res = await fetch("/api/download", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform: platform.id, url: url.trim(), format }),
+        body: JSON.stringify({ platform: platform.id, url: url.trim(), format, turnstileToken: token }),
       });
       const data = await res.json();
       if (!data.status) throw new Error(data.message || "Gagal memproses link.");
@@ -31,6 +38,8 @@ export default function DownloaderModal({ platform, onClose }) {
       setError(err.message || "Terjadi kesalahan.");
     } finally {
       setLoading(false);
+      setToken("");
+      setTsReset((n) => n + 1);
     }
   }
 
@@ -64,6 +73,8 @@ export default function DownloaderModal({ platform, onClose }) {
             ))}
           </div>
         )}
+
+        <TurnstileWidget onToken={setToken} resetKey={tsReset} />
 
         <button
           type="submit"
