@@ -3,6 +3,7 @@ import Image from "next/image";
 import { User, Mail, Instagram } from "lucide-react";
 import { SITE_NAME, SITE_LOGO, WHATSAPP_CHANNEL_URL } from "@/lib/site";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
+import InstallApp from "@/components/InstallApp";
 
 export default function Footer() {
   return (
@@ -18,6 +19,7 @@ export default function Footer() {
               Download video &amp; foto dari berbagai sosial media, tools edit cepat, dan pemutar musik
               semua dalam satu tempat.
             </p>
+            <InstallApp />
           </div>
 
           <div>
@@ -86,7 +88,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 flex flex-col items-center gap-2 border-t border-white/8 pt-6 text-center text-xs text-white/35">
-          <p>&copy; {new Date().getFullYear()} {SITE_NAME}. All right reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {SITE_NAME}. All right reserved by madz.</p>
         </div>
       </div>
     </footer>
