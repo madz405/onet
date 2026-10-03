@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "id.web.koyen.twa",
+    "sha256_cert_fingerprints": ["CA:5F:79:39:C5:74:26:8D:9D:CE:DB:B9:40:34:BC:AD:4A:BF:32:4B:51:61:F2:E3:E7:86:34:B8:D6:F4:B5:5D"]
+  }
+}]
