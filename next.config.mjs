@@ -7,6 +7,11 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // yt-search (pencarian YouTube) memakai require dinamis, jadi jangan
+  // di-bundle webpack: biarkan dimuat langsung dari node_modules di server.
+  experimental: {
+    serverComponentsExternalPackages: ["yt-search"],
+  },
 };
 
 export default nextConfig;
