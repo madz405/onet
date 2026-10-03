@@ -12,7 +12,8 @@
     "next": "14.2.15",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "lucide-react": "0.446.0"
+    "lucide-react": "0.446.0",
+    "yt-search": "^2.12.1"
   },
   "devDependencies": {
     "autoprefixer": "10.4.20",
