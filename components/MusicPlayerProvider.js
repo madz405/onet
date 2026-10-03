@@ -8,12 +8,44 @@
 // sama-sama membaca state ini lewat useMusicPlayer().
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { loadMusicHistory, addToMusicHistory, removeFromMusicHistory } from "@/lib/musicHistory";
+import {
+  loadMusicHistory,
+  addToMusicHistory,
+  removeFromMusicHistory,
+  updateMusicHistoryItem,
+} from "@/lib/musicHistory";
 
 const MusicPlayerContext = createContext(null);
 
 // Urutan siklus tombol mode tiap diklik.
 const NEXT_MODE = { sequential: "repeat", repeat: "shuffle", shuffle: "sequential" };
+
+// Kata pencarian untuk mengambil ulang link lagu: judul + artis (kalau judul
+// belum memuat nama artisnya), lalu query asli user sebagai cadangan.
+function refreshQueries(t) {
+  const title = (t.title || "").trim();
+  const artist = (t.artist || "").trim();
+  const withArtist =
+    artist && !title.toLowerCase().includes(artist.toLowerCase()) ? `${title} ${artist}` : title;
+  return [withArtist, t.query].filter((q, i, arr) => q && arr.indexOf(q) === i);
+}
+
+async function fetchFreshStream(t) {
+  for (const q of refreshQueries(t)) {
+    try {
+      const res = await fetch("/api/music", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: t.source, query: q }),
+      });
+      const data = await res.json();
+      if (data?.status && data.streamUrl) return data;
+    } catch {
+      // coba query berikutnya
+    }
+  }
+  return null;
+}
 
 export function useMusicPlayer() {
   const ctx = useContext(MusicPlayerContext);
@@ -30,7 +62,11 @@ export default function MusicPlayerProvider({ children }) {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [playbackError, setPlaybackError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
   const audioRef = useRef(null);
+  // id lagu yang sudah dicoba diperbarui linknya (maksimal sekali per putaran,
+  // supaya tidak berulang-ulang kalau memang gagal).
+  const retriedRef = useRef(null);
 
   // Muat riwayat tersimpan begitu situs dibuka (termasuk setelah refresh).
   useEffect(() => {
@@ -52,6 +88,7 @@ export default function MusicPlayerProvider({ children }) {
 
   const playTrack = useCallback((t) => {
     setPlaybackError("");
+    retriedRef.current = null;
     setTrack(t);
   }, []);
 
@@ -126,6 +163,36 @@ export default function MusicPlayerProvider({ children }) {
     }
   }
 
+  // Link lagu gagal diputar (biasanya kedaluwarsa): ambil link baru dari judul
+  // + artis, simpan ke riwayat, lalu putar ulang otomatis.
+  async function handleAudioError() {
+    if (!track) return;
+    if (retriedRef.current === track.id) {
+      setRefreshing(false);
+      setPlaybackError("Link lagu ini sudah tidak bisa diputar dan gagal diperbarui. Coba cari ulang.");
+      return;
+    }
+    retriedRef.current = track.id;
+    const current = track;
+    setPlaybackError("");
+    setRefreshing(true);
+    const fresh = await fetchFreshStream(current);
+    setRefreshing(false);
+    if (!fresh) {
+      setPlaybackError("Link lagu ini sudah kedaluwarsa dan gagal diperbarui. Coba cari ulang.");
+      return;
+    }
+    const updated = {
+      ...current,
+      streamUrl: fresh.streamUrl,
+      thumbnail: fresh.thumbnail || current.thumbnail,
+      resolvedAt: Date.now(),
+    };
+    setHistory((h) => updateMusicHistoryItem(h, updated));
+    // Hanya ganti kalau user belum pindah ke lagu lain selama menunggu.
+    setTrack((prev) => (prev && prev.id === current.id ? updated : prev));
+  }
+
   const seek = useCallback((val) => {
     if (audioRef.current) audioRef.current.currentTime = val;
     setProgress(val);
@@ -162,6 +229,7 @@ export default function MusicPlayerProvider({ children }) {
       duration,
       volume,
       playbackError,
+      refreshing,
       setVolume,
       playTrack,
       addAndPlay,
@@ -173,7 +241,7 @@ export default function MusicPlayerProvider({ children }) {
       cycleMode,
     }),
     [
-      track, history, playMode, isPlaying, progress, duration, volume, playbackError,
+      track, history, playMode, isPlaying, progress, duration, volume, playbackError, refreshing,
       playTrack, addAndPlay, removeFromHistory, togglePlay, stopPlayback, playByOffset, seek, cycleMode,
     ]
   );
@@ -190,7 +258,7 @@ export default function MusicPlayerProvider({ children }) {
           onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
           onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
           onEnded={handleEnded}
-          onError={() => setPlaybackError("Link lagu ini sudah tidak bisa diputar, coba cari ulang.")}
+          onError={handleAudioError}
         />
       )}
     </MusicPlayerContext.Provider>
