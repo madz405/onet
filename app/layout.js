@@ -146,7 +146,7 @@ export default function RootLayout({ children }) {
         {/* Pop up ajakan gabung saluran WhatsApp: muncul setelah splash loader selesai. */}
         <ChannelPromo />
         {/* Provider membungkus semua halaman supaya <audio> tidak ter-unmount
-            saat pindah halaman; MiniPlayer hanya muncul di "/", "/tools", dan "/chat". */}
+            saat pindah halaman; MiniPlayer hanya muncul di "/", "/tools", "/chat", dan "/dukungan". */}
         <MusicPlayerProvider>
           <Navbar />
           <MiniPlayer />
