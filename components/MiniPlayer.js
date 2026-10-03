@@ -1,7 +1,7 @@
 "use client";
 
 // Pop up pemutar musik kecil yang menempel di atas halaman Downloader ("/"),
-// Tools ("/tools"), dan Chat AI ("/chat") selama ada lagu yang sedang dimuat. Tidak tampil di
+// Tools ("/tools"), Chat AI ("/chat"), dan Dukungan ("/dukungan") selama ada lagu yang sedang dimuat. Tidak tampil di
 // halaman Musik (sudah punya pemutar penuh) maupun halaman lain.
 // Warna/permukaan memakai token tema (ink/signal/glass), jadi otomatis
 // mengikuti tema yang dipilih di ThemeSwitcher.
@@ -12,7 +12,7 @@ import { Play, Pause, SkipBack, SkipForward, Music2, X } from "lucide-react";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
 import MarqueeText from "@/components/MarqueeText";
 
-const VISIBLE_ON = ["/", "/tools", "/chat"];
+const VISIBLE_ON = ["/", "/tools", "/chat", "/dukungan"];
 
 export default function MiniPlayer() {
   const pathname = usePathname();
