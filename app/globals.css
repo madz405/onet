@@ -318,7 +318,7 @@ html[data-theme="glass"]::after {
 }
 
 /* ==========================================================================
-   Tema Glass: mode ringan untuk HP
+   Tema Glass: mode seimbang untuk HP (blur sedang)
    Penyebab lag: tiap kartu/input/tombol punya backdrop-filter (blur besar +
    saturate), jadi saat scroll browser HP harus mem-blur puluhan lapisan di
    setiap frame, ditambah bayangan besar yang juga mahal digambar. Di layar
@@ -331,9 +331,9 @@ html[data-theme="glass"]::after {
   [data-theme="glass"] [class*="bg-ink-900"]:not(body):not(.glass-surface-solid),
   [data-theme="glass"] [class*="bg-ink-950"]:not(body):not(.glass-surface-solid),
   [data-theme="glass"] [class*="bg-ink-800"]:not(body):not(.glass-surface-solid) {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background-color: rgb(255 255 255 / 0.19) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background-color: rgb(255 255 255 / 0.14) !important;
   }
   /* Kartu besar: bayangan dibuat jauh lebih kecil/ringan. */
   [data-theme="glass"] [class*="rounded-xl"][class*="bg-ink-"]:not(.glass-surface-solid):not(input):not(textarea):not(select),
@@ -350,25 +350,25 @@ html[data-theme="glass"]::after {
     background-color: rgb(255 255 255 / 0.16) !important;
   }
   [data-theme="glass"] header[class*="bg-ink-"]:not(body):not(.glass-surface-solid) {
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
   }
   /* Tombol utama & tombol download: tanpa blur, bayangan lebih kecil. */
   [data-theme="glass"] [class~="bg-signal-500"]:not([class~="h-full"]) {
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4), 0 4px 12px rgb(109 60 220 / 0.35);
   }
   [data-theme="glass"] a.dl-btn {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background-color: rgb(255 255 255 / 0.26) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    background-color: rgb(255 255 255 / 0.22) !important;
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.55),
       0 3px 10px rgb(60 36 170 / 0.25) !important;
   }
   /* Popup: blur lebih kecil dan tanpa saturate (muncul sebentar, jadi aman). */
   [data-theme="glass"] .glass-surface-solid {
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.55),
       0 10px 28px rgb(20 12 90 / 0.32) !important;
