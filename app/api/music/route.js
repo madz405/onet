@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { searchSoundCloud } from "@/lib/scrapers/soundcloud";
 import { scrapeSoundCloudUrl, resolveSoundCloudFromQuery } from "@/lib/scrapers/soundcloudUrl";
+import { searchYouTubeVideo } from "@/lib/scrapers/youtubeSearch";
+import { scrapeSavetube } from "@/lib/scrapers/youtubeSavetube";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 const UA =
   "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36";
@@ -134,17 +137,48 @@ export async function POST(req) {
     }
 
     // default: youtube
-    const data = await getJson(`https://api.azbry.com/api/download/ytplay2?q=${q}`);
-    const r = data.result || {};
-    return NextResponse.json({
-      status: true,
-      source: "youtube",
-      title: r.title,
-      artist: r.channel,
-      duration: null,
-      thumbnail: r.thumbnail,
-      streamUrl: r.download,
-    });
+    // 1) Utama: endpoint azbry (cari + link audio dalam satu panggilan).
+    const tryYouTubeEndpoint = async () => {
+      const data = await getJson(`https://api.azbry.com/api/download/ytplay2?q=${q}`);
+      const r = data.result || {};
+      if (!r.download) throw new Error("Endpoint YouTube tidak mengembalikan link audio.");
+      return {
+        status: true,
+        source: "youtube",
+        title: r.title,
+        artist: r.channel,
+        duration: null,
+        thumbnail: r.thumbnail,
+        streamUrl: r.download,
+      };
+    };
+
+    // 2) Cadangan: cari URL video lewat yt-search, lalu ambil audio 128kbps
+    //    lewat scraper Savetube.
+    const tryYouTubeScraper = async () => {
+      const hit = await searchYouTubeVideo(query.trim());
+      const dl = await scrapeSavetube(hit.url, "audio", "128");
+      return {
+        status: true,
+        source: "youtube",
+        title: hit.title || dl.title,
+        artist: hit.author,
+        duration: hit.seconds,
+        thumbnail: hit.thumbnail || dl.thumbnail,
+        streamUrl: dl.downloadUrl,
+      };
+    };
+
+    const result = await tryYouTubeEndpoint()
+      .catch((err) => {
+        console.error("[music] endpoint YouTube gagal, pakai yts + Savetube:", err.message);
+        return tryYouTubeScraper();
+      })
+      .catch((err) => {
+        console.error("[music] scraper YouTube (yts + Savetube) gagal:", err.message);
+        throw new Error("Lagu tidak ditemukan atau semua sumber YouTube sedang bermasalah. Coba lagi sebentar lagi.");
+      });
+    return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json({ status: false, message: err.message || "Lagu tidak ditemukan." }, { status: 404 });
   }
