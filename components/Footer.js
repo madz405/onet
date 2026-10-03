@@ -45,6 +45,11 @@ export default function Footer() {
                   Chat AI
                 </Link>
               </li>
+              <li>
+                <Link href="/dukungan" className="hover:text-white">
+                  Dukungan
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -58,7 +63,7 @@ export default function Footer() {
               <li className="flex items-center gap-2">
                 <Mail size={14} className="flex-shrink-0" />
                 <a href="mailto:madz@goatmail.uk" className="hover:text-white">
-                  koyenid@goatmail.uk
+                  koyen@goatmail.uk
                 </a>
               </li>
               <li className="flex items-center gap-2">
