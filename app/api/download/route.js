@@ -6,6 +6,7 @@ import { scrapeTwitter } from "@/lib/scrapers/twitter";
 import { scrapeAppleMusic } from "@/lib/scrapers/applemusic";
 import { scrapeSpotify } from "@/lib/scrapers/spotify";
 import { scrapeYouTube } from "@/lib/scrapers/youtube";
+import { scrapeYouTubeY2mate } from "@/lib/scrapers/youtubeY2mate";
 import { scrapeDouyin } from "@/lib/scrapers/douyin";
 import { scrapeSoundCloudUrl } from "@/lib/scrapers/soundcloudUrl";
 import { resolveSoundCloudUrl } from "@/lib/scrapers/soundcloud";
@@ -554,10 +555,26 @@ export async function POST(req) {
               : [],
           };
         };
-        const result = await tryScraper().catch((err) => {
-          console.error("[youtube] scraper gagal, pakai endpoint cadangan:", err.message);
-          return tryEndpoint();
-        });
+        // Cadangan kedua: scraper y2mate (dipakai kalau scraper pertama DAN
+        // endpoint azbry sama-sama gagal).
+        const tryY2mate = async () => {
+          const result = await scrapeYouTubeY2mate(url, format);
+          if (!result.media?.length) throw new Error("Scraper y2mate tidak menghasilkan link.");
+          return result;
+        };
+        const result = await tryScraper()
+          .catch((err) => {
+            console.error("[youtube] scraper gagal, pakai endpoint cadangan:", err.message);
+            return tryEndpoint();
+          })
+          .catch((err) => {
+            console.error("[youtube] endpoint cadangan gagal, pakai scraper y2mate:", err.message);
+            return tryY2mate();
+          })
+          .catch((err) => {
+            console.error("[youtube] scraper y2mate gagal:", err.message);
+            throw new Error("Gagal mengambil dari YouTube. Semua sumber sedang bermasalah, coba lagi sebentar lagi.");
+          });
         return NextResponse.json({ status: true, platform, ...result });
       }
 
