@@ -63,6 +63,7 @@ export default function MusicSection() {
     duration,
     volume,
     playbackError,
+    refreshing,
     setVolume,
     playTrack,
     addAndPlay,
@@ -94,6 +95,8 @@ export default function MusicSection() {
         artist: data.artist,
         thumbnail: data.thumbnail,
         streamUrl: data.streamUrl,
+        query: query.trim(),
+        resolvedAt: Date.now(),
       });
     } catch (err) {
       setError(err.message || "Lagu tidak ditemukan.");
@@ -147,6 +150,13 @@ export default function MusicSection() {
           {loading ? <Loader2 size={16} className="animate-spin" /> : "Cari"}
         </button>
       </form>
+
+      {refreshing && !error && (
+        <p className="mt-4 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+          <Loader2 size={14} className="animate-spin" />
+          Link lagu sudah kedaluwarsa, mengambil link baru...
+        </p>
+      )}
 
       {(error || playbackError) && (
         <p className="mt-4 rounded-xl border border-flare-500/30 bg-flare-500/10 px-4 py-3 text-sm text-flare-400">
