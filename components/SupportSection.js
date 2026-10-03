@@ -51,7 +51,7 @@ export default function SupportSection() {
           >
             <Icon size={22} className={active === id ? "text-signal-400" : "text-white/60"} />
             <p className="mt-3 text-sm font-semibold text-white">{title}</p>
-            <p className="mt-1 text-xs leading-relaxed text-white/55">{desc}</p>
+            <p className="mt-1 text-xs leading-relaxed text-white/60">{desc}</p>
           </button>
         ))}
       </div>
@@ -120,7 +120,7 @@ export default function SupportSection() {
                 <Download size={16} /> Unduh QRIS
               </a>
             )}
-            <p className="mt-3 text-xs leading-relaxed text-white/45">
+            <p className="mt-3 text-xs leading-relaxed text-white/50">
               Di HP, simpan gambar ini lalu unggah dari galeri lewat fitur &quot;Scan dari galeri&quot; di
               aplikasi e-wallet kamu.
             </p>
@@ -128,7 +128,7 @@ export default function SupportSection() {
             {DANA_NUMBER && (
               <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-white/10 px-4 py-3">
                 <div className="min-w-0">
-                  <p className="text-xs text-white/45">DANA{DANA_NAME ? ` · ${DANA_NAME}` : ""}</p>
+                  <p className="text-xs text-white/50">DANA{DANA_NAME ? ` · ${DANA_NAME}` : ""}</p>
                   <p className="truncate font-mono text-sm text-white">{DANA_NUMBER}</p>
                 </div>
                 <button
