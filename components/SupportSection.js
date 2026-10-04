@@ -13,8 +13,8 @@ const OPTIONS = [
   },
   {
     id: "qris",
-    title: "QRIS DANA",
-    desc: "Langsung ke DANA tanpa perantara.",
+    title: "QRIS",
+    desc: "Beri dukungan tanpa pesan",
     icon: QrCode,
   },
 ];
