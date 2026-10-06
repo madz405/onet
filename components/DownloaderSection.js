@@ -8,6 +8,8 @@ import PlatformCard from "@/components/PlatformCard";
 import DownloaderModal from "@/components/DownloaderModal";
 import MediaResult from "@/components/MediaResult";
 import TurnstileWidget from "@/components/TurnstileWidget";
+import DownloadHistory from "@/components/DownloadHistory";
+import { addDownloadHistory } from "@/lib/downloadHistory";
 
 export default function DownloaderSection() {
   const [active, setActive] = useState(null);
@@ -25,17 +27,20 @@ export default function DownloaderSection() {
   const detected = detectedId ? getPlatform(detectedId) : null;
   const hasInput = input.trim().length > 0;
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  // Memproses satu link. Dipakai oleh tombol "Proses link" dan tombol
+  // "Unduh lagi" di riwayat (yang mengirim platform & format tersimpan).
+  async function run(rawInput, opts = {}) {
     setError("");
     setResult(null);
 
-    const url = extractUrl(input);
+    const url = extractUrl(rawInput);
     if (!url) {
       setError("Tempel link yang valid, misalnya https://vt.tiktok.com/...");
       return;
     }
-    if (!detected) {
+    const platformId = opts.platformId || detectPlatformId(rawInput);
+    const platform = platformId ? getPlatform(platformId) : null;
+    if (!platform) {
       setError(
         "Platform dari link ini belum dikenali. Pilih platformnya manual dari daftar di bawah."
       );
@@ -47,16 +52,23 @@ export default function DownloaderSection() {
       return;
     }
 
+    const usedFormat = opts.format || format;
     setLoading(true);
     try {
       const res = await fetch("/api/download", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform: detected.id, url, format, turnstileToken: token }),
+        body: JSON.stringify({ platform: platform.id, url, format: usedFormat, turnstileToken: token }),
       });
       const data = await res.json();
       if (!data.status) throw new Error(data.message || "Gagal memproses link.");
       setResult(data);
+      addDownloadHistory({
+        url,
+        platform: platform.id,
+        format: platform.hasFormat ? usedFormat : null,
+        result: data,
+      });
     } catch (err) {
       setError(err.message || "Terjadi kesalahan.");
     } finally {
@@ -65,6 +77,19 @@ export default function DownloaderSection() {
       setToken("");
       setTsReset((n) => n + 1);
     }
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    run(input);
+  }
+
+  // "Unduh lagi" dari riwayat: isi kolom, gulir ke atas, lalu proses ulang.
+  function reprocess(item) {
+    setInput(item.url);
+    if (item.format) setFormat(item.format);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    run(item.url, { platformId: item.platform, format: item.format || undefined });
   }
 
   async function handlePaste() {
@@ -167,6 +192,8 @@ export default function DownloaderSection() {
           <PlatformCard key={platform.id} platform={platform} onClick={() => setActive(platform)} />
         ))}
       </div>
+
+      <DownloadHistory onReprocess={reprocess} />
 
       {active && <DownloaderModal platform={active} onClose={() => setActive(null)} />}
     </>
