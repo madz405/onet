@@ -193,31 +193,90 @@ export default function MusicPlayerProvider({ children }) {
     setTrack((prev) => (prev && prev.id === current.id ? updated : prev));
   }
 
-  const seek = useCallback((val) => {
-    if (audioRef.current) audioRef.current.currentTime = val;
-    setProgress(val);
-  }, []);
+  // Diabaikan otomatis di browser yang tidak mendukung.
+  const hasMediaSession = typeof navigator !== "undefined" && "mediaSession" in navigator;
+
+  // Posisi/durasi untuk progress bar di layar kunci. Cukup dipanggil saat state
+  // berubah (play, pause, seek, metadata siap), bukan tiap detik.
+  const syncPositionState = useCallback(() => {
+    const el = audioRef.current;
+    if (!hasMediaSession || !el || !navigator.mediaSession.setPositionState) return;
+    if (!Number.isFinite(el.duration) || el.duration <= 0) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: el.duration,
+        playbackRate: el.playbackRate || 1,
+        position: Math.min(el.currentTime, el.duration),
+      });
+    } catch {
+      // Nilai tidak valid sesaat saat ganti lagu — abaikan.
+    }
+  }, [hasMediaSession]);
+
+  const seek = useCallback(
+    (val) => {
+      if (audioRef.current) audioRef.current.currentTime = val;
+      setProgress(val);
+      syncPositionState();
+    },
+    [syncPositionState]
+  );
 
   const cycleMode = useCallback(() => setPlayMode((m) => NEXT_MODE[m]), []);
 
-  // Kontrol di notifikasi/lock screen HP (Media Session API), seperti
-  // pemutar YouTube di screenshot contoh. Diabaikan di browser yang tidak mendukung.
+  // ---- Media Session API: kontrol di notifikasi & layar kunci HP ----
+  // 1) Judul, artis, dan cover. Cover lewat /api/artwork supaya same-origin.
   useEffect(() => {
-    if (typeof navigator === "undefined" || !("mediaSession" in navigator) || !track) return;
+    if (!hasMediaSession) return;
+    if (!track) {
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.playbackState = "none";
+      return;
+    }
+    const src = track.thumbnail ? `/api/artwork?url=${encodeURIComponent(track.thumbnail)}` : null;
     try {
       navigator.mediaSession.metadata = new window.MediaMetadata({
         title: track.title || "",
         artist: track.artist || "",
-        artwork: track.thumbnail ? [{ src: track.thumbnail }] : [],
+        album: track.album || "KOYEN Musik",
+        artwork: src
+          ? [96, 128, 192, 256, 384, 512].map((n) => ({ src, sizes: `${n}x${n}` }))
+          : [],
       });
-      navigator.mediaSession.setActionHandler("play", () => audioRef.current?.play().catch(() => {}));
-      navigator.mediaSession.setActionHandler("pause", () => audioRef.current?.pause());
-      navigator.mediaSession.setActionHandler("previoustrack", history.length > 1 ? () => playByOffset(-1) : null);
-      navigator.mediaSession.setActionHandler("nexttrack", history.length > 1 ? () => playByOffset(1) : null);
     } catch {
-      // Sebagian browser melempar error untuk action tertentu — abaikan.
+      // MediaMetadata tidak tersedia — abaikan.
     }
-  }, [track, history.length, playByOffset]);
+  }, [hasMediaSession, track?.id, track?.title, track?.artist, track?.thumbnail]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 2) Status putar/jeda, supaya ikon di notifikasi selalu sinkron.
+  useEffect(() => {
+    if (!hasMediaSession || !track) return;
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+    syncPositionState();
+  }, [hasMediaSession, track, isPlaying, syncPositionState]);
+
+  // 3) Tombol di notifikasi/layar kunci.
+  useEffect(() => {
+    if (!hasMediaSession || !track) return;
+    const canSkip = history.length > 1;
+    const handlers = {
+      play: () => audioRef.current?.play().catch(() => {}),
+      pause: () => audioRef.current?.pause(),
+      previoustrack: canSkip ? () => playByOffset(-1) : null,
+      nexttrack: canSkip ? () => playByOffset(1) : null,
+      seekto: (d) => {
+        if (typeof d?.seekTime === "number") seek(d.seekTime);
+      },
+      stop: () => stopPlayback(),
+    };
+    for (const [action, fn] of Object.entries(handlers)) {
+      try {
+        navigator.mediaSession.setActionHandler(action, fn);
+      } catch {
+        // Sebagian browser tidak mendukung action tertentu — abaikan.
+      }
+    }
+  }, [hasMediaSession, track, history.length, playByOffset, seek, stopPlayback]);
 
   const value = useMemo(
     () => ({
@@ -253,10 +312,20 @@ export default function MusicPlayerProvider({ children }) {
         <audio
           ref={audioRef}
           src={track.streamUrl}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
+          onPlay={() => {
+            setIsPlaying(true);
+            syncPositionState();
+          }}
+          onPause={() => {
+            setIsPlaying(false);
+            syncPositionState();
+          }}
+          onSeeked={syncPositionState}
           onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
-          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+          onLoadedMetadata={(e) => {
+            setDuration(e.currentTarget.duration);
+            syncPositionState();
+          }}
           onEnded={handleEnded}
           onError={handleAudioError}
         />
