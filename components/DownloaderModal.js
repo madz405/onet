@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import Modal from "@/components/Modal";
 import MediaResult from "@/components/MediaResult";
 import TurnstileWidget from "@/components/TurnstileWidget";
+import { addDownloadHistory } from "@/lib/downloadHistory";
 
 export default function DownloaderModal({ platform, onClose }) {
   const [url, setUrl] = useState("");
@@ -34,6 +35,12 @@ export default function DownloaderModal({ platform, onClose }) {
       const data = await res.json();
       if (!data.status) throw new Error(data.message || "Gagal memproses link.");
       setResult(data);
+      addDownloadHistory({
+        url: url.trim(),
+        platform: platform.id,
+        format: platform.hasFormat ? format : null,
+        result: data,
+      });
     } catch (err) {
       setError(err.message || "Terjadi kesalahan.");
     } finally {
