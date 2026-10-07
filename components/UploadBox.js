@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Upload, Loader2, Copy, Check, ExternalLink } from "lucide-react";
 import { EXPIRY_OPTIONS, validateUpload } from "@/lib/uploadRules";
 import { uploadFileClient } from "@/lib/clientUpload";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 function formatSize(bytes) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -25,6 +26,8 @@ export default function UploadBox({ defaultExpiry = "24h", hint, onUploaded }) {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [token, setToken] = useState("");
+  const [tsReset, setTsReset] = useState(0);
   const abortRef = useRef(null);
 
   useEffect(() => () => previewUrl && URL.revokeObjectURL(previewUrl), [previewUrl]);
@@ -48,6 +51,10 @@ export default function UploadBox({ defaultExpiry = "24h", hint, onUploaded }) {
       setError(invalid);
       return;
     }
+    if (!token) {
+      setError("Selesaikan verifikasi keamanan dulu, lalu coba lagi.");
+      return;
+    }
     setError("");
     setResult(null);
     setProgress(0);
@@ -55,7 +62,7 @@ export default function UploadBox({ defaultExpiry = "24h", hint, onUploaded }) {
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const r = await uploadFileClient(file, { expiry, onProgress: setProgress, signal: controller.signal });
+      const r = await uploadFileClient(file, { expiry, onProgress: setProgress, signal: controller.signal, turnstileToken: token });
       const full = { ...r, expiry };
       setResult(full);
       onUploaded?.(full);
@@ -64,6 +71,9 @@ export default function UploadBox({ defaultExpiry = "24h", hint, onUploaded }) {
     } finally {
       setUploading(false);
       abortRef.current = null;
+      // Token Turnstile sekali pakai: minta yang baru untuk upload berikutnya.
+      setToken("");
+      setTsReset((n) => n + 1);
     }
   }
 
@@ -114,6 +124,8 @@ export default function UploadBox({ defaultExpiry = "24h", hint, onUploaded }) {
         </select>
         {hint && <p className="mt-1.5 text-xs text-white/40">{hint}</p>}
       </div>
+
+      <TurnstileWidget onToken={setToken} resetKey={tsReset} />
 
       {uploading ? (
         <div className="space-y-2">
