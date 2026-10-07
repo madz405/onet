@@ -21,6 +21,13 @@ export default function manifest() {
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
       { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
+    // Muncul di menu "Bagikan" HP (Android, setelah web dipasang sebagai PWA).
+    // Link yang dibagikan dikirim ke halaman utama lewat query ?title=&text=&url=
+    share_target: {
+      action: "/",
+      method: "GET",
+      params: { title: "title", text: "text", url: "url" },
+    },
     shortcuts: [
       { name: "Musik", short_name: "Musik", url: "/musik", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "Tools", short_name: "Tools", url: "/tools", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
