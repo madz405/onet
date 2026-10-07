@@ -78,7 +78,6 @@ export default function UploadBox({ defaultExpiry = "24h", hint, onUploaded }) {
   }
 
   const type = file?.type || "";
-  const expiryLabel = EXPIRY_OPTIONS.find((o) => o.value === result?.expiry)?.label;
   const percent = Math.round(progress * 100);
 
   return (
@@ -169,9 +168,8 @@ export default function UploadBox({ defaultExpiry = "24h", hint, onUploaded }) {
             </a>
           </div>
           <p className="text-xs text-white/50">
-            {result.expiry === "permanent"
-              ? "Link tersimpan permanen."
-              : `Link aktif sekitar ${expiryLabel}, setelah itu file terhapus otomatis.`}
+            Disimpan di {result.host}
+            {result.expires ? ` · masa aktif: ${result.expires}` : ""}
           </p>
           {result.notice && <p className="text-xs text-amber-300">{result.notice}</p>}
         </div>
