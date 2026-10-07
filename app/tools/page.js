@@ -4,7 +4,7 @@ import { SITE_NAME } from "@/lib/site";
 export const metadata = {
   title: `Tools — ${SITE_NAME}`,
   description:
-    "Tools edit cepat untuk konten harian: hapus background gambar, upload gambar ke URL, dan lainnya, langsung dari browser tanpa install.",
+    "Tools edit cepat untuk konten harian: hapus background gambar, QR generator, upload file jadi link, dan lainnya, langsung dari browser tanpa install.",
   alternates: { canonical: "/tools" },
 };
 
