@@ -3,6 +3,8 @@ import { uploadToTop4top } from "@/lib/uploadImage";
 import { proxyMedia } from "@/lib/proxyMedia";
 import { upscaleHd } from "@/lib/scrapers/imgLarger";
 import { removeBgILoveImg } from "@/lib/scrapers/iloveimg";
+import { humanCheck } from "@/lib/turnstile";
+import { TURNSTILE_TOOLS } from "@/lib/tools";
 
 export const runtime = "nodejs";
 // Tool "hd" sekarang bisa nunggu lama: endpoint utama (nexray) dicoba dulu,
@@ -147,6 +149,15 @@ export async function POST(req) {
     formData = await req.formData();
   } catch {
     return NextResponse.json({ status: false, message: "Gagal membaca file yang diunggah." }, { status: 400 });
+  }
+
+  // Verifikasi Turnstile untuk tool yang dilindungi (daftar di lib/tools.js),
+  // sebelum upload ke host atau endpoint luar dijalankan.
+  if (TURNSTILE_TOOLS.includes(tool)) {
+    const human = await humanCheck(req, formData.get("turnstileToken"));
+    if (!human.ok) {
+      return NextResponse.json({ status: false, message: human.message }, { status: 403 });
+    }
   }
 
   const file = formData.get("file");
