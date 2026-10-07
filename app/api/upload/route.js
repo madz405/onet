@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { uploadAnyFile } from "@/lib/uploadFile";
 import { SERVER_MAX_BYTES, validateUpload } from "@/lib/uploadRules";
+import { humanCheck } from "@/lib/turnstile";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -16,6 +17,9 @@ export async function POST(req) {
   } catch {
     return fail("Gagal membaca file yang diunggah.");
   }
+
+  const human = await humanCheck(req, data.get("turnstileToken"));
+  if (!human.ok) return fail(human.message, 403);
 
   const file = data.get("file");
   const expiry = (data.get("expiry") || "24h").toString();
