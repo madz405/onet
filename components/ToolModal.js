@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Loader2, Download, Upload, ZoomIn } from "lucide-react";
 import PhotoLightbox from "@/components/PhotoLightbox";
 import Modal from "@/components/Modal";
+import TurnstileWidget from "@/components/TurnstileWidget";
+import { TURNSTILE_TOOLS } from "@/lib/tools";
 
 function buildInitialState(fields = []) {
   const state = {};
@@ -22,10 +24,21 @@ export default function ToolModal({ tool, onClose }) {
   const [resultUrl, setResultUrl] = useState(null);
   const [resultKind, setResultKind] = useState(null); // "image" | "video"
   const [zoomOpen, setZoomOpen] = useState(false);
+  // Verifikasi Turnstile untuk tool yang terdaftar di TURNSTILE_TOOLS (lib/tools.js).
+  const needsHuman = TURNSTILE_TOOLS.includes(tool.id);
+  const [token, setToken] = useState("");
+  const [tsReset, setTsReset] = useState(0);
   // Hasil gambar bisa diketuk untuk pratinjau + zoom (PhotoLightbox), sama
   // seperti hasil foto TikTok/Instagram/Douyin. Tool dengan noZoom: true
   // (Brat & Brat HD) tetap tampil biasa.
   const canZoom = resultKind === "image" && !tool.noZoom;
+
+  // Token sekali pakai: minta yang baru setelah setiap request.
+  function resetToken() {
+    if (!needsHuman) return;
+    setToken("");
+    setTsReset((n) => n + 1);
+  }
 
   function updateField(name, value) {
     setValues((v) => ({ ...v, [name]: value }));
@@ -52,6 +65,10 @@ export default function ToolModal({ tool, onClose }) {
 
   async function handleTextSubmit(e) {
     e.preventDefault();
+    if (needsHuman && !token) {
+      setError("Selesaikan verifikasi keamanan dulu, lalu coba lagi.");
+      return;
+    }
     setLoading(true);
     setError("");
     setResultUrl(null);
@@ -59,12 +76,15 @@ export default function ToolModal({ tool, onClose }) {
     try {
       const params = new URLSearchParams();
       Object.entries(values).forEach(([k, v]) => params.set(k, v));
-      const res = await fetch(`/api/tools/${tool.id}?${params.toString()}`);
+      const res = await fetch(`/api/tools/${tool.id}?${params.toString()}`, {
+        headers: needsHuman ? { "x-turnstile-token": token } : undefined,
+      });
       await handleResponse(res);
     } catch (err) {
       setError(err.message || "Terjadi kesalahan.");
     } finally {
       setLoading(false);
+      resetToken();
     }
   }
 
@@ -80,6 +100,10 @@ export default function ToolModal({ tool, onClose }) {
         return;
       }
     }
+    if (needsHuman && !token) {
+      setError("Selesaikan verifikasi keamanan dulu, lalu coba lagi.");
+      return;
+    }
     setLoading(true);
     setError("");
     setResultUrl(null);
@@ -87,6 +111,7 @@ export default function ToolModal({ tool, onClose }) {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      if (needsHuman) formData.append("turnstileToken", token);
       // Untuk tool bertipe "upload-text" (misal fakeml), sertakan juga
       // field teks tambahan seperti nickname.
       if (tool.kind === "upload-text") {
@@ -101,6 +126,7 @@ export default function ToolModal({ tool, onClose }) {
       setError(err.message || "Terjadi kesalahan.");
     } finally {
       setLoading(false);
+      resetToken();
     }
   }
 
@@ -111,6 +137,7 @@ export default function ToolModal({ tool, onClose }) {
           {tool.fields.map((field) => (
             <Field key={field.name} field={field} value={values[field.name]} onChange={updateField} />
           ))}
+          {needsHuman && <TurnstileWidget onToken={setToken} resetKey={tsReset} />}
           <SubmitButton loading={loading} />
         </form>
       )}
@@ -130,6 +157,7 @@ export default function ToolModal({ tool, onClose }) {
             tool.fields.map((field) => (
               <Field key={field.name} field={field} value={values[field.name]} onChange={updateField} />
             ))}
+          {needsHuman && <TurnstileWidget onToken={setToken} resetKey={tsReset} />}
           <SubmitButton loading={loading} disabled={!file} />
         </form>
       )}
