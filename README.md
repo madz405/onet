@@ -54,6 +54,7 @@ lib/
   tools.js           → daftar tools & definisi form masing-masing
   chatPersona.js     → nama & system prompt bot chat (gampang diedit)
   uploadImage.js     → helper upload gambar ke top4top.io (dipakai removebg, hd, fakeml)
+  uploadFile.js      → upload file apa saja ke banyak host dengan fallback (tool Uploader & QR)
   themes.js          → daftar tema warna yang muncul di navbar
   musicHistory.js    → helper localStorage untuk riwayat pencarian musik
   scrapers/instagram.js → scraper langsung ke instagram.com (metode utama downloader IG)
