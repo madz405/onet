@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { proxyMedia } from "@/lib/proxyMedia";
+import { humanCheck } from "@/lib/turnstile";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,13 @@ function jamWIB() {
 }
 
 export async function GET(req) {
+  // Verifikasi Turnstile sebelum memanggil endpoint luar. Token lewat header
+  // (bukan query) supaya tidak tercatat di log URL.
+  const human = await humanCheck(req, req.headers.get("x-turnstile-token"));
+  if (!human.ok) {
+    return NextResponse.json({ status: false, message: human.message }, { status: 403 });
+  }
+
   const { searchParams } = new URL(req.url);
   const timestampInput = (searchParams.get("timestamp") || "").trim();
   const statusBarInput = (searchParams.get("statusBarTime") || "").trim();
