@@ -6,7 +6,7 @@ import { scrapeTwitter } from "@/lib/scrapers/twitter";
 import { scrapeAppleMusic } from "@/lib/scrapers/applemusic";
 import { scrapeSpotify } from "@/lib/scrapers/spotify";
 import { scrapeYouTube } from "@/lib/scrapers/youtube";
-import { scrapeYouTubeInnertube } from "@/lib/scrapers/youtubeInnertube";
+import { scrapeYouTubeVidssave } from "@/lib/scrapers/youtubeVidssave";
 import { scrapeYouTubeY2mate } from "@/lib/scrapers/youtubeY2mate";
 import { scrapeDouyin } from "@/lib/scrapers/douyin";
 import { scrapeSoundCloudUrl } from "@/lib/scrapers/soundcloudUrl";
@@ -570,15 +570,15 @@ export async function POST(req) {
           if (!result.media?.length) throw new Error("Scraper y2mate tidak menghasilkan link.");
           return result;
         };
-        // Jalur utama: scraper Innertube (Android VR), direct link dari CDN YouTube.
-        const tryInnertube = async () => {
-          const result = await scrapeYouTubeInnertube(url, format);
-          if (!result.media?.length) throw new Error("Scraper Innertube tidak menghasilkan link.");
+        // Jalur utama: scraper Vidssave (id.vidssave.com).
+        const tryVidssave = async () => {
+          const result = await scrapeYouTubeVidssave(url, format);
+          if (!result.media?.length) throw new Error("Scraper Vidssave tidak menghasilkan link.");
           return result;
         };
-        const result = await tryInnertube()
+        const result = await tryVidssave()
           .catch((err) => {
-            console.error("[youtube] innertube gagal, coba scraper ytmp3.mobi:", err.message);
+            console.error("[youtube] vidssave gagal, coba scraper ytmp3.mobi:", err.message);
             return tryScraper();
           })
           .catch((err) => {
