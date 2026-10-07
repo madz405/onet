@@ -6,6 +6,7 @@ import { scrapeTwitter } from "@/lib/scrapers/twitter";
 import { scrapeAppleMusic } from "@/lib/scrapers/applemusic";
 import { scrapeSpotify } from "@/lib/scrapers/spotify";
 import { scrapeYouTube } from "@/lib/scrapers/youtube";
+import { scrapeYouTubeInnertube } from "@/lib/scrapers/youtubeInnertube";
 import { scrapeYouTubeY2mate } from "@/lib/scrapers/youtubeY2mate";
 import { scrapeDouyin } from "@/lib/scrapers/douyin";
 import { scrapeSoundCloudUrl } from "@/lib/scrapers/soundcloudUrl";
@@ -569,7 +570,17 @@ export async function POST(req) {
           if (!result.media?.length) throw new Error("Scraper y2mate tidak menghasilkan link.");
           return result;
         };
-        const result = await tryScraper()
+        // Jalur utama: scraper Innertube (Android VR), direct link dari CDN YouTube.
+        const tryInnertube = async () => {
+          const result = await scrapeYouTubeInnertube(url, format);
+          if (!result.media?.length) throw new Error("Scraper Innertube tidak menghasilkan link.");
+          return result;
+        };
+        const result = await tryInnertube()
+          .catch((err) => {
+            console.error("[youtube] innertube gagal, coba scraper ytmp3.mobi:", err.message);
+            return tryScraper();
+          })
           .catch((err) => {
             console.error("[youtube] scraper gagal, pakai endpoint cadangan:", err.message);
             return tryEndpoint();
