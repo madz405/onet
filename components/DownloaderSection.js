@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link2, Loader2, ClipboardPaste, X } from "lucide-react";
 import { PLATFORMS, getPlatform } from "@/lib/platforms";
 import { detectPlatformId, extractUrl } from "@/lib/detectPlatform";
@@ -22,6 +22,9 @@ export default function DownloaderSection() {
   const [result, setResult] = useState(null);
   const [token, setToken] = useState("");
   const [tsReset, setTsReset] = useState(0);
+
+  // Link yang masuk lewat menu "Bagikan" HP, menunggu verifikasi Turnstile selesai.
+  const pendingShare = useRef(false);
 
   const detectedId = useMemo(() => detectPlatformId(input), [input]);
   const detected = detectedId ? getPlatform(detectedId) : null;
@@ -78,6 +81,25 @@ export default function DownloaderSection() {
       setTsReset((n) => n + 1);
     }
   }
+
+  // Menu "Bagikan" -> halaman dibuka dengan ?url=...&text=...&title=...
+  // Aplikasi sosmed berbeda-beda: ada yang menaruh link di url, ada di text.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shared = ["url", "text", "title"].map((k) => extractUrl(params.get(k))).find(Boolean);
+    if (!shared) return;
+    setInput(shared);
+    pendingShare.current = true;
+    // Bersihkan query supaya refresh halaman tidak memproses link yang sama lagi.
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
+
+  // Proses otomatis begitu token keamanan siap.
+  useEffect(() => {
+    if (!pendingShare.current || !token || !input) return;
+    pendingShare.current = false;
+    run(input);
+  }, [token, input]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSubmit(e) {
     e.preventDefault();
