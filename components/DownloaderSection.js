@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2, Loader2, ClipboardPaste, X } from "lucide-react";
+import { Link2, Loader2, ClipboardPaste, X, TriangleAlert } from "lucide-react";
 import { PLATFORMS, getPlatform } from "@/lib/platforms";
 import { detectPlatformId, extractUrl } from "@/lib/detectPlatform";
 import PlatformCard from "@/components/PlatformCard";
@@ -10,6 +10,7 @@ import MediaResult from "@/components/MediaResult";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import DownloadHistory from "@/components/DownloadHistory";
 import { addDownloadHistory } from "@/lib/downloadHistory";
+import { useSourceStatus } from "@/lib/useSourceStatus";
 
 export default function DownloaderSection() {
   const [active, setActive] = useState(null);
@@ -26,9 +27,12 @@ export default function DownloaderSection() {
   // Link yang masuk lewat menu "Bagikan" HP, menunggu verifikasi Turnstile selesai.
   const pendingShare = useRef(false);
 
+  const sourceStatus = useSourceStatus();
+
   const detectedId = useMemo(() => detectPlatformId(input), [input]);
   const detected = detectedId ? getPlatform(detectedId) : null;
   const hasInput = input.trim().length > 0;
+  const detectedStatus = detectedId ? sourceStatus[detectedId] : null;
 
   // Memproses satu link. Dipakai oleh tombol "Proses link" dan tombol
   // "Unduh lagi" di riwayat (yang mengirim platform & format tersimpan).
@@ -165,6 +169,23 @@ export default function DownloaderSection() {
           </p>
         )}
 
+        {detected && detectedStatus && (
+          <p
+            className={`flex items-start gap-2 rounded-xl border px-4 py-3 text-sm ${
+              detectedStatus === "down"
+                ? "border-flare-500/30 bg-flare-500/10 text-flare-400"
+                : "border-amber-400/30 bg-amber-400/10 text-amber-300"
+            }`}
+          >
+            <TriangleAlert size={16} className="mt-0.5 flex-shrink-0" />
+            <span>
+              {detectedStatus === "down"
+                ? `${detected.name} sedang gangguan. Unduhan kemungkinan besar gagal, coba lagi nanti.`
+                : `${detected.name} sedang tidak stabil. Unduhan bisa gagal, kalau begitu coba lagi sebentar lagi.`}
+            </span>
+          </p>
+        )}
+
         {detected?.hasFormat && (
           <div className="flex gap-2">
             {["video", "audio"].map((f) => (
@@ -211,7 +232,12 @@ export default function DownloaderSection() {
       <p className="mb-3 text-sm font-medium text-white/50">Atau pilih platform manual</p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {PLATFORMS.map((platform) => (
-          <PlatformCard key={platform.id} platform={platform} onClick={() => setActive(platform)} />
+          <PlatformCard
+            key={platform.id}
+            platform={platform}
+            status={sourceStatus[platform.id]}
+            onClick={() => setActive(platform)}
+          />
         ))}
       </div>
 
