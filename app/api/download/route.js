@@ -18,6 +18,7 @@ import { scrapePixiv } from "@/lib/scrapers/pixiv";
 import { scrapeRedNote } from "@/lib/scrapers/rednote";
 import { scrapeTerabox } from "@/lib/scrapers/terabox";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { recordResult } from "@/lib/sourceStatus";
 
 export const runtime = "nodejs";
 // Downloader TikTok sekarang bisa mencoba 3 API + scraper berurutan, jadi
@@ -43,6 +44,12 @@ async function getJson(url, timeoutMs) {
     throw new Error(data?.message || "Endpoint sumber gagal memproses link ini.");
   }
   return data;
+}
+
+// Mencatat hasil untuk indikator status sumber (lihat lib/sourceStatus.js).
+function succeed(platform, result) {
+  recordResult(platform, true);
+  return NextResponse.json({ status: true, platform, ...result });
 }
 
 function fail(message, statusCode = 400) {
@@ -295,7 +302,7 @@ export async function POST(req) {
           throw new Error("Semua sumber TikTok gagal memproses link ini. Coba lagi sebentar lagi.");
         }
 
-        return NextResponse.json({ status: true, platform, ...result });
+        return succeed(platform, result);
       }
 
       case "instagram": {
@@ -350,7 +357,7 @@ export async function POST(req) {
           return tryEndpoint();
         });
 
-        return NextResponse.json({ status: true, platform, ...result });
+        return succeed(platform, result);
       }
 
       case "facebook": {
@@ -376,7 +383,7 @@ export async function POST(req) {
           console.error("[facebook] endpoint azbry gagal, coba scraper langsung:", err.message);
           return tryScraper();
         });
-        return NextResponse.json({ status: true, platform, ...result });
+        return succeed(platform, result);
       }
 
       case "pinterest": {
@@ -400,7 +407,7 @@ export async function POST(req) {
           console.error("[pinterest] scraper gagal, pakai endpoint cadangan:", err.message);
           return tryEndpoint();
         });
-        return NextResponse.json({ status: true, platform, ...result });
+        return succeed(platform, result);
       }
 
       case "twitter": {
@@ -428,7 +435,7 @@ export async function POST(req) {
           console.error("[twitter] scraper gagal, pakai endpoint cadangan:", err.message);
           return tryEndpoint();
         });
-        return NextResponse.json({ status: true, platform, ...result });
+        return succeed(platform, result);
       }
 
       case "douyin": {
@@ -438,7 +445,7 @@ export async function POST(req) {
         if (!result.media?.length) {
           throw new Error("Scraper Douyin tidak menemukan media yang bisa diunduh.");
         }
-        return NextResponse.json({ status: true, platform, ...result });
+        return succeed(platform, result);
       }
 
       case "applemusic": {
@@ -461,7 +468,7 @@ export async function POST(req) {
           console.error("[applemusic] scraper gagal, pakai endpoint cadangan:", err.message);
           return tryEndpoint();
         });
-        return NextResponse.json({ status: true, platform, ...result });
+        return succeed(platform, result);
       }
 
       case "soundcloud": {
@@ -499,7 +506,7 @@ export async function POST(req) {
             return tryEndpoint();
           });
         });
-        return NextResponse.json({ status: true, platform, ...result });
+        return succeed(platform, result);
       }
 
       case "spotify": {
@@ -524,7 +531,7 @@ export async function POST(req) {
           console.error("[spotify] scraper gagal, pakai endpoint cadangan:", err.message);
           return tryEndpoint();
         });
-        return NextResponse.json({ status: true, platform, ...result });
+        return succeed(platform, result);
       }
 
       case "youtube": {
@@ -575,7 +582,7 @@ export async function POST(req) {
             console.error("[youtube] scraper y2mate gagal:", err.message);
             throw new Error("Gagal mengambil dari YouTube. Semua sumber sedang bermasalah, coba lagi sebentar lagi.");
           });
-        return NextResponse.json({ status: true, platform, ...result });
+        return succeed(platform, result);
       }
 
       case "threads": {
@@ -583,7 +590,7 @@ export async function POST(req) {
         if (!result.media?.length) {
           throw new Error("Scraper Threads tidak menemukan media yang bisa diunduh.");
         }
-        return NextResponse.json({ status: true, platform, ...result });
+        return succeed(platform, result);
       }
 
       case "bilibili": {
@@ -591,7 +598,7 @@ export async function POST(req) {
         if (!result.media?.length) {
           throw new Error("Scraper Bilibili tidak menemukan media yang bisa diunduh.");
         }
-        return NextResponse.json({ status: true, platform, ...result });
+        return succeed(platform, result);
       }
 
       case "reddit":
@@ -611,13 +618,14 @@ export async function POST(req) {
         if (!result.media?.length) {
           throw new Error("Tidak ada media yang bisa diunduh dari link ini.");
         }
-        return NextResponse.json({ status: true, platform, ...result });
+        return succeed(platform, result);
       }
 
       default:
         return fail("Platform tidak dikenali.");
     }
   } catch (err) {
+    recordResult(platform, false);
     return fail(err.message || "Terjadi kesalahan saat memproses link.");
   }
 }
