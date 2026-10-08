@@ -11,6 +11,7 @@ import TurnstileWidget from "@/components/TurnstileWidget";
 import DownloadHistory from "@/components/DownloadHistory";
 import { addDownloadHistory } from "@/lib/downloadHistory";
 import { useSourceStatus } from "@/lib/useSourceStatus";
+import { fetchYouTubeFromBrowser } from "@/lib/youtubeClient";
 
 export default function DownloaderSection() {
   const [active, setActive] = useState(null);
@@ -62,13 +63,25 @@ export default function DownloaderSection() {
     const usedFormat = opts.format || format;
     setLoading(true);
     try {
-      const res = await fetch("/api/download", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform: platform.id, url, format: usedFormat, turnstileToken: token }),
-      });
-      const data = await res.json();
-      if (!data.status) throw new Error(data.message || "Gagal memproses link.");
+      // YouTube: coba dulu dari browser pengunjung (IP server Vercel ditolak
+      // Vidssave). Kalau gagal, lanjut ke jalur server seperti biasa.
+      let data = null;
+      if (platform.id === "youtube") {
+        try {
+          data = await fetchYouTubeFromBrowser(url, usedFormat);
+        } catch (err) {
+          console.warn("[youtube] jalur browser gagal, pakai server:", err.message);
+        }
+      }
+      if (!data) {
+        const res = await fetch("/api/download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ platform: platform.id, url, format: usedFormat, turnstileToken: token }),
+        });
+        data = await res.json();
+        if (!data.status) throw new Error(data.message || "Gagal memproses link.");
+      }
       setResult(data);
       addDownloadHistory({
         url,
