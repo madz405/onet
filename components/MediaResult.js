@@ -167,6 +167,10 @@ function AudioPlayer({ src }) {
 // langsung terunduh (lihat komentar di route tersebut untuk alasannya),
 // bukan membuka tab baru seperti sebelumnya.
 function downloadHref(result, media, index) {
+  // Link "direct" (YouTube via browser) dibuka langsung oleh browser
+  // pengunjung. Server kita tidak ikut menarik file-nya, karena IP server
+  // ditolak Vidssave dan link-nya cukup dibuka sekali.
+  if (media.direct) return media.url;
   // Scraper boleh menentukan nama file sendiri (media.filename), misalnya
   // TeraBox (ekstensi file bebas) atau gambar Pixiv (png/gif).
   const filename =
@@ -269,7 +273,7 @@ export default function MediaResult({ result }) {
         />
       )}
 
-      {!useGallery && mainVideo && (
+      {!useGallery && mainVideo && !mainVideo.direct && (
         <video
           key={previewSrc(result, mainVideo)}
           controls
@@ -292,7 +296,7 @@ export default function MediaResult({ result }) {
 
       {/* Pemutar audio: muncul untuk hasil musik (YouTube MP3, Spotify,
           SoundCloud, Apple Music) maupun audio latar pada slide TikTok. */}
-      {mainAudio && <AudioPlayer src={previewSrc(result, mainAudio)} />}
+      {mainAudio && !mainAudio.direct && <AudioPlayer src={previewSrc(result, mainAudio)} />}
 
       <div className="flex flex-col gap-2">
         {media.map((m, i) => (
