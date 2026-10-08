@@ -7,6 +7,7 @@ import { scrapeAppleMusic } from "@/lib/scrapers/applemusic";
 import { scrapeSpotify } from "@/lib/scrapers/spotify";
 import { scrapeYouTube } from "@/lib/scrapers/youtube";
 import { scrapeYouTubeVidssave } from "@/lib/scrapers/youtubeVidssave";
+import { scrapeYouTubeRelay } from "@/lib/scrapers/youtubeRelay";
 import { scrapeYouTubeY2mate } from "@/lib/scrapers/youtubeY2mate";
 import { scrapeDouyin } from "@/lib/scrapers/douyin";
 import { scrapeSoundCloudUrl } from "@/lib/scrapers/soundcloudUrl";
@@ -576,21 +577,38 @@ export async function POST(req) {
           if (!result.media?.length) throw new Error("Scraper Vidssave tidak menghasilkan link.");
           return result;
         };
-        const result = await tryVidssave()
+        // Urutan jalur server (jalur browser sudah dicoba lebih dulu di client,
+        // lihat lib/youtubeClient.js). Vidssave dari server Vercel biasanya
+        // ditolak ("analyze failed"), jadi ditaruh paling akhir.
+        const tryEndpointChecked = async () => {
+          const result = await tryEndpoint();
+          if (!result.media?.length) throw new Error("Endpoint azbry tidak menghasilkan link.");
+          return result;
+        };
+        // Jalur paling depan: relay milik sendiri (hanya aktif kalau YT_RELAY_URL diatur).
+        const tryRelay = async () => {
+          if (!process.env.YT_RELAY_URL) throw new Error("relay tidak diatur");
+          return scrapeYouTubeRelay(url, format);
+        };
+        const result = await tryRelay()
           .catch((err) => {
-            console.error("[youtube] vidssave gagal, coba scraper ytmp3.mobi:", err.message);
+            if (process.env.YT_RELAY_URL) console.error("[youtube] relay gagal, coba azbry:", err.message);
+            return tryEndpointChecked();
+          })
+          .catch((err) => {
+            console.error("[youtube] endpoint azbry gagal, coba scraper ytmp3.mobi:", err.message);
             return tryScraper();
           })
           .catch((err) => {
-            console.error("[youtube] scraper gagal, pakai endpoint cadangan:", err.message);
-            return tryEndpoint();
-          })
-          .catch((err) => {
-            console.error("[youtube] endpoint cadangan gagal, pakai scraper y2mate:", err.message);
+            console.error("[youtube] scraper ytmp3.mobi gagal, coba y2mate:", err.message);
             return tryY2mate();
           })
           .catch((err) => {
-            console.error("[youtube] scraper y2mate gagal:", err.message);
+            console.error("[youtube] y2mate gagal, coba vidssave (server):", err.message);
+            return tryVidssave();
+          })
+          .catch((err) => {
+            console.error("[youtube] semua sumber server gagal:", err.message);
             throw new Error("Gagal mengambil dari YouTube. Semua sumber sedang bermasalah, coba lagi sebentar lagi.");
           });
         return succeed(platform, result);
