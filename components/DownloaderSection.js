@@ -71,6 +71,8 @@ export default function DownloaderSection() {
           data = await fetchYouTubeFromBrowser(url, usedFormat);
         } catch (err) {
           console.warn("[youtube] jalur browser gagal, pakai server:", err.message);
+          // SEMENTARA (hapus setelah tes): tampilkan alasannya di layar HP.
+          setError(`[debug] jalur browser gagal: ${err.message}`);
         }
       }
       if (!data) {
