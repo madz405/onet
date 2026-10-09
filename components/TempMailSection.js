@@ -37,6 +37,11 @@ const DOMAINS = [
 
 const POLL_MS = 12000;
 
+// Khusus widget Turnstile di halaman ini (class .ts-fit): lebar iframe selalu
+// mengikuti lebar kotaknya, tidak lebih.
+const TS_FIT_CSS =
+  ".ts-wrap.ts-fit{max-width:100%}.ts-wrap.ts-fit>*,.ts-wrap.ts-fit iframe{width:100%!important;max-width:100%!important}";
+
 const inputCls =
   "w-full rounded-xl border border-white/10 bg-ink-950 px-4 py-3 text-sm text-white placeholder:text-white/30 focus-ring";
 
@@ -276,9 +281,11 @@ export default function TempMailSection() {
               </select>
             </div>
 
-            <div className="min-w-0 max-w-full">
-              <TurnstileWidget onToken={setToken} resetKey={tsReset} />
-            </div>
+            {/* Sama seperti di halaman downloader/tools (tanpa pembungkus), plus
+                aturan ts-fit: paksa iframe Turnstile pas selebar kotaknya supaya
+                logo Cloudflare di kanan tidak terpotong. */}
+            <style>{TS_FIT_CSS}</style>
+            <TurnstileWidget onToken={setToken} resetKey={tsReset} className="ts-fit" />
 
             {createError && (
               <p className="flex items-start gap-2 text-sm text-red-400">
