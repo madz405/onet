@@ -5,10 +5,6 @@ import { scrapePinterest } from "@/lib/scrapers/pinterest";
 import { scrapeTwitter } from "@/lib/scrapers/twitter";
 import { scrapeAppleMusic } from "@/lib/scrapers/applemusic";
 import { scrapeSpotify } from "@/lib/scrapers/spotify";
-import { scrapeYouTube } from "@/lib/scrapers/youtube";
-import { scrapeYouTubeVidssave } from "@/lib/scrapers/youtubeVidssave";
-import { scrapeYouTubeRelay } from "@/lib/scrapers/youtubeRelay";
-import { scrapeYouTubeY2mate } from "@/lib/scrapers/youtubeY2mate";
 import { scrapeDouyin } from "@/lib/scrapers/douyin";
 import { scrapeSoundCloudUrl } from "@/lib/scrapers/soundcloudUrl";
 import { resolveSoundCloudUrl } from "@/lib/scrapers/soundcloud";
@@ -537,78 +533,79 @@ export async function POST(req) {
       }
 
       case "youtube": {
+        // YouTube: HANYA pakai endpoint API (scraper sudah dihapus karena
+        // semuanya error). Urutan: azbry -> theresav (cadangan). Kalau azbry
+        // mati/gagal, otomatis lanjut ke theresav.
         const wantAudio = format === "audio";
-        const tryScraper = async () => {
-          const result = await scrapeYouTube(url, format);
-          if (!result.media?.length) throw new Error("Scraper YouTube tidak menghasilkan link.");
-          return result;
-        };
-        const tryEndpoint = async () => {
+
+        // 1) Endpoint azbry (utama).
+        const tryAzbry = async () => {
           const endpoint = wantAudio
             ? `https://api.azbry.com/api/download/ytmp3?url=${link}`
             : `https://api.azbry.com/api/download/ytmp4?url=${link}`;
-          const data = await getJson(endpoint);
+          const data = await getJson(endpoint, 25000);
           const r = data.result || {};
+          if (!r.download) throw new Error("Endpoint azbry tidak menghasilkan link.");
           return {
             title: r.title,
             author: r.author || r.channel,
             thumbnail: r.thumbnail,
-            media: r.download
-              ? [
-                  {
-                    type: wantAudio ? "audio" : "video",
-                    label: wantAudio ? "Download MP3" : `Download MP4 ${r.quality || ""}`.trim(),
-                    url: r.download,
-                  },
-                ]
-              : [],
+            media: [
+              {
+                type: wantAudio ? "audio" : "video",
+                label: wantAudio ? "Download MP3" : `Download MP4 ${r.quality || ""}`.trim(),
+                url: r.download,
+              },
+            ],
           };
         };
-        // Cadangan kedua: scraper y2mate (dipakai kalau scraper pertama DAN
-        // endpoint azbry sama-sama gagal).
-        const tryY2mate = async () => {
-          const result = await scrapeYouTubeY2mate(url, format);
-          if (!result.media?.length) throw new Error("Scraper y2mate tidak menghasilkan link.");
-          return result;
+
+        // 2) Endpoint theresav (cadangan). Butuh header x-apikey. Key bisa
+        //    diganti lewat env THERESAV_API_KEY di Vercel.
+        const tryTheresav = async () => {
+          const apiKey = process.env.THERESAV_API_KEY || "1azHe";
+          const endpoint = wantAudio
+            ? `https://api.theresav.eu/api/download/ytmp3?url=${link}&format=mp3&bitrate=128k`
+            : `https://api.theresav.eu/api/download/ytmp4?url=${link}&resolution=720`;
+          const res = await fetch(endpoint, {
+            headers: { "x-apikey": apiKey, "User-Agent": UA },
+            signal: AbortSignal.timeout(35000),
+          });
+          const text = await res.text();
+          let r;
+          try {
+            r = JSON.parse(text);
+          } catch {
+            throw new Error("Endpoint theresav mengembalikan respons yang tidak valid.");
+          }
+          if (!res.ok || r?.status === false) {
+            throw new Error(r?.message || "Endpoint theresav gagal memproses link ini.");
+          }
+          if (!r.download_url) throw new Error("Endpoint theresav tidak menghasilkan link.");
+          const quality = !wantAudio && r.height ? `${r.height}p` : "";
+          return {
+            title: r.title,
+            author: r.channel,
+            thumbnail: r.thumbnail,
+            media: [
+              {
+                type: wantAudio ? "audio" : "video",
+                label: wantAudio
+                  ? `Download MP3${formatBytes(r.filesize)}`
+                  : `Download MP4 ${quality}${formatBytes(r.filesize)}`.replace(/\s+·/, " ·").trim(),
+                url: r.download_url,
+              },
+            ],
+          };
         };
-        // Jalur utama: scraper Vidssave (id.vidssave.com).
-        const tryVidssave = async () => {
-          const result = await scrapeYouTubeVidssave(url, format);
-          if (!result.media?.length) throw new Error("Scraper Vidssave tidak menghasilkan link.");
-          return result;
-        };
-        // Urutan jalur server (jalur browser sudah dicoba lebih dulu di client,
-        // lihat lib/youtubeClient.js). Vidssave dari server Vercel biasanya
-        // ditolak ("analyze failed"), jadi ditaruh paling akhir.
-        const tryEndpointChecked = async () => {
-          const result = await tryEndpoint();
-          if (!result.media?.length) throw new Error("Endpoint azbry tidak menghasilkan link.");
-          return result;
-        };
-        // Jalur paling depan: relay milik sendiri (hanya aktif kalau YT_RELAY_URL diatur).
-        const tryRelay = async () => {
-          if (!process.env.YT_RELAY_URL) throw new Error("relay tidak diatur");
-          return scrapeYouTubeRelay(url, format);
-        };
-        const result = await tryRelay()
+
+        const result = await tryAzbry()
           .catch((err) => {
-            if (process.env.YT_RELAY_URL) console.error("[youtube] relay gagal, coba azbry:", err.message);
-            return tryEndpointChecked();
+            console.error("[youtube] endpoint azbry gagal, coba theresav:", err.message);
+            return tryTheresav();
           })
           .catch((err) => {
-            console.error("[youtube] endpoint azbry gagal, coba scraper ytmp3.mobi:", err.message);
-            return tryScraper();
-          })
-          .catch((err) => {
-            console.error("[youtube] scraper ytmp3.mobi gagal, coba y2mate:", err.message);
-            return tryY2mate();
-          })
-          .catch((err) => {
-            console.error("[youtube] y2mate gagal, coba vidssave (server):", err.message);
-            return tryVidssave();
-          })
-          .catch((err) => {
-            console.error("[youtube] semua sumber server gagal:", err.message);
+            console.error("[youtube] endpoint theresav gagal:", err.message);
             throw new Error("Gagal mengambil dari YouTube. Semua sumber sedang bermasalah, coba lagi sebentar lagi.");
           });
         return succeed(platform, result);
