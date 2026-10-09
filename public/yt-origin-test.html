@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tes Origin Vidssave</title>
+<style>
+  body{font-family:system-ui,sans-serif;background:#111;color:#eee;margin:0;padding:16px;max-width:640px}
+  input,button{font-size:16px;padding:12px;border-radius:10px;border:1px solid #444;background:#222;color:#eee;width:100%;box-sizing:border-box;margin:6px 0}
+  button{background:#2b6cff;border:0;font-weight:600}
+  a.dl{display:block;background:#f5c400;color:#000;padding:14px;border-radius:10px;text-align:center;font-weight:700;margin:8px 0;text-decoration:none}
+  pre{white-space:pre-wrap;word-break:break-all;background:#000;padding:10px;border-radius:10px;font-size:13px}
+</style>
+</head>
+<body>
+<h3>Tes Origin Vidssave</h3>
+<p style="font-size:14px;color:#aaa">Buka halaman ini dari domain webmu (mis. koyen.web.id/yt-origin-test.html), bukan dari file lokal.</p>
+<input id="u" value="https://www.youtube.com/watch?v=q9ThMgH8GAU">
+<button id="a">Tes A: fetch biasa tanpa Referer</button>
+<button id="b">Tes B: lewat iframe sandbox (Origin: null)</button>
+<div id="out"></div>
+<pre id="log"></pre>
+
+<script>
+const API = "https://api.vidssave.com";
+const HOST = "id.vidssave.com";
+const DOMAIN = "api-ak.vidssave.com";
+const S = "4c9b7d2e".repeat(3).concat("4c9b7d21");
+const enc = new TextEncoder();
+const logEl = document.getElementById("log");
+const log = (m) => { logEl.textContent += m + "\n"; };
+
+// ---- dekripsi (WebCrypto, zero padding) ----
+const b64ToBytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+async function decryptData(b64) {
+  const key = await crypto.subtle.importKey("raw", enc.encode(S), { name: "AES-CBC" }, false, ["encrypt", "decrypt"]);
+  const iv = enc.encode(S.slice(0, 16));
+  const ct = b64ToBytes(b64);
+  const last = ct.slice(ct.length - 16);
+  const pad = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-CBC", iv: last }, key, new Uint8Array(0)));
+  const full = new Uint8Array(ct.length + pad.length);
+  full.set(ct); full.set(pad, ct.length);
+  const plain = new Uint8Array(await crypto.subtle.decrypt({ name: "AES-CBC", iv }, key, full));
+  return JSON.parse(new TextDecoder().decode(plain).replace(/\0+$/, ""));
+}
+
+// A: fetch langsung dari halaman ini, tanpa header Referer.
+const fetchA = async (url, opts = {}) => {
+  const r = await fetch(url, { ...opts, referrerPolicy: "no-referrer" });
+  return { status: r.status, text: await r.text() };
+};
+
+// B: fetch dikirim lewat iframe sandbox tanpa allow-same-origin, sehingga
+// header Origin yang terkirim = "null" (sama seperti tes dari file lokal).
+let frame = null;
+let frameReady = null;
+const pending = new Map();
+let seq = 0;
+
+function ensureFrame() {
+  if (frameReady) return frameReady;
+  frameReady = new Promise((resolve) => {
+    frame = document.createElement("iframe");
+    frame.setAttribute("sandbox", "allow-scripts");
+    frame.setAttribute("referrerpolicy", "no-referrer");
+    frame.style.display = "none";
+    const inner =
+      "<scr" + "ipt>" +
+      "window.addEventListener('message', async (e) => {" +
+      "  const m = e.data || {}; if (m.type !== 'fetch') return;" +
+      "  try {" +
+      "    const r = await fetch(m.url, { method: m.method || 'GET', headers: m.headers || {}, body: m.body, referrerPolicy: 'no-referrer' });" +
+      "    const text = await r.text();" +
+      "    parent.postMessage({ type: 'fetch-result', id: m.id, status: r.status, text: text }, '*');" +
+      "  } catch (err) {" +
+      "    parent.postMessage({ type: 'fetch-result', id: m.id, error: String((err && err.message) || err) }, '*');" +
+      "  }" +
+      "});" +
+      "</scr" + "ipt>";
+    frame.addEventListener("load", () => resolve(), { once: true });
+    frame.srcdoc = "<!doctype html><html><body>" + inner + "</body></html>";
+    document.body.appendChild(frame);
+  });
+  return frameReady;
+}
+
+window.addEventListener("message", (e) => {
+  if (!frame || e.source !== frame.contentWindow) return;
+  const m = e.data || {};
+  if (m.type !== "fetch-result") return;
+  const p = pending.get(m.id);
+  if (!p) return;
+  pending.delete(m.id);
+  if (m.error) p.reject(new Error(m.error));
+  else p.resolve({ status: m.status, text: m.text });
+});
+
+const fetchB = async (url, opts = {}) => {
+  await ensureFrame();
+  const id = ++seq;
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => { pending.delete(id); reject(new Error("timeout iframe")); }, 20000);
+    pending.set(id, { resolve: (v) => { clearTimeout(t); resolve(v); }, reject: (e) => { clearTimeout(t); reject(e); } });
+    frame.contentWindow.postMessage(
+      { type: "fetch", id, url, method: opts.method, headers: opts.headers, body: opts.body },
+      "*"
+    );
+  });
+};
+
+// ---- alur Vidssave ----
+async function post(fetcher, path, extra) {
+  const body = new URLSearchParams({ hostname: HOST, auth: "4c9b7d21", domain: DOMAIN, ...extra });
+  const r = await fetcher(`${API}/api/contentsite_api/media/${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+  let j;
+  try { j = JSON.parse(r.text); } catch { throw new Error(`respons bukan JSON (HTTP ${r.status})`); }
+  if (j.status !== 1) throw new Error(j.msg || `gagal di ${path}`);
+  return decryptData(j.data);
+}
+
+function videoId(u) {
+  return (u.match(/(?:youtube\.com\/(?:shorts\/|embed\/|live\/|v\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i) || [])[1];
+}
+
+async function runTest(name, fetcher) {
+  document.getElementById("out").innerHTML = "";
+  logEl.textContent = "";
+  try {
+    const raw = document.getElementById("u").value.trim();
+    const id = videoId(raw);
+    const link = id ? `https://www.youtube.com/watch?v=${id}` : raw;
+    log(`[${name}] parse ${link}`);
+    const info = await post(fetcher, "parse", { origin: "source", link });
+    log(`[${name}] PARSE BERHASIL: ${info.title} (${info.resources.length} opsi)`);
+
+    const r = info.resources.find((x) => x.type === "audio" && /128/.test(x.quality)) || info.resources.find((x) => x.type === "audio");
+    log(`[${name}] minta link: ${r.type} ${r.quality}`);
+    const { task_id } = await post(fetcher, "download", { request: r.resource_content });
+    const sse = `${API}/sse/contentsite_api/media/download_query?auth=20250901majwlqo&domain=${DOMAIN}&task_id=${encodeURIComponent(task_id)}&download_domain=vidssave.com&origin=content_site`;
+    for (let i = 1; i <= 20; i++) {
+      await new Promise((x) => setTimeout(x, 1200));
+      const res = await fetcher(sse, { headers: { Accept: "text/event-stream" } });
+      for (const line of res.text.split("\n")) {
+        if (!line.startsWith("data:")) continue;
+        let p; try { p = JSON.parse(line.slice(5).trim()); } catch { continue; }
+        if (p.download_link) {
+          const a = document.createElement("a");
+          a.className = "dl"; a.href = p.download_link; a.textContent = `UNDUH (hasil tes ${name})`;
+          document.getElementById("out").appendChild(a);
+          log(`[${name}] LINK SIAP. Tekan tombol kuning, lalu lihat apakah terunduh atau Forbidden.`);
+          return;
+        }
+      }
+    }
+    log(`[${name}] link belum keluar.`);
+  } catch (e) {
+    log(`[${name}] GAGAL: ${e.message}`);
+  }
+}
+
+document.getElementById("a").onclick = () => runTest("A", fetchA);
+document.getElementById("b").onclick = () => runTest("B", fetchB);
+</script>
+</body>
+</html>
