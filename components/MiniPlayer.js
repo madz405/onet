@@ -12,7 +12,7 @@ import { Play, Pause, SkipBack, SkipForward, Music2, X } from "lucide-react";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
 import MarqueeText from "@/components/MarqueeText";
 
-const VISIBLE_ON = ["/", "/tools", "/chat", "/dukungan"];
+const VISIBLE_ON = ["/", "/tools", "/chat", "/tempmail", "/dukungan"];
 
 export default function MiniPlayer() {
   const pathname = usePathname();
