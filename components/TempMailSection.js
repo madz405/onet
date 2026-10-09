@@ -221,10 +221,10 @@ export default function TempMailSection() {
   const unreadOf = (email) => (boxes[email] || []).filter((m) => !m.read).length;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
       {/* ---------- Kolom kiri: buat & daftar email ---------- */}
-      <div className="space-y-6">
-        <form onSubmit={handleCreate} className="rounded-2xl border border-white/10 bg-ink-900/60 p-5">
+      <div className="min-w-0 space-y-6">
+        <form onSubmit={handleCreate} className="min-w-0 rounded-2xl border border-white/10 bg-ink-900/60 p-5">
           <h2 className="font-display text-lg font-semibold text-white">Buat email baru</h2>
 
           <div className="mt-4 grid grid-cols-2 gap-2">
@@ -276,7 +276,9 @@ export default function TempMailSection() {
               </select>
             </div>
 
-            <TurnstileWidget onToken={setToken} resetKey={tsReset} />
+            <div className="min-w-0 max-w-full">
+              <TurnstileWidget onToken={setToken} resetKey={tsReset} />
+            </div>
 
             {createError && (
               <p className="flex items-start gap-2 text-sm text-red-400">
@@ -296,7 +298,7 @@ export default function TempMailSection() {
         </form>
 
         {ready && accounts.length > 0 && (
-          <div className="rounded-2xl border border-white/10 bg-ink-900/60 p-5">
+          <div className="min-w-0 rounded-2xl border border-white/10 bg-ink-900/60 p-5">
             <h2 className="font-display text-lg font-semibold text-white">Email tersimpan</h2>
             <p className="mt-1 text-xs text-white/50">Tersimpan di browser ini, tidak hilang saat halaman di-refresh.</p>
             <ul className="mt-3 space-y-2">
@@ -350,7 +352,7 @@ export default function TempMailSection() {
             <Inbox size={32} className="text-white/30" />
             <p className="text-sm font-medium text-white">Belum ada email</p>
             <p className="max-w-xs text-xs leading-relaxed text-white/50">
-              Buat email sementara di samping, lalu pakai untuk daftar akun atau menerima kode OTP.
+              Buat email sementara dulu, lalu pakai untuk daftar akun atau menerima kode OTP.
             </p>
           </div>
         ) : (
