@@ -9,6 +9,7 @@ import UploaderModal from "@/components/UploaderModal";
 import CompressModal from "@/components/CompressModal";
 import PdfModal from "@/components/PdfModal";
 import TtsModal from "@/components/TtsModal";
+import AmFinderModal from "@/components/AmFinderModal";
 
 // Tool berjenis khusus punya modal sendiri; selain itu memakai ToolModal umum.
 const CUSTOM_MODALS = {
@@ -17,6 +18,7 @@ const CUSTOM_MODALS = {
   compress: CompressModal,
   pdf: PdfModal,
   tts: TtsModal,
+  amfinder: AmFinderModal,
 };
 
 export default function ToolsSection() {
