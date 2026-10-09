@@ -235,7 +235,7 @@ export default function TempMailSection() {
           <div className="mt-4 grid grid-cols-2 gap-2">
             {[
               { id: "random", label: "Acak", icon: Shuffle },
-              { id: "custom", label: "Nama sendiri", icon: PencilLine },
+              { id: "custom", label: "Nama custom", icon: PencilLine },
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
