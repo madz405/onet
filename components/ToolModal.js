@@ -88,14 +88,13 @@ export default function ToolModal({ tool, onClose }) {
     }
   }
 
-  // Tool bertipe "text-image" (iqc2): field teks + gambar OPSIONAL (file atau
-  // link). Minimal salah satu dari pesan / link gambar / file harus diisi.
+  // Tool bertipe "text-image" (iqc2): field teks + gambar OPSIONAL (upload
+  // file). Minimal salah satu dari pesan / file harus diisi.
   async function handleTextImageSubmit(e) {
     e.preventDefault();
     const hasText = (values.message || "").toString().trim();
-    const hasLink = (values.imageUrl || "").toString().trim();
-    if (!hasText && !hasLink && !file) {
-      setError("Isi pesan, atau tambahkan gambar (upload file / link gambar). Minimal salah satu.");
+    if (!hasText && !file) {
+      setError("Isi pesan, atau upload gambar. Minimal salah satu.");
       return;
     }
     if (needsHuman && !token) {
@@ -188,7 +187,7 @@ export default function ToolModal({ tool, onClose }) {
           ))}
           <div>
             <label className="mb-1.5 block text-xs font-medium text-white/50">
-              Gambar (opsional, kalau upload file maka link di atas diabaikan)
+              Gambar (opsional kalau ada pesan)
             </label>
             <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-white/15 px-4 py-6 text-center text-sm text-white/60 hover:border-white/30 hover:text-white/80">
               <Upload size={20} />
