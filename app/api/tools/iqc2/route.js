@@ -56,20 +56,15 @@ export async function POST(req) {
   if (!human.ok) return fail(human.message, 403);
 
   const text = (formData.get("message") || "").toString().trim();
-  const imageUrlInput = (formData.get("imageUrl") || "").toString().trim();
   const file = formData.get("file");
   const hasFile = file && typeof file !== "string" && file.size > 0;
 
-  // Minimal salah satu: pesan teks atau gambar (file / link).
-  if (!text && !imageUrlInput && !hasFile) {
-    return fail("Isi pesan, atau tambahkan gambar (upload file / link gambar). Minimal salah satu.");
-  }
-  if (imageUrlInput && !/^https?:\/\/\S+$/i.test(imageUrlInput)) {
-    return fail("Link gambar tidak valid (harus diawali http:// atau https://).");
+  // Minimal salah satu: pesan teks atau gambar (upload file).
+  if (!text && !hasFile) {
+    return fail("Isi pesan, atau upload gambar. Minimal salah satu.");
   }
 
-  // Gambar: file upload didahulukan (di-host dulu jadi URL publik), kalau
-  // tidak ada baru pakai link yang ditempel.
+  // Gambar: file upload di-host dulu jadi URL publik, baru dikirim ke endpoint.
   let imageUrl = "";
   if (hasFile) {
     if (file.size > 8 * 1024 * 1024) return fail("Ukuran gambar maksimal 8MB.");
@@ -78,12 +73,10 @@ export async function POST(req) {
       imageUrl = await uploadToTop4top(buffer, file.name || "image.jpg", file.type);
     } catch (err) {
       return fail(
-        (err.message || "Gagal meng-upload gambar.") + " Coba lagi, atau tempel link gambar langsung.",
+        (err.message || "Gagal meng-upload gambar.") + " Coba lagi sebentar lagi.",
         502
       );
     }
-  } else if (imageUrlInput) {
-    imageUrl = imageUrlInput;
   }
 
   // Kedua jam opsional: kosong = jam WIB sekarang.
