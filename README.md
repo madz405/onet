@@ -10,7 +10,7 @@ Web downloader media sosial + tools edit cepat + pemutar musik + chat AI, dibang
 
 - **Downloader** — TikTok, Instagram, Facebook, Pinterest, X/Twitter, Douyin, YouTube (video/audio), Threads, Bilibili, Spotify, SoundCloud, Apple Music. Setiap kartu platform pakai logo asli masing-masing. Hasil slide foto TikTok & Instagram ditampilkan dalam bingkai gaya ponsel.
 - **TikTok, Instagram, Pinterest, X/Twitter, Spotify, Apple Music, dan SoundCloud pakai scraper langsung** sebagai metode utama (tanpa API pihak ketiga), baru jatuh ke endpoint API sebagai cadangan kalau scraper gagal. **YouTube kebalikannya: cuma pakai endpoint API** (azbry sebagai utama, theresav sebagai cadangan; key theresav bisa diganti lewat env `THERESAV_API_KEY`), semua scraper YouTube sudah dihapus. **Douyin, Threads, dan Bilibili cuma pakai scraper langsung** (belum ada endpoint API cadangan). **Facebook kebalik**: endpoint API (azbry) jadi metode utama, scraper langsung ke halaman Facebook-nya jadi cadangan kalau endpoint gagal.
-- **Tools** — Brat Text, Brat HD (pilih hasil gambar/video), IQC Status Bar, Lobby Free Fire, Lobby Mobile Legends (upload avatar + nickname), Meme Custom (upload foto + teks atas/bawah), Hapus Background, Perjelas Foto (HD), QR Generator (teks, link, WiFi, WhatsApp, email, kontak, file), Uploader Link (gambar, video, musik, file lain jadi link), Kompres Gambar (target ukuran KB), PDF Tools (gambar ke PDF, gabung PDF), dan Text to Speech (teks jadi MP3, 178 model suara).
+- **Tools** — Brat Text, Brat HD (pilih hasil gambar/video), IQC Status Bar, Lobby Free Fire, Lobby Mobile Legends (upload avatar + nickname), Meme Custom (upload foto + teks atas/bawah), Hapus Background, Perjelas Foto (HD), QR Generator (teks, link, WiFi, WhatsApp, email, kontak, file), Uploader Link (gambar, video, musik, file lain jadi link), Kompres Gambar (target ukuran KB), PDF Tools (gambar ke PDF, gabung PDF), Text to Speech (teks jadi MP3, 178 model suara), dan AM Finder (cari link preset Alight Motion di komentar video TikTok, plus preview videonya).
 - **Musik** — cari lagu dari judul (YouTube / Spotify / SoundCloud), tampil sebagai satu kartu pemutar (artwork, progress bar, previous/next, mode ulangi/acak/berurutan, volume) dan bisa diunduh. Riwayat pencarian tersimpan otomatis di browser (localStorage) — tidak hilang saat refresh, bisa diputar ulang atau dihapus satu-satu.
 - **Chat AI** — halaman tersendiri (`/chat`), ada di menu navigasi bareng Downloader/Tools/Musik.
 - **Tema & background** — 4 tema warna (Aurora/Sunset/Mint/**Glass**), plus pilihan background **video** dan **foto** yang membuat semua kartu otomatis jadi gaya kaca buram (glassmorphism) supaya tetap kebaca di atas media yang ramai. Semua bisa diganti dari ikon palet di navbar, tersimpan otomatis di browser masing-masing pengunjung.
@@ -44,7 +44,7 @@ app/
   musik/page.js      → halaman pemutar musik
   chat/page.js       → halaman Chat AI
   api/download/      → proxy server untuk semua downloader
-  api/tools/         → proxy server untuk brat, iqc, fakeff, removebg, hd, tts
+  api/tools/         → proxy server untuk brat, iqc, fakeff, removebg, hd, tts, amfinder
   api/music/         → proxy server pencarian lagu
   api/chat/          → proxy server chat AI
   api/fetch-media/   → proxy pemaksa download (Content-Disposition: attachment)
@@ -59,6 +59,7 @@ lib/
   musicHistory.js    → helper localStorage untuk riwayat pencarian musik
   ttsVoices.js       → daftar 178 model suara tool Text to Speech
   scrapers/tts.js    → scraper Text to Speech (starlabs.biz.id)
+  scrapers/amfinder.js → scraper AM Finder, cari preset Alight Motion di komentar TikTok (bintangapi.my.id)
   scrapers/instagram.js → scraper langsung ke instagram.com (metode utama downloader IG)
   scrapers/tiktok.js    → scraper langsung via tikwm.com (metode utama downloader TikTok)
   scrapers/pinterest.js → scraper langsung ke halaman pin (regex, tanpa DOMParser)
