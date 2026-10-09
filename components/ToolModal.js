@@ -88,6 +88,45 @@ export default function ToolModal({ tool, onClose }) {
     }
   }
 
+  // Tool bertipe "text-image" (iqc2): field teks + gambar OPSIONAL (file atau
+  // link). Minimal salah satu dari pesan / link gambar / file harus diisi.
+  async function handleTextImageSubmit(e) {
+    e.preventDefault();
+    const hasText = (values.message || "").toString().trim();
+    const hasLink = (values.imageUrl || "").toString().trim();
+    if (!hasText && !hasLink && !file) {
+      setError("Isi pesan, atau tambahkan gambar (upload file / link gambar). Minimal salah satu.");
+      return;
+    }
+    if (needsHuman && !token) {
+      setError("Selesaikan verifikasi keamanan dulu, lalu coba lagi.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setResultUrl(null);
+    setZoomOpen(false);
+    try {
+      const formData = new FormData();
+      Object.entries(values).forEach(([k, v]) => formData.append(k, v));
+      if (file) formData.append("file", file);
+      if (needsHuman) formData.append("turnstileToken", token);
+      const res = await fetch(`/api/tools/${tool.id}`, { method: "POST", body: formData });
+      await handleResponse(res);
+    } catch (err) {
+      setError(err.message || "Terjadi kesalahan.");
+    } finally {
+      setLoading(false);
+      resetToken();
+    }
+  }
+
+  function clearFile() {
+    setFile(null);
+    if (filePreview) URL.revokeObjectURL(filePreview);
+    setFilePreview(null);
+  }
+
   async function handleUploadSubmit(e) {
     e.preventDefault();
     if (!file) return;
@@ -137,6 +176,39 @@ export default function ToolModal({ tool, onClose }) {
           {tool.fields.map((field) => (
             <Field key={field.name} field={field} value={values[field.name]} onChange={updateField} />
           ))}
+          {needsHuman && <TurnstileWidget onToken={setToken} resetKey={tsReset} />}
+          <SubmitButton loading={loading} />
+        </form>
+      )}
+
+      {tool.kind === "text-image" && (
+        <form onSubmit={handleTextImageSubmit} className="space-y-3">
+          {tool.fields.map((field) => (
+            <Field key={field.name} field={field} value={values[field.name]} onChange={updateField} />
+          ))}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-white/50">
+              Gambar (opsional, kalau upload file maka link di atas diabaikan)
+            </label>
+            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-white/15 px-4 py-6 text-center text-sm text-white/60 hover:border-white/30 hover:text-white/80">
+              <Upload size={20} />
+              {file ? file.name : "Pilih gambar dari perangkatmu"}
+              <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+            </label>
+            {filePreview && (
+              <div className="mt-2 text-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={filePreview} alt="" className="mx-auto max-h-40 rounded-xl border border-white/10" />
+                <button
+                  type="button"
+                  onClick={clearFile}
+                  className="mt-2 text-xs text-white/50 underline hover:text-white/80"
+                >
+                  Hapus gambar
+                </button>
+              </div>
+            )}
+          </div>
           {needsHuman && <TurnstileWidget onToken={setToken} resetKey={tsReset} />}
           <SubmitButton loading={loading} />
         </form>
