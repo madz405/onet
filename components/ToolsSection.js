@@ -8,6 +8,7 @@ import QrModal from "@/components/QrModal";
 import UploaderModal from "@/components/UploaderModal";
 import CompressModal from "@/components/CompressModal";
 import PdfModal from "@/components/PdfModal";
+import TtsModal from "@/components/TtsModal";
 
 // Tool berjenis khusus punya modal sendiri; selain itu memakai ToolModal umum.
 const CUSTOM_MODALS = {
@@ -15,6 +16,7 @@ const CUSTOM_MODALS = {
   uploader: UploaderModal,
   compress: CompressModal,
   pdf: PdfModal,
+  tts: TtsModal,
 };
 
 export default function ToolsSection() {
