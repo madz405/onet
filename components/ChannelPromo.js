@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { X, Download, Wand2, Music2, Bot, ArrowUpRight, ChevronDown } from "lucide-react";
+import { X, Download, Wand2, Music2, Mail, Bot, ArrowUpRight, ChevronDown } from "lucide-react";
 import { PLATFORMS } from "@/lib/platforms";
 import { TOOLS } from "@/lib/tools";
 import { SITE_NAME, SITE_TAGLINE, WHATSAPP_CHANNEL_URL } from "@/lib/site";
@@ -60,6 +60,11 @@ const FEATURES = [
     icon: Music2,
     title: "Musik",
     desc: "Cari dan putar lagu langsung di web, mini player tetap jalan saat kamu pindah halaman.",
+  },
+  {
+    icon: Mail,
+    title: "Temp Mail",
+    desc: "Buat email sementara (nama acak atau custom) untuk menerima kode OTP dan verifikasi akun. Pesan tersimpan di browser, jadi tidak hilang saat halaman di-refresh.",
   },
   {
     icon: Bot,
