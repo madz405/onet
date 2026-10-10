@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Palette, Video, Image as ImageIcon, Sun, Moon } from "lucide-react";
 import {
   THEMES,
@@ -31,9 +31,6 @@ export default function ThemeSwitcher() {
   const [open, setOpen] = useState(false);
   // Tab Background yang sedang dibuka ("video" | "photo").
   const [bgTab, setBgTab] = useState("video");
-  // Tema yang SEHARUSNYA terpasang di <html>. Dipakai pengaman di bawah untuk
-  // memulihkan atribut data-theme kalau hilang/tertimpa setelah halaman dimuat.
-  const themeRef = useRef(null);
 
   // Pilihan Background (video/foto) hanya relevan untuk tema Glass, karena
   // background media memang numpang gaya kaca (lihat resolveCssTheme()).
@@ -60,34 +57,13 @@ export default function ThemeSwitcher() {
       // Abaikan pilihan lama yang sudah tidak ada (contoh: "sunset").
       if (saved && getThemeById(saved)) {
         setTheme(saved);
-        themeRef.current = saved;
+        // Pengaman: kalau React sempat merender ulang <html> (misalnya setelah
+        // error hidrasi), atribut data-theme kembali ke default. Terapkan lagi.
+        document.documentElement.setAttribute("data-theme", resolveCssTheme(saved));
       }
     } catch {
       // localStorage tidak tersedia (mode private, dll) — biarkan pakai default.
     }
-
-    // Pengaman: skrip di <head> (app/layout.js) memasang data-theme sebelum
-    // React tampil, tapi atributnya bisa hilang/tertimpa sesudahnya (terjadi di
-    // halaman Temp Mail: menu tema menunjukkan pilihan yang benar, tapi tampilan
-    // kembali ke Aurora). Di sini tema tersimpan dipasang ulang saat mount, lalu
-    // dijaga: kalau data-theme berubah dari yang seharusnya, dikembalikan.
-    const enforce = () => {
-      if (!themeRef.current) return; // belum pernah memilih tema -> biarkan default
-      const want = resolveCssTheme(themeRef.current);
-      const root = document.documentElement;
-      if (root.getAttribute("data-theme") !== want) root.setAttribute("data-theme", want);
-    };
-    enforce();
-    const obs = new MutationObserver(enforce);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    // Kembali dari bfcache / tab disembunyikan lalu dibuka lagi.
-    window.addEventListener("pageshow", enforce);
-    document.addEventListener("visibilitychange", enforce);
-    return () => {
-      obs.disconnect();
-      window.removeEventListener("pageshow", enforce);
-      document.removeEventListener("visibilitychange", enforce);
-    };
   }, []);
 
   // keepOpen: dipakai saat memilih Glass, supaya menunya tidak menutup dan
@@ -95,7 +71,6 @@ export default function ThemeSwitcher() {
   function applyTheme(id, keepOpen = false) {
     setTheme(id);
     setOpen(keepOpen);
-    themeRef.current = id;
     document.documentElement.setAttribute("data-theme", resolveCssTheme(id));
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, id);
