@@ -35,8 +35,11 @@ export default function SupportSection() {
   }
 
   return (
-    <div className="max-w-xl">
-      <div className="grid grid-cols-2 gap-3">
+    <div className="w-full">
+      {/* Mobile: kartu pilihan 2 kolom lalu panel di bawahnya (tetap seperti semula).
+          Desktop (md+): pilihan jadi kolom kiri, panel detail memenuhi sisa lebar. */}
+      <div className="grid gap-4 md:grid-cols-[minmax(0,300px)_minmax(0,1fr)] md:items-start">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-1">
         {OPTIONS.map(({ id, title, desc, icon: Icon }) => (
           <button
             key={id}
@@ -56,13 +59,13 @@ export default function SupportSection() {
         ))}
       </div>
 
-      <div className="mt-4 rounded-2xl border border-white/10 bg-ink-900/60 p-5">
+      <div className="rounded-2xl border border-white/10 bg-ink-900/60 p-5 md:p-8">
         {active === "saweria" ? (
           <>
             <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
               <Heart size={18} className="text-signal-400" /> Dukung lewat Saweria
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-white/60">
+            <p className="mt-2 max-w-prose text-sm leading-relaxed text-white/60">
               Kamu akan dibuka ke halaman Saweria. Di sana kamu bisa memilih nominal, menulis pesan
               dukungan, lalu membayar dengan QRIS atau e-wallet pilihanmu.
             </p>
@@ -71,7 +74,7 @@ export default function SupportSection() {
                 href={SAWERIA_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-signal-500 px-6 py-3 text-sm font-semibold text-ink-950"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-signal-500 px-6 py-3 text-sm font-semibold text-ink-950 md:inline-flex md:w-auto"
               >
                 Buka Saweria <ExternalLink size={16} />
               </a>
@@ -79,7 +82,7 @@ export default function SupportSection() {
               <button
                 type="button"
                 disabled
-                className="mt-4 w-full rounded-xl bg-signal-500 px-6 py-3 text-sm font-semibold text-ink-950 opacity-50"
+                className="mt-4 w-full rounded-xl bg-signal-500 px-6 py-3 text-sm font-semibold text-ink-950 opacity-50 md:w-auto"
               >
                 Segera hadir
               </button>
@@ -87,46 +90,52 @@ export default function SupportSection() {
           </>
         ) : (
           <>
-            <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-              <QrCode size={18} className="text-signal-400" /> Dukung lewat QRIS
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-white/60">
-              Pindai QRIS di bawah dengan aplikasi e-wallet atau mobile banking apa pun. Lewat QRIS
-              tidak ada kolom pesan. Kalau mau sekalian kirim pesan, pilih Saweria.
-            </p>
-
-            {qrisFailed ? (
-              <p className="mt-4 rounded-xl border border-white/10 px-4 py-6 text-center text-sm text-white/50">
-                Gambar QRIS belum tersedia.
+          <div className="xl:grid xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)] xl:gap-x-10">
+            <div className="xl:col-start-2 xl:row-start-1">
+              <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
+                <QrCode size={18} className="text-signal-400" /> Dukung lewat QRIS
+              </h2>
+              <p className="mt-2 max-w-prose text-sm leading-relaxed text-white/60">
+                Pindai QRIS di bawah dengan aplikasi e-wallet atau mobile banking apa pun. Lewat QRIS
+                tidak ada kolom pesan. Kalau mau sekalian kirim pesan, pilih Saweria.
               </p>
-            ) : (
-              <div className="mt-4 flex justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={QRIS_IMAGE}
-                  alt="QRIS KOYEN"
-                  onError={() => setQrisFailed(true)}
-                  className="w-full max-w-[280px] rounded-xl bg-white p-2"
-                />
-              </div>
-            )}
+            </div>
 
-            {!qrisFailed && (
-              <a
-                href={QRIS_IMAGE}
-                download="QRIS-KOYEN.png"
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-signal-500 px-6 py-3 text-sm font-semibold text-ink-950"
-              >
-                <Download size={16} /> Unduh QRIS
-              </a>
-            )}
-            <p className="mt-3 text-xs leading-relaxed text-white/50">
+            <div className="xl:col-start-1 xl:row-span-3 xl:row-start-1">
+              {qrisFailed ? (
+                <p className="mt-4 rounded-xl border border-white/10 px-4 py-6 text-center text-sm text-white/50 xl:mt-0">
+                  Gambar QRIS belum tersedia.
+                </p>
+              ) : (
+                <div className="mt-4 flex justify-center xl:mt-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={QRIS_IMAGE}
+                    alt="QRIS KOYEN"
+                    onError={() => setQrisFailed(true)}
+                    className="w-full max-w-[280px] rounded-xl bg-white p-2"
+                  />
+                </div>
+              )}
+
+              {!qrisFailed && (
+                <a
+                  href={QRIS_IMAGE}
+                  download="QRIS-KOYEN.png"
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-signal-500 px-6 py-3 text-sm font-semibold text-ink-950"
+                >
+                  <Download size={16} /> Unduh QRIS
+                </a>
+              )}
+            </div>
+
+            <p className="mt-3 max-w-prose text-xs leading-relaxed text-white/50 xl:col-start-2 xl:row-start-2">
               Di HP, simpan gambar ini lalu unggah dari galeri lewat fitur &quot;Scan dari galeri&quot; di
               aplikasi e-wallet kamu.
             </p>
 
             {DANA_NUMBER && (
-              <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-white/10 px-4 py-3">
+              <div className="mt-4 flex max-w-md items-center justify-between gap-3 rounded-xl border border-white/10 px-4 py-3 xl:col-start-2 xl:row-start-3 xl:self-start">
                 <div className="min-w-0">
                   <p className="text-xs text-white/50">DANA{DANA_NAME ? ` · ${DANA_NAME}` : ""}</p>
                   <p className="truncate font-mono text-sm text-white">{DANA_NUMBER}</p>
@@ -141,11 +150,13 @@ export default function SupportSection() {
                 </button>
               </div>
             )}
+          </div>
           </>
         )}
       </div>
+      </div>
 
-      <p className="mt-4 text-center text-xs text-white/40">
+      <p className="mt-6 text-center text-xs text-white/40 md:text-left">
         Terima kasih sudah mendukung KOYEN tetap gratis dan berkembang.
       </p>
     </div>
