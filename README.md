@@ -32,7 +32,11 @@ Buka http://localhost:3000
 
 1. Push folder ini ke repo GitHub kamu.
 2. Import repo tersebut di [vercel.com/new](https://vercel.com/new).
-3. Vercel otomatis mendeteksi Next.js — tidak perlu setting tambahan apa pun (tidak ada environment variable yang dibutuhkan, karena tidak ada API key).
+3. Vercel otomatis mendeteksi Next.js. Semua fitur jalan tanpa setting tambahan, kecuali **Ruang Virtual** (`/ruang`) yang butuh dua environment variable (Vercel > Settings > Environment Variables):
+   - `NEXT_PUBLIC_SUPABASE_URL` — Project URL dari Supabase (Project Settings > API)
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — anon public key dari halaman yang sama
+
+   Yang dipakai hanya Supabase Realtime (Broadcast + Presence), jadi tidak perlu membuat tabel. Setelah menambah variable, lakukan Redeploy. Di lokal, taruh keduanya di `.env.local` lalu jalankan `npm install` (ada dependensi baru `@supabase/supabase-js`).
 4. Deploy.
 
 ## Struktur penting
@@ -58,6 +62,7 @@ lib/
   themes.js          → daftar tema warna yang muncul di navbar
   musicHistory.js    → helper localStorage untuk riwayat pencarian musik
   ttsVoices.js       → daftar 178 model suara tool Text to Speech
+  supabaseClient.js  → klien Supabase Realtime untuk Ruang Virtual (components/VirtualRoom.js, halaman /ruang)
   scrapers/tts.js    → scraper Text to Speech (starlabs.biz.id)
   scrapers/amfinder.js → scraper AM Finder, cari preset Alight Motion di komentar TikTok (bintangapi.my.id)
   scrapers/instagram.js → scraper langsung ke instagram.com (metode utama downloader IG)
