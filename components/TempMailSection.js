@@ -38,7 +38,9 @@ const DOMAINS = [
 const POLL_MS = 12000;
 
 // Khusus widget Turnstile di halaman ini (class .ts-fit): lebar iframe selalu
-// mengikuti lebar kotaknya, tidak lebih.
+// mengikuti lebar kotaknya, tidak lebih. Dipasang lewat dangerouslySetInnerHTML:
+// kalau ditulis sebagai teks biasa, React mengubah ">" jadi "&gt;" di HTML server
+// (isi <style> tidak di-decode browser) sehingga CSS rusak dan hidrasi gagal.
 const TS_FIT_CSS =
   ".ts-wrap.ts-fit{max-width:100%}.ts-wrap.ts-fit>*,.ts-wrap.ts-fit iframe{width:100%!important;max-width:100%!important}";
 
@@ -235,7 +237,7 @@ export default function TempMailSection() {
           <div className="mt-4 grid grid-cols-2 gap-2">
             {[
               { id: "random", label: "Acak", icon: Shuffle },
-              { id: "custom", label: "Nama custom", icon: PencilLine },
+              { id: "custom", label: "Nama sendiri", icon: PencilLine },
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -284,7 +286,7 @@ export default function TempMailSection() {
             {/* Sama seperti di halaman downloader/tools (tanpa pembungkus), plus
                 aturan ts-fit: paksa iframe Turnstile pas selebar kotaknya supaya
                 logo Cloudflare di kanan tidak terpotong. */}
-            <style>{TS_FIT_CSS}</style>
+            <style dangerouslySetInnerHTML={{ __html: TS_FIT_CSS }} />
             <TurnstileWidget onToken={setToken} resetKey={tsReset} className="ts-fit" />
 
             {createError && (
