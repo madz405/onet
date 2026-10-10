@@ -363,6 +363,17 @@ html[data-theme="glass"]::after {
   animation: rise 0.35s ease-out both;
 }
 
+/* Menu sidebar kanan (components/Navbar.js): teks tiap menu meluncur masuk dari
+   kanan ke kiri, bergantian (stagger) lewat variabel --i = nomor urut menu. */
+@keyframes drawer-item-in {
+  from { opacity: 0; transform: translateX(36px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.drawer-item-in {
+  animation: drawer-item-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 120ms);
+}
+
 /* Teks berjalan untuk judul lagu yang kepanjangan (mini player & halaman Musik).
    Diam sebentar di awal & di ujung, baru meluncur, lalu lompat balik ke awal untuk mengulang. */
 @keyframes marquee-scroll {
