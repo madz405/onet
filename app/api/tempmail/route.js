@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { reportError } from "@/lib/reportError";
 import { humanCheck } from "@/lib/turnstile";
 import {
   TEMPMAIL_DOMAINS,
@@ -49,6 +50,7 @@ export async function POST(req) {
       return NextResponse.json({ status: true, email });
     } catch (err) {
       console.error("[tempmail] create gagal:", err.message);
+      await reportError("tempmail: buat email", err);
       return fail("Gagal membuat email. Coba nama atau domain lain, atau ulangi sebentar lagi.", 502);
     }
   }
@@ -63,6 +65,7 @@ export async function POST(req) {
       return NextResponse.json({ status: true, total, messages });
     } catch (err) {
       console.error("[tempmail] inbox gagal:", err.message);
+      await reportError("tempmail: kotak masuk", err);
       return fail("Gagal memeriksa kotak masuk. Coba lagi sebentar lagi.", 502);
     }
   }
