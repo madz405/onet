@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { reportError } from "@/lib/reportError";
 import { uploadAnyFile } from "@/lib/uploadFile";
 import { SERVER_MAX_BYTES, validateUpload } from "@/lib/uploadRules";
 import { humanCheck } from "@/lib/turnstile";
@@ -36,6 +37,7 @@ export async function POST(req) {
     const result = await uploadAnyFile(buffer, file.name, file.type, expiry);
     return NextResponse.json({ status: true, ...result });
   } catch (err) {
+    await reportError("upload file", err);
     return fail(err.message || "Gagal upload file.", 502);
   }
 }
