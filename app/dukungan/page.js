@@ -14,7 +14,7 @@ export default function SupportPage() {
       <section className="mb-8 max-w-2xl">
         <p className="mb-3 text-sm font-medium text-signal-400">Dukungan</p>
         <h1 className="font-display text-3xl font-semibold leading-tight text-white sm:text-4xl">
-          Traktir KOYEN kopi.
+          Beri dukungan.
         </h1>
         <p className="mt-3 text-white/60">
           KOYEN gratis dipakai. Kalau terbantu, dukunganmu membantu biaya server dan pengembangan
