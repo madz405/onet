@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Heart, MessageCircle, QrCode, ExternalLink, Download, Copy, Check } from "lucide-react";
-import { SAWERIA_URL, SAWERIA_READY, QRIS_IMAGE, DANA_NUMBER, DANA_NAME } from "@/lib/support";
+import { SAWERIA_URL, SAWERIA_READY, QRIS_IMAGE, DANA_NUMBER, DANA_NAME, MILESTONE_URL } from "@/lib/support";
 
 const OPTIONS = [
   {
@@ -36,6 +36,29 @@ export default function SupportSection() {
 
   return (
     <div className="w-full">
+      {MILESTONE_URL && (
+        <div className="mb-4 overflow-hidden rounded-2xl border border-white/10 bg-ink-900/60 p-4 md:p-5">
+          <h2 className="mb-3 font-display text-base font-semibold text-white">Target dukungan</h2>
+          {/* Widget milestone Saweria. sandbox: hanya skrip & koneksi realtime-nya
+              yang diizinkan, tanpa popup/form/navigasi halaman kita. */}
+          <iframe
+            src={MILESTONE_URL}
+            title="Progres target dukungan di Saweria"
+            loading="lazy"
+            sandbox="allow-scripts allow-same-origin"
+            className="block h-[170px] w-full rounded-xl border-0 bg-transparent sm:h-[150px]"
+          />
+          <a
+            href={MILESTONE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70"
+          >
+            Tidak tampil? Buka di tab baru <ExternalLink size={12} />
+          </a>
+        </div>
+      )}
+
       {/* Mobile: kartu pilihan 2 kolom lalu panel di bawahnya (tetap seperti semula).
           Desktop (md+): pilihan jadi kolom kiri, panel detail memenuhi sisa lebar. */}
       <div className="grid gap-4 md:grid-cols-[minmax(0,300px)_minmax(0,1fr)] md:items-start">
