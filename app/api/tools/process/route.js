@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { reportError } from "@/lib/reportError";
 import { uploadToTop4top } from "@/lib/uploadImage";
 import { proxyMedia } from "@/lib/proxyMedia";
 import { upscaleHd } from "@/lib/scrapers/imgLarger";
@@ -295,6 +296,7 @@ export async function POST(req) {
         const resultUrl = await upscaleHd(buffer, filename, contentType);
         return proxyMedia(resultUrl);
       } catch (fallbackErr) {
+        await reportError("tool: Perjelas Foto (HD)", fallbackErr, { endpointUtama: primaryErr?.message });
         return NextResponse.json(
           {
             status: false,
@@ -321,6 +323,7 @@ export async function POST(req) {
       });
     } catch (err) {
       const timedOut = err?.name === "TimeoutError" || err?.name === "AbortError";
+      await reportError("tool: Edit Foto AI", timedOut ? new Error("Timeout (>90 detik)") : err);
       return NextResponse.json(
         {
           status: false,
@@ -361,6 +364,7 @@ export async function POST(req) {
         });
       } catch (fallbackErr) {
         console.error("[removebg] scraper iLoveIMG juga gagal:", fallbackErr.message);
+        await reportError("tool: Hapus Background", fallbackErr, { endpointUtama: primaryErr?.message });
         return NextResponse.json(
           { status: false, message: "Gagal menghapus background (endpoint utama & cadangan sama-sama gagal), coba lagi." },
           { status: 500 }
@@ -375,6 +379,7 @@ export async function POST(req) {
     const targetUrl = ENDPOINTS[tool](hostedUrl, formData);
     return proxyMedia(targetUrl);
   } catch (err) {
+    await reportError(`tool: ${tool}`, err);
     return NextResponse.json(
       { status: false, message: err.message || "Gagal memproses gambar." },
       { status: 500 }
