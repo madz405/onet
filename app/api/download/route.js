@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { reportError } from "@/lib/reportError";
 import { instagram } from "@/lib/scrapers/instagram";
 import { tiktokDl } from "@/lib/scrapers/tiktok";
 import { scrapePinterest } from "@/lib/scrapers/pinterest";
@@ -652,6 +653,7 @@ export async function POST(req) {
     }
   } catch (err) {
     recordResult(platform, false);
+    await reportError(`download: ${platform}`, err, { link: url });
     return fail(err.message || "Terjadi kesalahan saat memproses link.");
   }
 }
