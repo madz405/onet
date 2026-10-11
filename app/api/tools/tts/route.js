@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { reportError } from "@/lib/reportError";
 import { generateTts } from "@/lib/scrapers/tts";
 import { getVoice, DEFAULT_TTS_VOICE, TTS_MAX_CHARS } from "@/lib/ttsVoices";
 
@@ -32,6 +33,7 @@ export async function POST(req) {
       headers: { "Content-Type": contentType, "Cache-Control": "no-store" },
     });
   } catch (err) {
+    await reportError("tool: Text to Speech", err);
     return fail(err?.message || "Gagal membuat suara.", 502);
   }
 }
