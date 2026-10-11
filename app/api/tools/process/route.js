@@ -81,6 +81,86 @@ async function fetchNexrayHd(hostedUrl) {
   return { buffer, contentType: contentType || "image/jpeg" };
 }
 
+const EDITIMG_TIMEOUT_MS = 90000;
+const EDITIMG_MAX_PROMPT = 500;
+const EDITIMG_MAX_BYTES = 15 * 1024 * 1024;
+
+// Cari URL gambar di dalam balasan JSON (kalau endpoint membalas JSON, bukan
+// gambar langsung). Mengutamakan key yang umum: url / image / result / data.
+function findImageUrl(node, depth = 0) {
+  if (depth > 4 || node == null) return null;
+  if (typeof node === "string") return /^https:\/\/\S+$/i.test(node.trim()) ? node.trim() : null;
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      const hit = findImageUrl(item, depth + 1);
+      if (hit) return hit;
+    }
+    return null;
+  }
+  if (typeof node === "object") {
+    for (const key of ["url", "image", "result", "data", "output"]) {
+      if (key in node) {
+        const hit = findImageUrl(node[key], depth + 1);
+        if (hit) return hit;
+      }
+    }
+    for (const value of Object.values(node)) {
+      const hit = findImageUrl(value, depth + 1);
+      if (hit) return hit;
+    }
+  }
+  return null;
+}
+
+// Tool "editimg": endpoint Xrina (Flux Kontext). Foto sudah di-host jadi URL
+// publik. Endpoint bisa membalas gambar langsung ATAU JSON berisi link gambar,
+// dua-duanya ditangani. Prosesnya AI, jadi bisa memakan waktu puluhan detik.
+async function fetchEditImg(hostedUrl, prompt) {
+  const target = `https://apiii-xrina.my.id/ai-image/editimg?image=${encodeURIComponent(
+    hostedUrl
+  )}&prompt=${encodeURIComponent(prompt)}`;
+
+  const res = await fetch(target, {
+    headers: { "User-Agent": PROXY_UA },
+    signal: AbortSignal.timeout(EDITIMG_TIMEOUT_MS),
+  });
+  const contentType = res.headers.get("content-type") || "";
+
+  if (res.ok && contentType.startsWith("image/")) {
+    const buffer = await res.arrayBuffer();
+    if (!buffer.byteLength) throw new Error("Endpoint edit gambar mengembalikan hasil kosong.");
+    return { buffer, contentType };
+  }
+
+  const raw = await res.text().catch(() => "");
+  let json = null;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    // bukan JSON
+  }
+
+  const link = json && res.ok ? findImageUrl(json) : null;
+  if (link) {
+    const imgRes = await fetch(link, {
+      headers: { "User-Agent": PROXY_UA },
+      signal: AbortSignal.timeout(30000),
+    });
+    const imgType = imgRes.headers.get("content-type") || "";
+    if (imgRes.ok && imgType.startsWith("image/")) {
+      const buffer = await imgRes.arrayBuffer();
+      if (buffer.byteLength && buffer.byteLength <= EDITIMG_MAX_BYTES) return { buffer, contentType: imgType };
+    }
+  }
+
+  const msg = json?.message || json?.error || "";
+  console.error("[editimg] endpoint gagal:", res.status, contentType, raw.slice(0, 200));
+  throw new Error(
+    (typeof msg === "string" && msg.slice(0, 200)) ||
+      (res.ok ? "Endpoint tidak mengembalikan gambar." : `Endpoint edit gambar membalas status ${res.status}.`)
+  );
+}
+
 const REMOVEBG_TIMEOUT_MS = 25000;
 
 // Endpoint UTAMA untuk tool "removebg" (azbry). Sama seperti fetchNexrayHd,
@@ -140,7 +220,7 @@ export async function POST(req) {
   const { searchParams } = new URL(req.url);
   const tool = searchParams.get("tool");
 
-  if (tool !== "hd" && !ENDPOINTS[tool]) {
+  if (tool !== "hd" && tool !== "editimg" && !ENDPOINTS[tool]) {
     return NextResponse.json({ status: false, message: "Tool tidak dikenali." }, { status: 400 });
   }
 
@@ -181,6 +261,19 @@ export async function POST(req) {
     }
   }
 
+  if (tool === "editimg") {
+    const prompt = (formData.get("prompt") || "").toString().replace(/\s+/g, " ").trim();
+    if (!prompt) {
+      return NextResponse.json({ status: false, message: "Prompt tidak boleh kosong." }, { status: 400 });
+    }
+    if (prompt.length > EDITIMG_MAX_PROMPT) {
+      return NextResponse.json(
+        { status: false, message: `Prompt maksimal ${EDITIMG_MAX_PROMPT} karakter.` },
+        { status: 400 }
+      );
+    }
+  }
+
   // Tool "hd" sekarang dua lapis:
   // 1) Coba endpoint utama (nexray) dulu — lebih cepat kalau lagi normal.
   // 2) Kalau itu gagal (down, rate limit, error apapun), baru fallback ke
@@ -212,6 +305,31 @@ export async function POST(req) {
           { status: 500 }
         );
       }
+    }
+  }
+
+  // Tool "editimg": upload foto ke image host dulu, lalu kirim URL + prompt.
+  if (tool === "editimg") {
+    const prompt = (formData.get("prompt") || "").toString().replace(/\s+/g, " ").trim();
+    try {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const hostedUrl = await uploadToTop4top(buffer, file.name || "image.jpg", file.type);
+      const result = await fetchEditImg(hostedUrl, prompt);
+      return new NextResponse(result.buffer, {
+        status: 200,
+        headers: { "Content-Type": result.contentType, "Cache-Control": "no-store" },
+      });
+    } catch (err) {
+      const timedOut = err?.name === "TimeoutError" || err?.name === "AbortError";
+      return NextResponse.json(
+        {
+          status: false,
+          message: timedOut
+            ? "Proses edit terlalu lama. Coba lagi, atau pakai prompt/foto yang lebih sederhana."
+            : err.message || "Gagal mengedit gambar.",
+        },
+        { status: 502 }
+      );
     }
   }
 
