@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { reportError } from "@/lib/reportError";
 import { humanCheck } from "@/lib/turnstile";
 import { uploadToTop4top } from "@/lib/uploadImage";
 
@@ -72,6 +73,7 @@ export async function POST(req) {
       const buffer = Buffer.from(await file.arrayBuffer());
       imageUrl = await uploadToTop4top(buffer, file.name || "image.jpg", file.type);
     } catch (err) {
+      await reportError("tool: IQC V2 (upload gambar)", err);
       return fail(
         (err.message || "Gagal meng-upload gambar.") + " Coba lagi sebentar lagi.",
         502
@@ -132,6 +134,7 @@ export async function POST(req) {
     });
   } catch (err) {
     console.error("[iqc2] error:", err.message);
+    await reportError("tool: IQC V2", err);
     return fail("Tidak bisa menghubungi sumber IQC V2. Coba lagi sebentar lagi.", 502);
   }
 }
