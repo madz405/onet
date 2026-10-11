@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { reportError } from "@/lib/reportError";
 import { CHAT_SYSTEM_PROMPT, CHAT_BOT_NAME } from "@/lib/chatPersona";
 import { SITE_NAME } from "@/lib/site";
 
@@ -125,6 +126,7 @@ export async function POST(req) {
     return NextResponse.json({ status: true, reply });
   } catch (err) {
     console.error("[chat] semua sumber gagal:", err.message);
+    await reportError("chat AI", err);
     return NextResponse.json(
       { status: false, message: "Bot lagi tidak bisa menjawab, coba lagi sebentar lagi ya." },
       { status: 502 }
