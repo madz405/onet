@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { reportError } from "@/lib/reportError";
 import { findAlightMotionPreset, isTikTokUrl } from "@/lib/scrapers/amfinder";
 
 export const runtime = "nodejs";
@@ -24,6 +25,7 @@ export async function POST(req) {
     const data = await findAlightMotionPreset(url);
     return NextResponse.json(data, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
+    await reportError("tool: AM Finder", err, { link: url });
     return fail(err?.message || "Gagal mencari preset.", 502);
   }
 }
