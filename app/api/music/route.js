@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { reportError } from "@/lib/reportError";
 import { searchSoundCloud } from "@/lib/scrapers/soundcloud";
 import { scrapeSoundCloudUrl, resolveSoundCloudFromQuery } from "@/lib/scrapers/soundcloudUrl";
 import { searchYouTubeVideo } from "@/lib/scrapers/youtubeSearch";
@@ -180,6 +181,7 @@ export async function POST(req) {
       });
     return NextResponse.json(result);
   } catch (err) {
+    await reportError(`musik: ${source || "youtube"}`, err, { judul: query });
     return NextResponse.json({ status: false, message: err.message || "Lagu tidak ditemukan." }, { status: 404 });
   }
 }
