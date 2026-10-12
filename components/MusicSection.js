@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import MarqueeText from "@/components/MarqueeText";
 import {
   Search,
@@ -16,6 +16,7 @@ import {
   Shuffle,
   Trash2,
   History,
+  AudioLines,
 } from "lucide-react";
 import { makeTrackId } from "@/lib/musicHistory";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
@@ -52,6 +53,12 @@ export default function MusicSection() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Alur dua langkah: cari -> daftar hasil -> user memilih lagu -> baru ambil link.
+  const [results, setResults] = useState([]);
+  const [searchedQuery, setSearchedQuery] = useState("");
+  const [resolvingUrl, setResolvingUrl] = useState(null);
+  const searchSeq = useRef(0); // mencegah hasil lama menimpa pencarian yang lebih baru
+  const playerRef = useRef(null);
   // Semua state pemutaran (audio, lagu aktif, riwayat, mode, progres) ada di
   // MusicPlayerProvider supaya lagu tetap jalan saat pindah halaman.
   const {
@@ -74,34 +81,83 @@ export default function MusicSection() {
     cycleMode,
   } = useMusicPlayer();
 
-  async function handleSearch(e) {
-    e.preventDefault();
-    if (!query.trim()) return;
+  async function runSearch(src = source, text = query) {
+    const q = text.trim();
+    if (!q) return;
+    const seq = ++searchSeq.current;
     setLoading(true);
+    setError("");
+    setResults([]);
+    try {
+      const res = await fetch("/api/music", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "search", source: src, query: q }),
+      });
+      const data = await res.json();
+      if (seq !== searchSeq.current) return;
+      if (!data.status || !Array.isArray(data.results) || !data.results.length) {
+        throw new Error(data.message || "Lagu tidak ditemukan.");
+      }
+      setResults(data.results);
+      setSearchedQuery(q);
+    } catch (err) {
+      if (seq === searchSeq.current) setError(err.message || "Lagu tidak ditemukan.");
+    } finally {
+      if (seq === searchSeq.current) setLoading(false);
+    }
+  }
+
+  function handleSearch(e) {
+    e.preventDefault();
+    runSearch();
+  }
+
+  function changeSource(id) {
+    if (id === source) return;
+    setSource(id);
+    setResults([]);
+    setError("");
+    if (query.trim()) runSearch(id, query); // hasil milik sumber lama tidak relevan lagi
+    else {
+      searchSeq.current++;
+      setLoading(false);
+    }
+  }
+
+  // Lagu dipilih dari daftar hasil: ambil link stream-nya, lalu putar.
+  async function handlePick(item) {
+    if (resolvingUrl) return;
+    setResolvingUrl(item.url);
     setError("");
     try {
       const res = await fetch("/api/music", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source, query: query.trim() }),
+        body: JSON.stringify({ action: "resolve", source, url: item.url, query: item.query }),
       });
       const data = await res.json();
-      if (!data.status || !data.streamUrl) throw new Error(data.message || "Lagu tidak ditemukan.");
+      if (!data.status || !data.streamUrl) throw new Error(data.message || "Gagal mengambil lagu.");
 
+      const title = item.title || data.title;
+      const artist = item.artist || data.artist || "";
       addAndPlay({
-        id: makeTrackId(data),
-        source: data.source,
-        title: data.title,
-        artist: data.artist,
-        thumbnail: data.thumbnail,
+        id: makeTrackId({ source, title, artist }),
+        source,
+        title,
+        artist,
+        thumbnail: item.thumbnail || data.thumbnail || null,
         streamUrl: data.streamUrl,
-        query: query.trim(),
+        query: searchedQuery,
+        pageUrl: item.url, // dipakai pemutar untuk mengambil ulang link yang kedaluwarsa
+        searchQuery: item.query,
         resolvedAt: Date.now(),
       });
+      requestAnimationFrame(() => playerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     } catch (err) {
-      setError(err.message || "Lagu tidak ditemukan.");
+      setError(err.message || "Gagal mengambil lagu.");
     } finally {
-      setLoading(false);
+      setResolvingUrl(null);
     }
   }
 
@@ -124,7 +180,7 @@ export default function MusicSection() {
             <button
               type="button"
               key={s.id}
-              onClick={() => setSource(s.id)}
+              onClick={() => changeSource(s.id)}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                 source === s.id ? "bg-signal-500 text-ink-950" : "text-white/60 hover:text-white"
               }`}
@@ -164,25 +220,98 @@ export default function MusicSection() {
         </p>
       )}
 
-      {!track && !error && !playbackError && history.length === 0 && (
+      {loading && (
+        <p className="mt-6 flex items-center gap-2 text-sm text-white/50">
+          <Loader2 size={14} className="animate-spin" />
+          Mencari di {sourceLabel(source)}...
+        </p>
+      )}
+
+      {results.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-3 truncate text-sm font-medium text-white/50">
+            Hasil untuk &quot;{searchedQuery}&quot; di {sourceLabel(source)}
+          </p>
+          <div className="space-y-2">
+            {results.map((r) => {
+              const isCurrent = track?.pageUrl === r.url;
+              const busy = resolvingUrl === r.url;
+              return (
+                <button
+                  type="button"
+                  key={r.url}
+                  onClick={() => handlePick(r)}
+                  disabled={Boolean(resolvingUrl)}
+                  aria-label={`Putar ${r.title}`}
+                  className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-colors disabled:cursor-wait ${
+                    isCurrent ? "border-signal-500/40 bg-signal-500/5" : "border-white/8 bg-ink-900/60 hover:bg-white/5"
+                  } ${resolvingUrl && !busy ? "opacity-50" : ""}`}
+                >
+                  {r.thumbnail ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={r.thumbnail}
+                      alt=""
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                      className="h-14 w-14 flex-shrink-0 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <span className="grid h-14 w-14 flex-shrink-0 place-items-center rounded-xl bg-white/5 text-white/30">
+                      <Music2 size={20} />
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-white">{r.title}</span>
+                    <span className="block truncate text-xs text-white/50">
+                      {[r.artist, r.duration ? formatTime(r.duration) : null].filter(Boolean).join(" · ")}
+                    </span>
+                  </span>
+                  <span
+                    className={`grid h-10 w-10 flex-shrink-0 place-items-center rounded-full ${
+                      isCurrent ? "bg-signal-500 text-ink-950" : "bg-white/10 text-white"
+                    }`}
+                  >
+                    {busy ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : isCurrent && isPlaying ? (
+                      <AudioLines size={16} />
+                    ) : (
+                      <Play size={16} className="ml-0.5" />
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!track && !error && !playbackError && history.length === 0 && results.length === 0 && !loading && (
         <div className="mt-14 flex flex-col items-center gap-3 text-center text-white/40">
           <Music2 size={32} />
           <p className="max-w-sm text-sm">
-            Ketik judul lagu, pilih sumbernya, lalu tekan cari. Lagu yang ketemu bisa langsung diputar
-            atau diunduh, dan otomatis tersimpan di riwayat.
+            Ketik judul lagu, pilih sumbernya, lalu tekan cari. Pilih lagu yang kamu mau dari daftar hasil,
+            lalu lagunya langsung diputar dan bisa diunduh. Lagu yang dipilih tersimpan di riwayat.
           </p>
         </div>
       )}
 
       {track && (
-        <div className="mx-auto mt-8 max-w-sm animate-rise overflow-hidden rounded-[2rem] border border-white/8 bg-ink-900/80 p-5 shadow-glow">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={track.thumbnail}
-            alt=""
-            referrerPolicy="no-referrer"
-            className="aspect-square w-full rounded-2xl object-cover"
-          />
+        <div ref={playerRef} className="mx-auto mt-8 max-w-sm scroll-mt-4 animate-rise overflow-hidden rounded-[2rem] border border-white/8 bg-ink-900/80 p-5 shadow-glow">
+          {track.thumbnail ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={track.thumbnail}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="aspect-square w-full rounded-2xl object-cover"
+            />
+          ) : (
+            <div className="grid aspect-square w-full place-items-center rounded-2xl bg-white/5 text-white/30">
+              <Music2 size={48} />
+            </div>
+          )}
 
           <div className="mt-4 min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-signal-400">
@@ -281,13 +410,19 @@ export default function MusicSection() {
                   track?.id === t.id ? "border-signal-500/40 bg-signal-500/5" : "border-white/8 bg-ink-900/60"
                 }`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={t.thumbnail}
-                  alt=""
-                  referrerPolicy="no-referrer"
-                  className="h-11 w-11 flex-shrink-0 rounded-lg object-cover"
-                />
+                {t.thumbnail ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={t.thumbnail}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    className="h-11 w-11 flex-shrink-0 rounded-lg object-cover"
+                  />
+                ) : (
+                  <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-lg bg-white/5 text-white/30">
+                    <Music2 size={16} />
+                  </span>
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-white">{t.title}</p>
                   <p className="truncate text-xs text-white/40">
