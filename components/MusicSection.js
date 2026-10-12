@@ -17,8 +17,12 @@ import {
   Trash2,
   History,
   Volume2,
+  ListPlus,
 } from "lucide-react";
 import { makeTrackId } from "@/lib/musicHistory";
+import PlaylistTab from "@/components/PlaylistTab";
+import AddToPlaylistModal from "@/components/AddToPlaylistModal";
+import usePlaylists from "@/lib/usePlaylists";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
 
 const SOURCES = [
@@ -57,6 +61,9 @@ export default function MusicSection() {
   const [results, setResults] = useState([]);
   const [searchedQuery, setSearchedQuery] = useState("");
   const [resolvingUrl, setResolvingUrl] = useState(null);
+  const [tab, setTab] = useState("cari"); // cari | playlist
+  const [addTarget, setAddTarget] = useState(null); // lagu yang sedang ditambahkan ke playlist
+  const pl = usePlaylists();
   const searchSeq = useRef(0); // mencegah hasil lama menimpa pencarian yang lebih baru
   const playerRef = useRef(null);
   // Semua state pemutaran (audio, lagu aktif, riwayat, mode, progres) ada di
@@ -71,6 +78,7 @@ export default function MusicSection() {
     volume,
     playbackError,
     refreshing,
+    listLength,
     setVolume,
     playTrack,
     addAndPlay,
@@ -153,12 +161,31 @@ export default function MusicSection() {
         searchQuery: item.query,
         resolvedAt: Date.now(),
       });
-      requestAnimationFrame(() => playerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      scrollToPlayer();
     } catch (err) {
       setError(err.message || "Gagal mengambil lagu.");
     } finally {
       setResolvingUrl(null);
     }
+  }
+
+  function scrollToPlayer() {
+    requestAnimationFrame(() => playerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
+  // Data lagu dari satu hasil pencarian, untuk disimpan ke playlist.
+  function songFromResult(r) {
+    const artist = r.artist || "";
+    return {
+      id: makeTrackId({ source, title: r.title, artist }),
+      source,
+      title: r.title,
+      artist,
+      thumbnail: r.thumbnail || null,
+      pageUrl: r.url,
+      searchQuery: r.query,
+      query: searchedQuery,
+    };
   }
 
   const ModeIcon = playMode === "repeat" ? Repeat1 : playMode === "shuffle" ? Shuffle : Repeat;
@@ -174,6 +201,27 @@ export default function MusicSection() {
 
   return (
     <div>
+      <div className="mb-4 flex rounded-xl border border-white/10 bg-ink-900/60 p-1" role="tablist">
+        {[
+          { id: "cari", label: "Cari" },
+          { id: "playlist", label: "Playlist" },
+        ].map((t) => (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              tab === t.id ? "bg-signal-500 text-ink-950" : "text-white/60 hover:text-white"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "cari" && (
       <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row">
         <div className="flex rounded-xl border border-white/10 bg-ink-900/60 p-1">
           {SOURCES.map((s) => (
@@ -206,6 +254,7 @@ export default function MusicSection() {
           {loading ? <Loader2 size={16} className="animate-spin" /> : "Cari"}
         </button>
       </form>
+      )}
 
       {refreshing && !error && (
         <p className="mt-4 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
@@ -214,20 +263,20 @@ export default function MusicSection() {
         </p>
       )}
 
-      {(error || playbackError) && (
+      {((tab === "cari" && error) || playbackError) && (
         <p className="mt-4 rounded-xl border border-flare-500/30 bg-flare-500/10 px-4 py-3 text-sm text-flare-400">
-          {error || playbackError}
+          {(tab === "cari" && error) || playbackError}
         </p>
       )}
 
-      {loading && (
+      {tab === "cari" && loading && (
         <p className="mt-6 flex items-center gap-2 text-sm text-white/50">
           <Loader2 size={14} className="animate-spin" />
           Mencari di {sourceLabel(source)}...
         </p>
       )}
 
-      {results.length > 0 && (
+      {tab === "cari" && results.length > 0 && (
         <div className="mt-6">
           <p className="mb-3 truncate text-sm font-medium text-white/50">
             Hasil untuk &quot;{searchedQuery}&quot; di {sourceLabel(source)}
@@ -237,63 +286,82 @@ export default function MusicSection() {
               const isCurrent = track?.pageUrl === r.url;
               const busy = resolvingUrl === r.url;
               return (
-                <button
-                  type="button"
+                <div
                   key={r.url}
-                  onClick={() => handlePick(r)}
-                  disabled={Boolean(resolvingUrl)}
-                  aria-label={`Putar ${r.title}`}
-                  className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-colors disabled:cursor-wait ${
+                  className={`flex items-center gap-1 rounded-2xl border pr-2 transition-colors ${
                     isCurrent ? "border-signal-500/40 bg-signal-500/5" : "border-white/8 bg-ink-900/60 hover:bg-white/5"
                   } ${resolvingUrl && !busy ? "opacity-50" : ""}`}
                 >
-                  {r.thumbnail ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={r.thumbnail}
-                      alt=""
-                      referrerPolicy="no-referrer"
-                      loading="lazy"
-                      className="h-14 w-14 flex-shrink-0 rounded-xl object-cover"
-                    />
-                  ) : (
-                    <span className="grid h-14 w-14 flex-shrink-0 place-items-center rounded-xl bg-white/5 text-white/30">
-                      <Music2 size={20} />
-                    </span>
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-white">{r.title}</span>
-                    <span className="block truncate text-xs text-white/50">
-                      {[r.artist, r.duration ? formatTime(r.duration) : null].filter(Boolean).join(" · ")}
-                    </span>
-                  </span>
-                  <span
-                    className={`grid h-10 w-10 flex-shrink-0 place-items-center rounded-full ${
-                      isCurrent ? "bg-signal-500 text-ink-950" : "bg-white/10 text-white"
-                    }`}
+                  <button
+                    type="button"
+                    onClick={() => handlePick(r)}
+                    disabled={Boolean(resolvingUrl)}
+                    aria-label={`Putar ${r.title}`}
+                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left disabled:cursor-wait"
                   >
-                    {busy ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : isCurrent && isPlaying ? (
-                      <Volume2 size={16} />
+                    {r.thumbnail ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={r.thumbnail}
+                        alt=""
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        className="h-14 w-14 flex-shrink-0 rounded-xl object-cover"
+                      />
                     ) : (
-                      <Play size={16} className="ml-0.5" />
+                      <span className="grid h-14 w-14 flex-shrink-0 place-items-center rounded-xl bg-white/5 text-white/30">
+                        <Music2 size={20} />
+                      </span>
                     )}
-                  </span>
-                </button>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-white">{r.title}</span>
+                      <span className="block truncate text-xs text-white/50">
+                        {[r.artist, r.duration ? formatTime(r.duration) : null].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
+                    <span
+                      className={`grid h-10 w-10 flex-shrink-0 place-items-center rounded-full ${
+                        isCurrent ? "bg-signal-500 text-ink-950" : "bg-white/10 text-white"
+                      }`}
+                    >
+                      {busy ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : isCurrent && isPlaying ? (
+                        <Volume2 size={16} />
+                      ) : (
+                        <Play size={16} className="ml-0.5" />
+                      )}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddTarget(songFromResult(r))}
+                    aria-label={`Tambah ${r.title} ke playlist`}
+                    title="Tambah ke playlist"
+                    className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full text-white/50 hover:bg-white/10 hover:text-white"
+                  >
+                    <ListPlus size={18} />
+                  </button>
+                </div>
               );
             })}
           </div>
         </div>
       )}
 
-      {!track && !error && !playbackError && history.length === 0 && results.length === 0 && !loading && (
+      {tab === "cari" && !track && !error && !playbackError && history.length === 0 && results.length === 0 && !loading && (
         <div className="mt-14 flex flex-col items-center gap-3 text-center text-white/40">
           <Music2 size={32} />
           <p className="max-w-sm text-sm">
             Ketik judul lagu, pilih sumbernya, lalu tekan cari. Pilih lagu yang kamu mau dari daftar hasil,
             lalu lagunya langsung diputar dan bisa diunduh. Lagu yang dipilih tersimpan di riwayat.
           </p>
+        </div>
+      )}
+
+      {tab === "playlist" && (
+        <div className="mt-2">
+          <PlaylistTab pl={pl} scrollToPlayer={scrollToPlayer} />
         </div>
       )}
 
@@ -313,14 +381,25 @@ export default function MusicSection() {
             </div>
           )}
 
-          <div className="mt-4 min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-signal-400">
-              {sourceLabel(track.source)}
-            </p>
-            <h2 className="mt-0.5 font-display text-lg font-semibold text-white">
-              <MarqueeText text={track.title} />
-            </h2>
-            <p className="truncate text-sm text-white/50">{track.artist}</p>
+          <div className="mt-4 flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-signal-400">
+                {sourceLabel(track.source)}
+              </p>
+              <h2 className="mt-0.5 font-display text-lg font-semibold text-white">
+                <MarqueeText text={track.title} />
+              </h2>
+              <p className="truncate text-sm text-white/50">{track.artist}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAddTarget(track)}
+              aria-label="Tambah ke playlist"
+              title="Tambah ke playlist"
+              className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full text-white/50 hover:bg-white/10 hover:text-white"
+            >
+              <ListPlus size={20} />
+            </button>
           </div>
 
           <div className="mt-4">
@@ -349,7 +428,7 @@ export default function MusicSection() {
             </a>
             <button
               onClick={() => playByOffset(-1)}
-              disabled={history.length < 2}
+              disabled={listLength < 2}
               className="grid h-11 w-11 place-items-center text-white/70 hover:text-white disabled:opacity-30"
               aria-label="Lagu sebelumnya"
             >
@@ -364,7 +443,7 @@ export default function MusicSection() {
             </button>
             <button
               onClick={() => playByOffset(1)}
-              disabled={history.length < 2}
+              disabled={listLength < 2}
               className="grid h-11 w-11 place-items-center text-white/70 hover:text-white disabled:opacity-30"
               aria-label="Lagu berikutnya"
             >
@@ -396,7 +475,7 @@ export default function MusicSection() {
         </div>
       )}
 
-      {history.length > 0 && (
+      {tab === "cari" && history.length > 0 && (
         <div className="mt-10">
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white/50">
             <History size={16} />
@@ -437,6 +516,14 @@ export default function MusicSection() {
                   <Play size={15} className="ml-0.5" />
                 </button>
                 <button
+                  onClick={() => setAddTarget(t)}
+                  className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full text-white/40 hover:bg-white/10 hover:text-white"
+                  aria-label={`Tambah ${t.title} ke playlist`}
+                  title="Tambah ke playlist"
+                >
+                  <ListPlus size={16} />
+                </button>
+                <button
                   onClick={() => removeFromHistory(t.id)}
                   className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full text-white/40 hover:bg-flare-500/10 hover:text-flare-400"
                   aria-label={`Hapus ${t.title} dari riwayat`}
@@ -448,6 +535,8 @@ export default function MusicSection() {
           </div>
         </div>
       )}
+
+      {addTarget && <AddToPlaylistModal song={addTarget} pl={pl} onClose={() => setAddTarget(null)} />}
     </div>
   );
 }
