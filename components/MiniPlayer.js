@@ -16,13 +16,13 @@ const VISIBLE_ON = ["/", "/tools", "/chat", "/tempmail", "/dukungan"];
 
 export default function MiniPlayer() {
   const pathname = usePathname();
-  const { track, history, isPlaying, progress, duration, togglePlay, stopPlayback, playByOffset } =
+  const { track, listLength, isPlaying, progress, duration, togglePlay, stopPlayback, playByOffset } =
     useMusicPlayer();
 
   if (!track || !VISIBLE_ON.includes(pathname)) return null;
 
   const pct = duration ? Math.min(100, (progress / duration) * 100) : 0;
-  const canSkip = history.length > 1;
+  const canSkip = listLength > 1;
 
   return (
     // top-[72px] = tinggi navbar (h-16 = 64px) + jarak 8px. Fixed supaya tetap
