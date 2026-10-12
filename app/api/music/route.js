@@ -4,6 +4,7 @@ import { searchSoundCloud } from "@/lib/scrapers/soundcloud";
 import { scrapeSoundCloudUrl, resolveSoundCloudFromQuery } from "@/lib/scrapers/soundcloudUrl";
 import { searchYouTubeVideo } from "@/lib/scrapers/youtubeSearch";
 import { scrapeSavetube } from "@/lib/scrapers/youtubeSavetube";
+import { getJson, searchMusic, resolveMusic, isAllowedSourceUrl, MUSIC_SOURCES } from "@/lib/musicSearch";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -11,49 +12,9 @@ export const maxDuration = 30;
 const UA =
   "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36";
 
-async function getJson(url) {
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": UA,
-      Accept: "application/json, text/plain, */*",
-      // Beberapa endpoint API komunitas (termasuk api-faa.my.id) memfilter
-      // request tanpa Referer yang wajar — tanpa ini kadang server langsung
-      // balas halaman blokir/HTML, bukan JSON.
-      Referer: new URL(url).origin + "/",
-    },
-  });
-  const text = await res.text();
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    // Log detail asli ke server (kelihatan di log Vercel) supaya penyebab
-    // "respons tidak valid" ketahuan persis — biasanya karena server
-    // (IP datacenter Vercel) diblokir/di-challenge oleh proteksi bot si
-    // endpoint, sedangkan tes manual dari browser (IP rumah) lolos.
-    console.error(
-      `[music] non-JSON dari ${url} — status ${res.status}, cuplikan: ${text.slice(0, 300)}`
-    );
-    throw new Error(`Sumber musik mengembalikan respons tidak valid (status ${res.status}).`);
-  }
-  if (!res.ok || data?.status === false) {
-    throw new Error(data?.message || "Lagu tidak ditemukan.");
-  }
-  return data;
-}
-
-export async function POST(req) {
-  let body;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ status: false, message: "Body tidak valid." }, { status: 400 });
-  }
-
-  const { source, query } = body || {};
-  if (!query || !query.trim()) {
-    return NextResponse.json({ status: false, message: "Judul lagu tidak boleh kosong." }, { status: 400 });
-  }
+// Jalur lama (cari + langsung putar hasil teratas). Masih dipakai pemutar saat
+// link lagu di riwayat kedaluwarsa dan perlu diambil ulang (MusicPlayerProvider).
+async function legacy(source, query) {
   const q = encodeURIComponent(query.trim());
 
   try {
@@ -184,4 +145,64 @@ export async function POST(req) {
     await reportError(`musik: ${source || "youtube"}`, err, { judul: query });
     return NextResponse.json({ status: false, message: err.message || "Lagu tidak ditemukan." }, { status: 404 });
   }
+}
+
+function bad(message, status = 400) {
+  return NextResponse.json({ status: false, message }, { status });
+}
+
+const clip = (v, n) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, n) : "");
+
+export async function POST(req) {
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return bad("Body tidak valid.");
+  }
+
+  const { action } = body || {};
+  const source = MUSIC_SOURCES.includes(body?.source) ? body.source : "youtube";
+
+  // ---- Langkah 1: cari -> daftar hasil ----
+  if (action === "search") {
+    const query = clip(body?.query, 200);
+    if (!query) return bad("Judul lagu tidak boleh kosong.");
+    try {
+      const results = await searchMusic(source, query);
+      return NextResponse.json({ status: true, source, results });
+    } catch (err) {
+      await reportError(`musik cari: ${source}`, err, { judul: query });
+      return bad(err.message || "Lagu tidak ditemukan.", 404);
+    }
+  }
+
+  // ---- Langkah 2: ambil link stream untuk SATU lagu yang dipilih ----
+  if (action === "resolve") {
+    const url = typeof body?.url === "string" ? body.url.trim() : "";
+    const query = clip(body?.query, 250);
+    if (!query) return bad("Judul lagu tidak boleh kosong.");
+    if (url && !isAllowedSourceUrl(source, url)) return bad("Link lagu tidak valid.");
+    if (!url && source !== "spotify") return bad("Link lagu tidak valid.");
+    try {
+      const r = await resolveMusic({ source, url, query });
+      if (!r?.streamUrl) throw new Error("Link lagu tidak ditemukan.");
+      return NextResponse.json({
+        status: true,
+        source,
+        title: r.title || null,
+        artist: r.artist || null,
+        thumbnail: r.thumbnail || null,
+        streamUrl: r.streamUrl,
+      });
+    } catch (err) {
+      await reportError(`musik putar: ${source}`, err, { judul: query });
+      return bad(err.message || "Gagal mengambil lagu.", 502);
+    }
+  }
+
+  // ---- Jalur lama (tanpa action): cari + putar hasil teratas ----
+  const query = body?.query;
+  if (!query || !query.trim()) return bad("Judul lagu tidak boleh kosong.");
+  return legacy(source, query);
 }
