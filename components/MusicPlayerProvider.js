@@ -31,6 +31,27 @@ function refreshQueries(t) {
 }
 
 async function fetchFreshStream(t) {
+  // Lagu yang dipilih dari daftar hasil menyimpan URL asalnya: ambil ulang
+  // langsung dari URL itu (lebih tepat daripada mencari ulang lewat judul).
+  if (t.pageUrl) {
+    try {
+      const res = await fetch("/api/music", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "resolve",
+          source: t.source,
+          url: t.pageUrl,
+          query: t.searchQuery || refreshQueries(t)[0],
+        }),
+      });
+      const data = await res.json();
+      if (data?.status && data.streamUrl) return data;
+    } catch {
+      // lanjut ke pencarian ulang lewat judul di bawah
+    }
+  }
+
   for (const q of refreshQueries(t)) {
     try {
       const res = await fetch("/api/music", {
