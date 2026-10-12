@@ -84,6 +84,14 @@ export default function MusicPlayerProvider({ children }) {
   const [volume, setVolume] = useState(1);
   const [playbackError, setPlaybackError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  // Antrean aktif. null = pakai riwayat (perilaku lama); berisi daftar lagu kalau
+  // sedang memutar dari playlist. Tombol sebelumnya/berikutnya, mode acak, dan
+  // lanjut otomatis semuanya mengikuti antrean ini.
+  const [queue, setQueue] = useState(null);
+  // id lagu yang sedang diambil link-nya (lagu playlist belum punya link stream).
+  const [resolvingId, setResolvingId] = useState(null);
+  const playTokenRef = useRef(0); // membatalkan pengambilan link yang sudah usang
+  const startTrackRef = useRef(null);
   const audioRef = useRef(null);
   // id lagu yang sudah dicoba diperbarui linknya (maksimal sekali per putaran,
   // supaya tidak berulang-ulang kalau memang gagal).
@@ -107,17 +115,55 @@ export default function MusicPlayerProvider({ children }) {
     if (audioRef.current) audioRef.current.volume = volume;
   }, [volume]);
 
-  const playTrack = useCallback((t) => {
+  // Memulai satu lagu. Lagu dari riwayat sudah punya streamUrl (kalau kedaluwarsa,
+  // handleAudioError yang memperbaruinya). Lagu dari playlist hanya menyimpan data
+  // lagu, jadi link stream-nya diambil dulu sebelum diputar. Kalau gagal dan
+  // sedang memutar antrean, lagu itu dilewati (maksimal 2 kali berturut-turut).
+  async function startTrack(t, { list = null, attempt = 0 } = {}) {
+    const token = ++playTokenRef.current;
     setPlaybackError("");
     retriedRef.current = null;
-    setTrack(t);
+    if (t.streamUrl) {
+      setResolvingId(null);
+      setTrack(t);
+      return;
+    }
+    setResolvingId(t.id);
+    const fresh = await fetchFreshStream(t);
+    if (token !== playTokenRef.current) return; // user sudah memilih lagu lain
+    setResolvingId(null);
+    if (!fresh) {
+      setPlaybackError(`"${t.title}" gagal diputar. Coba lagi nanti.`);
+      if (list && list.length > 1 && attempt < 2) {
+        const idx = list.findIndex((x) => x.id === t.id);
+        const next = list[(idx + 1) % list.length];
+        if (next && next.id !== t.id) startTrack(next, { list, attempt: attempt + 1 });
+      }
+      return;
+    }
+    setTrack({ ...t, streamUrl: fresh.streamUrl, thumbnail: fresh.thumbnail || t.thumbnail, resolvedAt: Date.now() });
+  }
+  startTrackRef.current = startTrack;
+
+  // Memutar satu lagu. `list` (opsional) = antrean tempat lagu itu berasal.
+  const playTrack = useCallback((t, list = null) => {
+    setQueue(list);
+    startTrackRef.current(t, { list });
+  }, []);
+
+  // Memutar daftar lagu (mis. playlist) mulai dari index tertentu.
+  const playFromList = useCallback((list, index = 0) => {
+    const t = list?.[index];
+    if (!t) return;
+    setQueue(list);
+    startTrackRef.current(t, { list });
   }, []);
 
   // Dipakai MusicSection setelah pencarian berhasil: simpan ke riwayat + putar.
   const addAndPlay = useCallback(
     (t) => {
       setHistory((h) => addToMusicHistory(h, t));
-      playTrack(t);
+      playTrack(t); // tanpa antrean: next/prev kembali mengikuti riwayat
     },
     [playTrack]
   );
@@ -129,6 +175,8 @@ export default function MusicPlayerProvider({ children }) {
   // Dipakai tombol (X) di MiniPlayer: hentikan lagu sepenuhnya dan sembunyikan
   // mini player (mini player hanya tampil selama ada `track`).
   const stopPlayback = useCallback(() => {
+    playTokenRef.current++;
+    setResolvingId(null);
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -147,24 +195,34 @@ export default function MusicPlayerProvider({ children }) {
     }
   }, []);
 
-  const currentIndex = track ? history.findIndex((t) => t.id === track.id) : -1;
+  // Daftar yang sedang menjadi acuan: antrean playlist, atau riwayat kalau tidak ada.
+  const activeList = queue || history;
+  const currentIndex = track ? activeList.findIndex((t) => t.id === track.id) : -1;
+
+  // Pindah lagu tanpa mengubah antrean aktif.
+  const goTo = useCallback(
+    (t) => {
+      startTrackRef.current(t, { list: queue });
+    },
+    [queue]
+  );
 
   const playByOffset = useCallback(
     (offset) => {
-      if (!history.length) return;
+      if (!activeList.length) return;
       const base = currentIndex === -1 ? 0 : currentIndex;
-      const nextIndex = (base + offset + history.length) % history.length;
-      playTrack(history[nextIndex]);
+      const nextIndex = (base + offset + activeList.length) % activeList.length;
+      goTo(activeList[nextIndex]);
     },
-    [history, currentIndex, playTrack]
+    [activeList, currentIndex, goTo]
   );
 
   function playRandom() {
-    if (!history.length) return;
-    if (history.length === 1) return playTrack(history[0]);
-    let idx = Math.floor(Math.random() * history.length);
-    while (idx === currentIndex) idx = Math.floor(Math.random() * history.length);
-    playTrack(history[idx]);
+    if (!activeList.length) return;
+    if (activeList.length === 1) return goTo(activeList[0]);
+    let idx = Math.floor(Math.random() * activeList.length);
+    while (idx === currentIndex) idx = Math.floor(Math.random() * activeList.length);
+    goTo(activeList[idx]);
   }
 
   function handleEnded() {
@@ -176,9 +234,9 @@ export default function MusicPlayerProvider({ children }) {
       return;
     }
     if (playMode === "shuffle") return playRandom();
-    // sequential: lanjut ke item berikutnya di riwayat, berhenti kalau sudah di ujung.
-    if (currentIndex > -1 && currentIndex < history.length - 1) {
-      playTrack(history[currentIndex + 1]);
+    // sequential: lanjut ke lagu berikutnya di antrean, berhenti kalau sudah di ujung.
+    if (currentIndex > -1 && currentIndex < activeList.length - 1) {
+      goTo(activeList[currentIndex + 1]);
     } else {
       setIsPlaying(false);
     }
@@ -279,7 +337,7 @@ export default function MusicPlayerProvider({ children }) {
   // 3) Tombol di notifikasi/layar kunci.
   useEffect(() => {
     if (!hasMediaSession || !track) return;
-    const canSkip = history.length > 1;
+    const canSkip = activeList.length > 1;
     const handlers = {
       play: () => audioRef.current?.play().catch(() => {}),
       pause: () => audioRef.current?.pause(),
@@ -297,7 +355,7 @@ export default function MusicPlayerProvider({ children }) {
         // Sebagian browser tidak mendukung action tertentu — abaikan.
       }
     }
-  }, [hasMediaSession, track, history.length, playByOffset, seek, stopPlayback]);
+  }, [hasMediaSession, track, activeList.length, playByOffset, seek, stopPlayback]);
 
   const value = useMemo(
     () => ({
@@ -310,8 +368,11 @@ export default function MusicPlayerProvider({ children }) {
       volume,
       playbackError,
       refreshing,
+      resolvingId,
+      listLength: activeList.length,
       setVolume,
       playTrack,
+      playFromList,
       addAndPlay,
       removeFromHistory,
       togglePlay,
@@ -322,7 +383,7 @@ export default function MusicPlayerProvider({ children }) {
     }),
     [
       track, history, playMode, isPlaying, progress, duration, volume, playbackError, refreshing,
-      playTrack, addAndPlay, removeFromHistory, togglePlay, stopPlayback, playByOffset, seek, cycleMode,
+      resolvingId, activeList.length, playTrack, playFromList, addAndPlay, removeFromHistory, togglePlay, stopPlayback, playByOffset, seek, cycleMode,
     ]
   );
 
