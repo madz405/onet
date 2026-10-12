@@ -16,7 +16,7 @@ import {
   Shuffle,
   Trash2,
   History,
-  AudioLines,
+  Volume2,
 } from "lucide-react";
 import { makeTrackId } from "@/lib/musicHistory";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
@@ -275,7 +275,7 @@ export default function MusicSection() {
                     {busy ? (
                       <Loader2 size={16} className="animate-spin" />
                     ) : isCurrent && isPlaying ? (
-                      <AudioLines size={16} />
+                      <Volume2 size={16} />
                     ) : (
                       <Play size={16} className="ml-0.5" />
                     )}
