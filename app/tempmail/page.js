@@ -1,3 +1,4 @@
+import PageIntro from "@/components/PageIntro";
 import TempMailSection from "@/components/TempMailSection";
 import { SITE_NAME } from "@/lib/site";
 
@@ -10,17 +11,10 @@ export const metadata = {
 
 export default function TempMailPage() {
   return (
-    <div className="mx-auto max-w-6xl px-5 py-12">
-      <section className="mb-10 max-w-2xl">
-        <p className="mb-3 text-sm font-medium text-signal-400">Email sementara</p>
-        <h1 className="font-display text-3xl font-semibold leading-tight text-white sm:text-4xl">
-          Terima OTP tanpa pakai email asli.
-        </h1>
-        <p className="mt-3 text-white/60">
-          Buat alamat email sementara, pakai untuk daftar atau verifikasi akun, lalu baca pesannya di sini. Alamat dan
-          pesanmu tetap ada walau halaman di-refresh.
-        </p>
-      </section>
+    <div className="mx-auto max-w-6xl px-5 pb-12 pt-6 sm:pt-10">
+      <PageIntro eyebrow="Email sementara" title="Terima OTP tanpa pakai email asli." accent="signal">
+        Buat alamat email sementara, pakai untuk daftar atau verifikasi akun, lalu baca pesannya di sini. Alamat dan pesanmu tetap ada walau halaman di-refresh.
+      </PageIntro>
 
       <TempMailSection />
     </div>
