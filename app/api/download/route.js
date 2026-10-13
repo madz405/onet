@@ -6,6 +6,7 @@ import { scrapePinterest } from "@/lib/scrapers/pinterest";
 import { scrapeTwitter } from "@/lib/scrapers/twitter";
 import { scrapeAppleMusic } from "@/lib/scrapers/applemusic";
 import { scrapeSpotify } from "@/lib/scrapers/spotify";
+import { scrapeSpotimate } from "@/lib/scrapers/spotimate";
 import { scrapeDouyin } from "@/lib/scrapers/douyin";
 import { scrapeSoundCloudUrl } from "@/lib/scrapers/soundcloudUrl";
 import { resolveSoundCloudUrl } from "@/lib/scrapers/soundcloud";
@@ -526,9 +527,19 @@ export async function POST(req) {
               : [],
           };
         };
+        // Scraper kedua (spotimate.app), dicoba sebelum endpoint API.
+        const trySpotimate = async () => {
+          const result = await scrapeSpotimate(url);
+          if (!result.media?.length) throw new Error("Scraper Spotimate tidak menemukan media.");
+          return result;
+        };
+        // Urutan: spotidown -> spotimate -> endpoint azbry.
         const result = await tryScraper().catch((err) => {
-          console.error("[spotify] scraper gagal, pakai endpoint cadangan:", err.message);
-          return tryEndpoint();
+          console.error("[spotify] spotidown gagal, coba spotimate:", err.message);
+          return trySpotimate().catch((err2) => {
+            console.error("[spotify] spotimate gagal, pakai endpoint cadangan:", err2.message);
+            return tryEndpoint();
+          });
         });
         return succeed(platform, result);
       }
