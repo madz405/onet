@@ -1,3 +1,4 @@
+import PageIntro from "@/components/PageIntro";
 import VirtualRoom from "@/components/VirtualRoom";
 import { SITE_NAME } from "@/lib/site";
 
@@ -10,17 +11,10 @@ export const metadata = {
 
 export default function RuangPage() {
   return (
-    <div className="mx-auto max-w-6xl px-5 py-12">
-      <section className="mb-8 max-w-2xl">
-        <p className="mb-3 text-sm font-medium text-signal-400">Ruang virtual</p>
-        <h1 className="font-display text-3xl font-semibold leading-tight text-white sm:text-4xl">
-          Ngobrol bareng di ruang virtual.
-        </h1>
-        <p className="mt-3 text-white/60">
-          Pilih nama dan karakter, lalu jalan-jalan di ruangan. Pengunjung lain yang sedang online muncul langsung, dan
-          pesanmu tampil sebagai bubble chat di atas kepala karakter.
-        </p>
-      </section>
+    <div className="mx-auto max-w-6xl px-5 pb-12 pt-6 sm:pt-10">
+      <PageIntro eyebrow="Ruang virtual" title="Ngobrol bareng di ruang virtual." accent="signal">
+        Pilih nama dan karakter, lalu jalan-jalan di ruangan. Pengunjung lain yang sedang online muncul langsung, dan pesanmu tampil sebagai bubble chat di atas kepala karakter.
+      </PageIntro>
 
       <VirtualRoom />
     </div>
