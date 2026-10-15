@@ -88,6 +88,12 @@ export default function MusicPlayerProvider({ children }) {
   // sedang memutar dari playlist. Tombol sebelumnya/berikutnya, mode acak, dan
   // lanjut otomatis semuanya mengikuti antrean ini.
   const [queue, setQueue] = useState(null);
+  // Pop up pemutar penuh (components/FullPlayer.js) sedang terbuka atau tidak.
+  const [playerOpen, setPlayerOpen] = useState(false);
+  // Lagu yang sedang akan ditambahkan ke playlist. Disimpan di sini (bukan di
+  // MusicSection) supaya tombol "tambah ke playlist" di pemutar penuh dan di
+  // daftar lagu memakai satu jendela & satu data playlist yang sama.
+  const [playlistTarget, setPlaylistTarget] = useState(null);
   // id lagu yang sedang diambil link-nya (lagu playlist belum punya link stream).
   const [resolvingId, setResolvingId] = useState(null);
   const playTokenRef = useRef(0); // membatalkan pengambilan link yang sudah usang
@@ -106,6 +112,7 @@ export default function MusicPlayerProvider({ children }) {
   useEffect(() => {
     if (!track) return;
     setProgress(0);
+    setDuration(0); // durasi lagu lama jangan terbawa (dipakai pencarian lirik)
     setIsPlaying(true);
     const t = setTimeout(() => audioRef.current?.play().catch(() => {}), 50);
     return () => clearTimeout(t);
@@ -114,6 +121,11 @@ export default function MusicPlayerProvider({ children }) {
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
   }, [volume]);
+
+  // Tidak ada lagu = tidak ada pemutar penuh.
+  useEffect(() => {
+    if (!track) setPlayerOpen(false);
+  }, [track]);
 
   // Memulai satu lagu. Lagu dari riwayat sudah punya streamUrl (kalau kedaluwarsa,
   // handleAudioError yang memperbaruinya). Lagu dari playlist hanya menyimpan data
@@ -370,6 +382,10 @@ export default function MusicPlayerProvider({ children }) {
       refreshing,
       resolvingId,
       listLength: activeList.length,
+      playerOpen,
+      setPlayerOpen,
+      playlistTarget,
+      setPlaylistTarget,
       setVolume,
       playTrack,
       playFromList,
@@ -383,7 +399,7 @@ export default function MusicPlayerProvider({ children }) {
     }),
     [
       track, history, playMode, isPlaying, progress, duration, volume, playbackError, refreshing,
-      resolvingId, activeList.length, playTrack, playFromList, addAndPlay, removeFromHistory, togglePlay, stopPlayback, playByOffset, seek, cycleMode,
+      resolvingId, activeList.length, playerOpen, playlistTarget, playTrack, playFromList, addAndPlay, removeFromHistory, togglePlay, stopPlayback, playByOffset, seek, cycleMode,
     ]
   );
 
