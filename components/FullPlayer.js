@@ -74,6 +74,8 @@ export default function FullPlayer() {
   const [lyrics, setLyrics] = useState({ key: null, state: "idle", synced: [], plain: "", instrumental: false });
   const [retry, setRetry] = useState(0);
   const [dragY, setDragY] = useState(0);
+  // Layar lebar (desktop / "situs desktop" di HP): cover & lirik tampil berdampingan.
+  const [wide, setWide] = useState(false);
 
   const cacheRef = useRef(new Map()); // id lagu -> hasil lirik
   const fetchedKeyRef = useRef(null); // id lagu yang lirik-nya sedang/sudah diambil
@@ -83,7 +85,16 @@ export default function FullPlayer() {
   const scrolledOnce = useRef(false);
   const dragStart = useRef(null);
 
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const sync = () => setWide(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
   const trackId = track?.id;
+  const showLyrics = view === "lirik" || wide;
   const hasDuration = duration > 0;
 
   function close() {
@@ -111,12 +122,12 @@ export default function FullPlayer() {
   useEffect(() => {
     scrolledOnce.current = false;
     userScrollUntil.current = 0;
-  }, [trackId, view, playerOpen]);
+  }, [trackId, showLyrics, playerOpen]);
 
   // Ambil lirik hanya saat tab Lirik dibuka (hemat request). Menunggu durasi lagu
   // terbaca supaya versi lagu yang dipilih lebih tepat (maksimal tunggu 2,5 detik).
   useEffect(() => {
-    if (!track || view !== "lirik" || !playerOpen) return;
+    if (!track || !showLyrics || !playerOpen) return;
     const cached = cacheRef.current.get(trackId);
     if (cached) {
       setLyrics({ key: trackId, ...cached });
@@ -154,10 +165,10 @@ export default function FullPlayer() {
     }
     const t = setTimeout(run, 2500);
     return () => clearTimeout(t);
-  }, [trackId, view, playerOpen, hasDuration, retry]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [trackId, showLyrics, playerOpen, hasDuration, retry]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const current =
-    lyrics.key === trackId ? lyrics : { state: view === "lirik" ? "loading" : "idle", synced: [], plain: "", instrumental: false };
+    lyrics.key === trackId ? lyrics : { state: showLyrics ? "loading" : "idle", synced: [], plain: "", instrumental: false };
   const synced = current.synced;
 
   // Baris yang sedang dinyanyikan = baris terakhir yang waktunya sudah lewat.
@@ -179,7 +190,7 @@ export default function FullPlayer() {
 
   // Gulirkan baris aktif ke tengah. Berhenti 3,5 detik kalau user menggulir sendiri.
   useEffect(() => {
-    if (view !== "lirik" || !playerOpen || activeIdx < 0) return;
+    if (!showLyrics || !playerOpen || activeIdx < 0) return;
     if (Date.now() < userScrollUntil.current) return;
     const box = boxRef.current;
     const el = lineRefs.current[activeIdx];
@@ -189,7 +200,7 @@ export default function FullPlayer() {
       behavior: scrolledOnce.current ? "smooth" : "auto",
     });
     scrolledOnce.current = true;
-  }, [activeIdx, view, playerOpen, current.state]);
+  }, [activeIdx, showLyrics, playerOpen, current.state]);
 
   if (!track) return null;
 
@@ -238,7 +249,7 @@ export default function FullPlayer() {
 
       <div className="fp-body">
         <div {...touch} className="flex-shrink-0 touch-pan-x">
-          <div className="flex items-center justify-between gap-2 px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
+          <div className="flex items-center justify-between gap-2 px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] md:px-8 md:pt-[calc(1.25rem+env(safe-area-inset-top,0px))]">
             <button
               type="button"
               onClick={close}
@@ -263,7 +274,7 @@ export default function FullPlayer() {
             </button>
           </div>
 
-          <div className="mx-auto mt-2 flex w-56 rounded-xl border border-white/10 bg-white/5 p-1" role="tablist">
+          <div className="mx-auto mt-2 flex w-56 rounded-xl md:hidden border border-white/10 bg-white/5 p-1" role="tablist">
             {[
               { id: "cover", label: "Cover" },
               { id: "lirik", label: "Lirik" },
@@ -284,30 +295,32 @@ export default function FullPlayer() {
           </div>
         </div>
 
-        {view === "cover" ? (
-          <div className="flex min-h-0 flex-1 items-center justify-center px-8 py-4">
+        <div className="flex min-h-0 flex-1 flex-col md:flex-row md:items-stretch md:gap-12 md:px-10 md:py-6">
+          <div
+            className={`min-h-0 flex-1 items-center justify-center px-8 py-4 md:flex md:flex-none md:basis-[42%] md:p-0 ${
+              view === "cover" ? "flex" : "hidden"
+            }`}
+          >
             {track.thumbnail ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={track.thumbnail}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="fp-cover aspect-square rounded-3xl object-cover"
-                style={{ width: "min(100%, 46dvh)" }}
+                className="fp-cover fp-cover-size aspect-square rounded-3xl object-cover"
               />
             ) : (
-              <div
-                className="fp-cover grid aspect-square place-items-center rounded-3xl bg-white/5 text-white/30"
-                style={{ width: "min(100%, 46dvh)" }}
-              >
+              <div className="fp-cover fp-cover-size grid aspect-square place-items-center rounded-3xl bg-white/5 text-white/30">
                 <Music2 size={56} />
               </div>
             )}
           </div>
-        ) : (
+
           <div
             ref={boxRef}
-            className="fp-lyrics relative mt-3 min-h-0 flex-1 overflow-y-auto px-6"
+            className={`fp-lyrics relative mt-3 min-h-0 flex-1 overflow-y-auto px-6 md:mt-0 md:block md:px-2 ${
+              view === "lirik" ? "block" : "hidden"
+            }`}
             onTouchStart={holdAutoScroll}
             onWheel={holdAutoScroll}
             onPointerDown={holdAutoScroll}
@@ -366,11 +379,11 @@ export default function FullPlayer() {
               </div>
             )}
           </div>
-        )}
+        </div>
 
-        <div className="flex-shrink-0 px-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] pt-3">
+        <div className="mx-auto w-full flex-shrink-0 px-6 md:max-w-2xl md:px-0 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] pt-3 md:pb-[calc(2rem+env(safe-area-inset-bottom,0px))]">
           <div className="min-w-0">
-            <h2 className="font-display text-xl font-semibold text-white">
+            <h2 className="font-display text-xl font-semibold text-white md:text-2xl">
               <MarqueeText text={track.title} />
             </h2>
             <p className="truncate text-sm text-white/50">{track.artist}</p>
