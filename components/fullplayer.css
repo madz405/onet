@@ -100,3 +100,26 @@
   border: 3px solid var(--nb-ink);
   box-shadow: 6px 6px 0 var(--nb-ink);
 }
+
+/* Ukuran cover: ikut tinggi layar di HP, dibatasi di layar lebar. */
+.fp-cover-size {
+  width: min(100%, 46dvh);
+}
+
+/* --- Layar lebar (desktop / mode "situs desktop"): body lebih lebar,
+       cover di kiri dan lirik di kanan, teks lebih besar. -------------- */
+@media (min-width: 768px) {
+  .fp-body {
+    max-width: 64rem;
+  }
+  .fp-cover-size {
+    width: min(100%, 26rem);
+    max-height: 100%;
+  }
+  .fp-line {
+    font-size: 1.9rem;
+  }
+  .fp-lyrics {
+    height: 100%;
+  }
+}
