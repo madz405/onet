@@ -14,6 +14,7 @@ import {
   removeFromMusicHistory,
   updateMusicHistoryItem,
 } from "@/lib/musicHistory";
+import { updatePlaylistTrackThumbnail } from "@/lib/musicPlaylists";
 
 const MusicPlayerContext = createContext(null);
 
@@ -153,6 +154,8 @@ export default function MusicPlayerProvider({ children }) {
       }
       return;
     }
+    // Sampul asli lagu ikut disimpan ke playlist (lagu impor Spotify awalnya belum punya).
+    if (fresh.thumbnail) updatePlaylistTrackThumbnail(t.id, fresh.thumbnail);
     setTrack({ ...t, streamUrl: fresh.streamUrl, thumbnail: fresh.thumbnail || t.thumbnail, resolvedAt: Date.now() });
   }
   startTrackRef.current = startTrack;
