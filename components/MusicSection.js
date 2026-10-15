@@ -10,6 +10,7 @@ import {
   History,
   Volume2,
   ListPlus,
+  X,
 } from "lucide-react";
 import { makeTrackId } from "@/lib/musicHistory";
 import PlaylistTab from "@/components/PlaylistTab";
@@ -47,6 +48,7 @@ export default function MusicSection() {
   const [resolvingUrl, setResolvingUrl] = useState(null);
   const [tab, setTab] = useState("cari"); // cari | playlist
   const pl = usePlaylists();
+  const searchInputRef = useRef(null);
   const searchSeq = useRef(0); // mencegah hasil lama menimpa pencarian yang lebih baru
   // Semua state pemutaran (audio, lagu aktif, riwayat, mode, progres) ada di
   // MusicPlayerProvider supaya lagu tetap jalan saat pindah halaman.
@@ -199,11 +201,26 @@ export default function MusicSection() {
         <div className="relative flex-1">
           <Search size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
           <input
+            ref={searchInputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Cari judul lagu atau nama artis..."
-            className="w-full rounded-xl border border-white/10 bg-ink-900/60 py-3 pl-11 pr-4 text-sm text-white placeholder:text-white/30 focus-ring"
+            className="w-full rounded-xl border border-white/10 bg-ink-900/60 py-3 pl-11 pr-11 text-sm text-white placeholder:text-white/30 focus-ring"
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                searchInputRef.current?.focus();
+              }}
+              aria-label="Hapus teks pencarian"
+              title="Hapus"
+              className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-white/50 hover:text-white"
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
         <button
           type="submit"
