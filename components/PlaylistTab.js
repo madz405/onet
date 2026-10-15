@@ -210,9 +210,9 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
         <button
           type="button"
           onClick={back}
-          className="mb-4 flex items-center gap-1.5 text-sm text-white/60 hover:text-white"
+          className="mb-4 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/20"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={18} />
           Semua playlist
         </button>
 
