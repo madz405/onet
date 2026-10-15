@@ -5,7 +5,7 @@ import { proxyMedia } from "@/lib/proxyMedia";
 import { upscaleHd } from "@/lib/scrapers/imgLarger";
 import { removeBgILoveImg } from "@/lib/scrapers/iloveimg";
 import { humanCheck } from "@/lib/turnstile";
-import { TURNSTILE_TOOLS } from "@/lib/tools";
+import { TURNSTILE_TOOLS, FAKEML_RANKS, FAKEML_BORDERS } from "@/lib/tools";
 
 export const runtime = "nodejs";
 // Tool "hd" sekarang bisa nunggu lama: endpoint utama (nexray) dicoba dulu,
@@ -193,20 +193,37 @@ async function fetchRemoveBgEndpoint(hostedUrl) {
   return { buffer, contentType: contentType || "image/png" };
 }
 
+// Avatar default fakeml, dipilih acak kalau user tidak upload avatar sendiri.
+const FAKEML_DEFAULT_AVATARS = [
+  "https://raw.githubusercontent.com/julianmlbb068/asset/refs/heads/main/e3b432e2a7e6d941d02df1d71d93aa99.jpg",
+  "https://raw.githubusercontent.com/julianmlbb068/asset/refs/heads/main/b491fbdce9f52c9a72a6380c829ef2db.jpg",
+  "https://raw.githubusercontent.com/julianmlbb068/asset/refs/heads/main/9c0b67f8712e15ea4b01484e4830c6f9.jpg",
+  "https://raw.githubusercontent.com/julianmlbb068/asset/refs/heads/main/7ef0a5521505232239e07ebd950814cc.jpg",
+  "https://raw.githubusercontent.com/julianmlbb068/asset/refs/heads/main/6ecc0b98cb00db741ce2316fe40f78fc.jpg",
+  "https://raw.githubusercontent.com/julianmlbb068/asset/refs/heads/main/29a09ac7f0e3d4e42e00ef2eee187e87.jpg",
+  "https://raw.githubusercontent.com/julianmlbb068/asset/refs/heads/main/0bfc64b38a63954327615aa036638216.jpg",
+];
+
 // Setiap builder menerima (imageUrl, formData) — imageUrl sudah di-host di
 // top4top, formData dipakai untuk tool yang butuh input tambahan selain foto
-// (contoh: fakeml butuh nickname, meme butuh teks atas/bawah).
+// (contoh: fakeml butuh username/rank/border, meme butuh teks atas/bawah).
 // "hd" TIDAK ada di sini lagi — sekarang ditangani terpisah di bawah
 // (endpoint nexray dulu, fallback ke upscaleHd() dari
 // lib/scrapers/imgLarger.js kalau gagal), bukan sekadar satu GET request
 // ke URL seperti tool lain di map ini.
 const ENDPOINTS = {
   removebg: (imageUrl) => `https://api.azbry.com/api/tools/removebg?url=${encodeURIComponent(imageUrl)}`,
+  // fakeml: avatar = URL gambar (hasil upload user, atau salah satu avatar
+  // default acak kalau user tidak upload). rank/border sudah divalidasi di POST.
   fakeml: (imageUrl, formData) => {
-    const nickname = (formData.get("nickname") || "").toString().trim();
-    return `https://api.nexray.web.id/maker/fakelobyml?avatar=${encodeURIComponent(
+    const username = (formData.get("username") || "").toString().trim();
+    const rank = (formData.get("rank") || "").toString().trim() || "imo";
+    const border = (formData.get("border") || "").toString().trim() || "1";
+    return `https://webapi-fawn.vercel.app/download/fakeml?username=${encodeURIComponent(
+      username
+    )}&rank=${encodeURIComponent(rank)}&border=${encodeURIComponent(border)}&avatar=${encodeURIComponent(
       imageUrl
-    )}&nickname=${encodeURIComponent(nickname)}`;
+    )}&format=image`;
   },
   meme: (imageUrl, formData) => {
     const top = memegenEncode(formData.get("topText"));
@@ -241,15 +258,31 @@ export async function POST(req) {
     }
   }
 
-  const file = formData.get("file");
-  if (!file || typeof file === "string") {
+  let file = formData.get("file");
+  if (!file || typeof file === "string" || file.size === 0) file = null;
+  // Avatar fakeml opsional; tool lain wajib upload file.
+  if (!file && tool !== "fakeml") {
     return NextResponse.json({ status: false, message: "Pilih file gambar terlebih dahulu." }, { status: 400 });
   }
-  if (file.size > 8 * 1024 * 1024) {
+  if (file && file.size > 8 * 1024 * 1024) {
     return NextResponse.json({ status: false, message: "Ukuran gambar maksimal 8MB." }, { status: 400 });
   }
-  if (tool === "fakeml" && !formData.get("nickname")?.toString().trim()) {
-    return NextResponse.json({ status: false, message: "Nickname tidak boleh kosong." }, { status: 400 });
+  if (tool === "fakeml") {
+    const username = (formData.get("username") || "").toString().trim();
+    const rank = (formData.get("rank") || "").toString().trim();
+    const border = (formData.get("border") || "").toString().trim();
+    if (!username) {
+      return NextResponse.json({ status: false, message: "Username tidak boleh kosong." }, { status: 400 });
+    }
+    if (username.length > 20) {
+      return NextResponse.json({ status: false, message: "Username maksimal 20 karakter." }, { status: 400 });
+    }
+    if (rank && !FAKEML_RANKS.some((r) => r.value === rank)) {
+      return NextResponse.json({ status: false, message: "Rank tidak valid." }, { status: 400 });
+    }
+    if (border && !FAKEML_BORDERS.some((b) => b.value === border)) {
+      return NextResponse.json({ status: false, message: "Border harus angka 1-16." }, { status: 400 });
+    }
   }
   if (tool === "meme") {
     const top = (formData.get("topText") || "").toString().trim();
@@ -374,8 +407,14 @@ export async function POST(req) {
   }
 
   try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const hostedUrl = await uploadToTop4top(buffer, file.name || "image.jpg", file.type);
+    let hostedUrl;
+    if (file) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      hostedUrl = await uploadToTop4top(buffer, file.name || "image.jpg", file.type);
+    } else {
+      // Tanpa avatar sendiri (fakeml): pilih avatar default secara acak.
+      hostedUrl = FAKEML_DEFAULT_AVATARS[Math.floor(Math.random() * FAKEML_DEFAULT_AVATARS.length)];
+    }
     const targetUrl = ENDPOINTS[tool](hostedUrl, formData);
     return proxyMedia(targetUrl);
   } catch (err) {
