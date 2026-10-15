@@ -128,7 +128,7 @@ export default function ToolModal({ tool, onClose }) {
 
   async function handleUploadSubmit(e) {
     e.preventDefault();
-    if (!file) return;
+    if (!file && !tool.fileOptional) return;
     // Untuk tool yang teksnya opsional tapi tidak boleh kosong semua
     // (misal Meme: teks atas & bawah, minimal salah satu harus diisi).
     if (tool.requireAtLeastOneOf) {
@@ -148,10 +148,10 @@ export default function ToolModal({ tool, onClose }) {
     setZoomOpen(false);
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      if (file) formData.append("file", file);
       if (needsHuman) formData.append("turnstileToken", token);
       // Untuk tool bertipe "upload-text" (misal fakeml), sertakan juga
-      // field teks tambahan seperti nickname.
+      // field teks tambahan seperti username, rank, border.
       if (tool.kind === "upload-text") {
         Object.entries(values).forEach(([k, v]) => formData.append(k, v));
       }
@@ -217,19 +217,30 @@ export default function ToolModal({ tool, onClose }) {
         <form onSubmit={handleUploadSubmit} className="space-y-3">
           <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-white/15 px-4 py-8 text-center text-sm text-white/60 hover:border-white/30 hover:text-white/80">
             <Upload size={22} />
-            {file ? file.name : "Pilih gambar dari perangkatmu"}
+            {file ? file.name : tool.fileLabel || "Pilih gambar dari perangkatmu"}
             <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
           </label>
           {filePreview && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={filePreview} alt="" className="mx-auto max-h-52 rounded-xl border border-white/10" />
+            <div className="text-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={filePreview} alt="" className="mx-auto max-h-52 rounded-xl border border-white/10" />
+              {tool.fileOptional && (
+                <button
+                  type="button"
+                  onClick={clearFile}
+                  className="mt-2 text-xs text-white/50 underline hover:text-white/80"
+                >
+                  Hapus gambar
+                </button>
+              )}
+            </div>
           )}
           {tool.kind === "upload-text" &&
             tool.fields.map((field) => (
               <Field key={field.name} field={field} value={values[field.name]} onChange={updateField} />
             ))}
           {needsHuman && <TurnstileWidget onToken={setToken} resetKey={tsReset} />}
-          <SubmitButton loading={loading} disabled={!file} />
+          <SubmitButton loading={loading} disabled={!file && !tool.fileOptional} />
         </form>
       )}
 
@@ -373,11 +384,14 @@ function Field({ field, value, onChange }) {
           onChange={(e) => onChange(field.name, e.target.value)}
           className={base}
         >
-          {field.options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
+          {field.options.map((opt) => {
+            const o = typeof opt === "object" ? opt : { value: opt, label: opt };
+            return (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            );
+          })}
         </select>
       </div>
     );
@@ -389,6 +403,7 @@ function Field({ field, value, onChange }) {
       <input
         type={field.type}
         required={field.required}
+        maxLength={field.maxLength}
         value={value}
         placeholder={field.wibTime && wibNow ? wibNow : field.placeholder}
         onChange={(e) => onChange(field.name, e.target.value)}
