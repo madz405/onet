@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Menu, X, Download, Wand2, Music2, Bot, Heart, Mail, MessagesSquare } from "lucide-react";
+import { Menu, X, Download, Wand2, Music2, Bot, Heart, Mail } from "lucide-react";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { SITE_NAME, SITE_LOGO } from "@/lib/site";
 
@@ -13,7 +13,6 @@ const LINKS = [
   { href: "/tools", label: "Tools", icon: Wand2 },
   { href: "/musik", label: "Musik", icon: Music2 },
   { href: "/tempmail", label: "Temp Mail", icon: Mail },
-  { href: "/grup", label: "Grup", icon: MessagesSquare },
   { href: "/chat", label: "Chat AI", icon: Bot },
   { href: "/dukungan", label: "Dukungan", icon: Heart },
 ];
