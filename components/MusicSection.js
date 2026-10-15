@@ -1,19 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
-import MarqueeText from "@/components/MarqueeText";
 import {
   Search,
   Play,
-  Pause,
-  Download,
   Loader2,
   Music2,
-  SkipBack,
-  SkipForward,
-  Repeat,
-  Repeat1,
-  Shuffle,
   Trash2,
   History,
   Volume2,
@@ -44,14 +36,6 @@ function formatTime(sec) {
   return `${m}:${s}`;
 }
 
-function slug(text) {
-  return (text || "lagu")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 50) || "lagu";
-}
-
 export default function MusicSection() {
   const [source, setSource] = useState("youtube");
   const [query, setQuery] = useState("");
@@ -62,31 +46,21 @@ export default function MusicSection() {
   const [searchedQuery, setSearchedQuery] = useState("");
   const [resolvingUrl, setResolvingUrl] = useState(null);
   const [tab, setTab] = useState("cari"); // cari | playlist
-  const [addTarget, setAddTarget] = useState(null); // lagu yang sedang ditambahkan ke playlist
   const pl = usePlaylists();
   const searchSeq = useRef(0); // mencegah hasil lama menimpa pencarian yang lebih baru
-  const playerRef = useRef(null);
   // Semua state pemutaran (audio, lagu aktif, riwayat, mode, progres) ada di
   // MusicPlayerProvider supaya lagu tetap jalan saat pindah halaman.
   const {
     track,
     history,
-    playMode,
     isPlaying,
-    progress,
-    duration,
-    volume,
     playbackError,
     refreshing,
-    listLength,
-    setVolume,
+    setPlaylistTarget: setAddTarget,
+    playlistTarget: addTarget,
     playTrack,
     addAndPlay,
     removeFromHistory,
-    togglePlay,
-    playByOffset,
-    seek,
-    cycleMode,
   } = useMusicPlayer();
 
   async function runSearch(src = source, text = query) {
@@ -161,16 +135,11 @@ export default function MusicSection() {
         searchQuery: item.query,
         resolvedAt: Date.now(),
       });
-      scrollToPlayer();
     } catch (err) {
       setError(err.message || "Gagal mengambil lagu.");
     } finally {
       setResolvingUrl(null);
     }
-  }
-
-  function scrollToPlayer() {
-    requestAnimationFrame(() => playerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
   // Data lagu dari satu hasil pencarian, untuk disimpan ke playlist.
@@ -188,19 +157,9 @@ export default function MusicSection() {
     };
   }
 
-  const ModeIcon = playMode === "repeat" ? Repeat1 : playMode === "shuffle" ? Shuffle : Repeat;
-  const modeLabel =
-    playMode === "repeat" ? "Ulangi satu lagu" : playMode === "shuffle" ? "Acak" : "Berurutan";
-
-  const downloadHref = track
-    ? `/api/fetch-media?${new URLSearchParams({
-        url: track.streamUrl,
-        filename: `${slug(track.title)}.mp3`,
-      }).toString()}`
-    : "#";
-
   return (
-    <div>
+    // pb-24: ruang untuk mini player yang menempel di bawah layar selama ada lagu.
+    <div className={track ? "pb-24" : ""}>
       <div className="mb-4 flex rounded-xl border border-white/10 bg-ink-900/60 p-1" role="tablist">
         {[
           { id: "cari", label: "Cari" },
@@ -361,117 +320,7 @@ export default function MusicSection() {
 
       {tab === "playlist" && (
         <div className="mt-2">
-          <PlaylistTab pl={pl} scrollToPlayer={scrollToPlayer} />
-        </div>
-      )}
-
-      {track && (
-        <div ref={playerRef} className="mx-auto mt-8 max-w-sm scroll-mt-4 animate-rise overflow-hidden rounded-[2rem] border border-white/8 bg-ink-900/80 p-5 shadow-glow">
-          {track.thumbnail ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={track.thumbnail}
-              alt=""
-              referrerPolicy="no-referrer"
-              className="aspect-square w-full rounded-2xl object-cover"
-            />
-          ) : (
-            <div className="grid aspect-square w-full place-items-center rounded-2xl bg-white/5 text-white/30">
-              <Music2 size={48} />
-            </div>
-          )}
-
-          <div className="mt-4 flex items-start gap-2">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-signal-400">
-                {sourceLabel(track.source)}
-              </p>
-              <h2 className="mt-0.5 font-display text-lg font-semibold text-white">
-                <MarqueeText text={track.title} />
-              </h2>
-              <p className="truncate text-sm text-white/50">{track.artist}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setAddTarget(track)}
-              aria-label="Tambah ke playlist"
-              title="Tambah ke playlist"
-              className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full text-white/50 hover:bg-white/10 hover:text-white"
-            >
-              <ListPlus size={20} />
-            </button>
-          </div>
-
-          <div className="mt-4">
-            <input
-              type="range"
-              min={0}
-              max={duration || 0}
-              value={progress}
-              onChange={(e) => seek(Number(e.target.value))}
-              className="h-1 w-full accent-signal-500"
-            />
-            <div className="mt-1 flex justify-between text-[11px] tabular-nums text-white/40">
-              <span>{formatTime(progress)}</span>
-              <span>-{formatTime((duration || 0) - progress)}</span>
-            </div>
-          </div>
-
-          <div className="mt-3 flex items-center justify-center gap-4">
-            <a
-              href={downloadHref}
-              className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-full text-white/40 hover:text-white/70"
-              aria-label="Unduh lagu"
-              title="Unduh lagu"
-            >
-              <Download size={20} />
-            </a>
-            <button
-              onClick={() => playByOffset(-1)}
-              disabled={listLength < 2}
-              className="grid h-11 w-11 place-items-center text-white/70 hover:text-white disabled:opacity-30"
-              aria-label="Lagu sebelumnya"
-            >
-              <SkipBack size={22} />
-            </button>
-            <button
-              onClick={togglePlay}
-              className="grid h-14 w-14 place-items-center rounded-full bg-signal-500 text-ink-950"
-              aria-label={isPlaying ? "Jeda" : "Putar"}
-            >
-              {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-0.5" />}
-            </button>
-            <button
-              onClick={() => playByOffset(1)}
-              disabled={listLength < 2}
-              className="grid h-11 w-11 place-items-center text-white/70 hover:text-white disabled:opacity-30"
-              aria-label="Lagu berikutnya"
-            >
-              <SkipForward size={22} />
-            </button>
-            <button
-              onClick={cycleMode}
-              className={`grid h-11 w-11 place-items-center rounded-full ${
-                playMode === "sequential" ? "text-white/40 hover:text-white/70" : "text-signal-400"
-              }`}
-              aria-label={`Mode putar: ${modeLabel}`}
-              title={modeLabel}
-            >
-              <ModeIcon size={20} />
-            </button>
-          </div>
-
-          <div className="mt-5 flex items-center gap-3">
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
-              className="h-1 w-full accent-signal-500"
-            />
-          </div>
+          <PlaylistTab pl={pl} />
         </div>
       )}
 
