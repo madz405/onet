@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   Check,
   Download,
+  Link2,
   ListMusic,
   Loader2,
   Music2,
@@ -67,6 +68,10 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const fileRef = useRef(null);
+  // Impor playlist dari link Spotify.
+  const [spOpen, setSpOpen] = useState(false);
+  const [spUrl, setSpUrl] = useState("");
+  const [spLoading, setSpLoading] = useState(false);
 
   const open = pl.playlists.find((p) => p.id === openId) || null;
 
@@ -110,7 +115,45 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
     setConfirmDelete(false);
   }
 
+  async function handleSpotifyImport(e) {
+    e.preventDefault();
+    const link = spUrl.trim();
+    if (!link || spLoading) return;
+    setSpLoading(true);
+    setError("");
+    setNotice("");
+    try {
+      const res = await fetch("/api/spotify-playlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: link }),
+      });
+      const data = await res.json();
+      if (!data?.status) throw new Error(data?.message || "Gagal mengimpor playlist.");
+      // Spotify tidak memberi sampul per lagu; sampul playlist dipakai sementara
+      // (diganti sampul asli lagu begitu lagunya diputar).
+      const out = pl.importTracks(
+        data.name,
+        data.tracks.map((t) => ({ ...t, thumbnail: data.cover }))
+      );
+      if (out.error) throw new Error(out.error);
+      setSpUrl("");
+      setSpOpen(false);
+      setOpenId(out.playlist.id);
+      setNotice(
+        `${out.count} lagu diimpor dari Spotify.${
+          out.count >= 100 ? " Spotify hanya membagikan sebagian lagu untuk playlist yang panjang." : ""
+        }`
+      );
+    } catch (err) {
+      setError(err.message || "Gagal mengimpor playlist.");
+    } finally {
+      setSpLoading(false);
+    }
+  }
+
   function back() {
+    setNotice("");
     setOpenId(null);
     setRenaming(false);
     setConfirmDelete(false);
@@ -213,6 +256,9 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
           <p className="mt-3 rounded-xl border border-flare-500/30 bg-flare-500/10 px-4 py-2.5 text-sm text-flare-400">
             {error}
           </p>
+        )}
+        {notice && !error && (
+          <p className="mt-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/70">{notice}</p>
         )}
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -338,6 +384,44 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
         </form>
       )}
 
+      {spOpen && (
+        <form onSubmit={handleSpotifyImport} className="mb-4">
+          <p className="mb-2 text-sm text-white/60">
+            Tempel link playlist Spotify (di aplikasi Spotify: titik tiga → Bagikan → Salin link). Playlist harus publik.
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={spUrl}
+              onChange={(e) => setSpUrl(e.target.value)}
+              placeholder="https://open.spotify.com/playlist/..."
+              aria-label="Link playlist Spotify"
+              autoFocus
+              inputMode="url"
+              className={FIELD}
+            />
+            <button
+              type="submit"
+              disabled={spLoading || !spUrl.trim()}
+              className="flex flex-shrink-0 items-center gap-2 rounded-xl bg-signal-500 px-5 py-3 text-sm font-semibold text-ink-950 disabled:opacity-60"
+            >
+              {spLoading ? <Loader2 size={16} className="animate-spin" /> : "Impor"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSpOpen(false);
+                setSpUrl("");
+                setError("");
+              }}
+              aria-label="Batal"
+              className="grid w-12 flex-shrink-0 place-items-center rounded-xl border border-white/15 text-white"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </form>
+      )}
+
       {error && (
         <p className="mb-4 rounded-xl border border-flare-500/30 bg-flare-500/10 px-4 py-2.5 text-sm text-flare-400">
           {error}
@@ -401,6 +485,18 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
         >
           <Upload size={16} />
           Impor
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setSpOpen(true);
+            setError("");
+            setNotice("");
+          }}
+          className="flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white/80 hover:bg-white/10"
+        >
+          <Link2 size={16} />
+          Impor Spotify
         </button>
         <input ref={fileRef} type="file" accept="application/json,.json" onChange={handleImportFile} className="hidden" />
       </div>
