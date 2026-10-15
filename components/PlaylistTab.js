@@ -41,7 +41,16 @@ function Thumb({ src, className }) {
 }
 
 // Kolase 2x2 dari sampul empat lagu pertama.
-function Cover({ tracks }) {
+function Cover({ tracks, cover }) {
+  // Playlist hasil impor Spotify: sampulnya sudah berupa kolase album, jadi tampil 1x saja.
+  if (cover) {
+    return (
+      <div className="aspect-square w-full overflow-hidden rounded-xl bg-white/5">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={cover} alt="" referrerPolicy="no-referrer" loading="lazy" className="h-full w-full object-cover" />
+      </div>
+    );
+  }
   const cells = [0, 1, 2, 3].map((i) => tracks[i]?.thumbnail || null);
   return (
     <div className="grid h-[84px] grid-cols-2 gap-0.5 overflow-hidden rounded-xl bg-white/5">
@@ -134,7 +143,8 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
       // (diganti sampul asli lagu begitu lagunya diputar).
       const out = pl.importTracks(
         data.name,
-        data.tracks.map((t) => ({ ...t, thumbnail: data.cover }))
+        data.tracks.map((t) => ({ ...t, thumbnail: data.cover })),
+        data.cover
       );
       if (out.error) throw new Error(out.error);
       setSpUrl("");
@@ -443,7 +453,7 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
             }}
             className="rounded-2xl border border-white/8 bg-ink-900/60 p-3 text-left transition-colors hover:bg-white/5"
           >
-            <Cover tracks={p.tracks} />
+            <Cover tracks={p.tracks} cover={p.cover} />
             <span className="mt-2 block truncate text-sm font-semibold text-white">{p.name}</span>
             <span className="block text-xs text-white/50">{p.tracks.length} lagu</span>
           </button>
