@@ -10,7 +10,10 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: rgb(var(--ink-950));
+  /* Warna permukaan ikut tema. Di tema Neumorphism/Claymorphism --ink-950 itu PUTIH
+     (dipakai sebagai warna teks di atas tombol), jadi latar diganti di bawah. */
+  --fp-surface: rgb(var(--ink-950));
+  background: var(--fp-surface);
   transform: translateY(100%);
   visibility: hidden;
   transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.4s;
@@ -45,6 +48,10 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(rgb(var(--ink-950) / 0.35), rgb(var(--ink-950) / 0.82));
+  background: linear-gradient(
+    color-mix(in srgb, var(--fp-surface) 35%, transparent),
+    color-mix(in srgb, var(--fp-surface) 82%, transparent)
+  );
 }
 
 .fp-body {
@@ -122,4 +129,38 @@
   .fp-lyrics {
     height: 100%;
   }
+}
+
+/* --- Tema Neumorphism & Claymorphism (mode terang/gelap): latar memakai warna
+       latar tema masing-masing supaya teks (yang warnanya diatur tema) terbaca. */
+:is([data-theme="neu-light"], [data-theme="neu-dark"]) .fullplayer {
+  --fp-surface: var(--neu-bg);
+}
+:is([data-theme="neu-light"], [data-theme="neu-dark"]) .fp-bg {
+  display: none; /* gaya neumorphism: latar polos */
+}
+:is([data-theme="clay-light"], [data-theme="clay-dark"]) .fullplayer {
+  --fp-surface: var(--clay-bg);
+}
+:is([data-theme="clay-light"], [data-theme="clay-dark"]) .fp-bg img {
+  opacity: 0.4;
+}
+
+/* --- Tema Neobrutalism: baris lirik yang sedang berjalan diberi stabilo kuning
+       + border tebal, baris lainnya diredupkan, supaya jelas yang mana. ------ */
+[data-theme="neobrutalism"] .fp-line {
+  padding: 0.4rem 0.75rem;
+  border: 3px solid transparent;
+  border-radius: 14px;
+  background: transparent !important;
+}
+[data-theme="neobrutalism"] .fp-line[data-active="false"] {
+  color: rgb(10 10 10 / 0.4) !important;
+  box-shadow: none !important;
+}
+[data-theme="neobrutalism"] .fp-line[data-active="true"] {
+  color: var(--nb-ink) !important;
+  background: var(--nb-yellow) !important;
+  border-color: var(--nb-ink);
+  box-shadow: 4px 4px 0 var(--nb-ink) !important;
 }
