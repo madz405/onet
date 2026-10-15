@@ -50,6 +50,11 @@ export default function Footer() {
                   Dukungan
                 </Link>
               </li>
+              <li>
+                <Link href="/kebijakan" className="hover:text-white">
+                  Privasi &amp; Syarat
+                </Link>
+              </li>
             </ul>
           </div>
 
