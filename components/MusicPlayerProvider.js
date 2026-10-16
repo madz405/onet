@@ -14,7 +14,7 @@ import {
   removeFromMusicHistory,
   updateMusicHistoryItem,
 } from "@/lib/musicHistory";
-import { updatePlaylistTrackThumbnail } from "@/lib/musicPlaylists";
+import { updatePlaylistTrackData } from "@/lib/musicPlaylists";
 
 const MusicPlayerContext = createContext(null);
 
@@ -154,8 +154,9 @@ export default function MusicPlayerProvider({ children }) {
       }
       return;
     }
-    // Sampul asli lagu ikut disimpan ke playlist (lagu impor Spotify awalnya belum punya).
-    if (fresh.thumbnail) updatePlaylistTrackThumbnail(t.id, fresh.thumbnail);
+    // Link stream + sampul asli lagu ikut disimpan ke playlist (seperti riwayat),
+    // jadi putaran berikutnya tidak perlu mengambil link lagi selama belum kedaluwarsa.
+    updatePlaylistTrackData(t.id, { thumbnail: fresh.thumbnail, streamUrl: fresh.streamUrl, resolvedAt: Date.now() });
     setTrack({ ...t, streamUrl: fresh.streamUrl, thumbnail: fresh.thumbnail || t.thumbnail, resolvedAt: Date.now() });
   }
   startTrackRef.current = startTrack;
@@ -283,6 +284,11 @@ export default function MusicPlayerProvider({ children }) {
       resolvedAt: Date.now(),
     };
     setHistory((h) => updateMusicHistoryItem(h, updated));
+    updatePlaylistTrackData(updated.id, {
+      thumbnail: updated.thumbnail,
+      streamUrl: updated.streamUrl,
+      resolvedAt: updated.resolvedAt,
+    });
     // Hanya ganti kalau user belum pindah ke lagu lain selama menunggu.
     setTrack((prev) => (prev && prev.id === current.id ? updated : prev));
   }
