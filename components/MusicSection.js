@@ -118,7 +118,7 @@ export default function MusicSection() {
       const res = await fetch("/api/music", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "resolve", source, url: item.url, query: item.query }),
+        body: JSON.stringify({ action: "resolve", source, url: item.url, query: item.query, artist: item.artist }),
       });
       const data = await res.json();
       if (!data.status || !data.streamUrl) throw new Error(data.message || "Gagal mengambil lagu.");
