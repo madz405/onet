@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import MarqueeText from "@/components/MarqueeText";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
+import useBackToClose from "@/lib/useBackToClose";
 
 const SOURCE_LABEL = { youtube: "YouTube", spotify: "Spotify", soundcloud: "SoundCloud" };
 
@@ -100,6 +101,9 @@ export default function FullPlayer() {
   function close() {
     setPlayerOpen(false);
   }
+
+  // Tombol BACK di HP menutup pemutar penuh (kembali ke mini player).
+  useBackToClose(playerOpen, () => setPlayerOpen(false));
 
   // Tutup kalau pindah halaman; Esc menutup; scroll halaman di belakang dikunci.
   useEffect(() => {
