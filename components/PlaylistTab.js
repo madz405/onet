@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
+import useBackToClose from "@/lib/useBackToClose";
 import { MAX_NAME } from "@/lib/musicPlaylists";
 
 const FIELD =
@@ -83,6 +84,8 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
   const [spLoading, setSpLoading] = useState(false);
 
   const open = pl.playlists.find((p) => p.id === openId) || null;
+  // Tombol BACK di HP dari detail playlist kembali ke daftar playlist.
+  useBackToClose(Boolean(open), back);
 
   function handleCreate(e) {
     e.preventDefault();
