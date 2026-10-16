@@ -181,11 +181,12 @@ export async function POST(req) {
   if (action === "resolve") {
     const url = typeof body?.url === "string" ? body.url.trim() : "";
     const query = clip(body?.query, 250);
+    const artist = clip(body?.artist, 120);
     if (!query) return bad("Judul lagu tidak boleh kosong.");
     if (url && !isAllowedSourceUrl(source, url)) return bad("Link lagu tidak valid.");
     if (!url && source !== "spotify") return bad("Link lagu tidak valid.");
     try {
-      const r = await resolveMusic({ source, url, query });
+      const r = await resolveMusic({ source, url, query, artist });
       if (!r?.streamUrl) throw new Error("Link lagu tidak ditemukan.");
       return NextResponse.json({
         status: true,
