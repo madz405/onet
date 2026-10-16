@@ -44,6 +44,7 @@ async function fetchFreshStream(t) {
           source: t.source,
           url: t.pageUrl,
           query: t.searchQuery || refreshQueries(t)[0],
+          artist: t.artist || "",
         }),
       });
       const data = await res.json();
@@ -58,7 +59,7 @@ async function fetchFreshStream(t) {
       const res = await fetch("/api/music", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source: t.source, query: q }),
+        body: JSON.stringify({ action: "resolve", source: t.source, query: q, artist: t.artist || "" }),
       });
       const data = await res.json();
       if (data?.status && data.streamUrl) return data;
