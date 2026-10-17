@@ -1,0 +1,18 @@
+{
+  "notifications": [
+    {
+      "id": "2026-10-17-lonceng",
+      "type": "update",
+      "title": "Fitur notifikasi hadir",
+      "body": "Mulai sekarang info update dan perbaikan KOYEN disampaikan lewat ikon lonceng ini.",
+      "date": "2026-10-17"
+    },
+    {
+      "id": "2026-10-17-musik",
+      "type": "update",
+      "title": "Pemutar musik baru",
+      "body": "Pemutar penuh dengan lirik berjalan otomatis, impor playlist Spotify, dan link TikTok tt.site sekarang didukung.",
+      "date": "2026-10-16"
+    }
+  ]
+}
