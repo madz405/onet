@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, X, Download, Wand2, Music2, Bot, Heart, Mail } from "lucide-react";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import NotificationBell from "@/components/NotificationBell";
 import { SITE_NAME, SITE_LOGO } from "@/lib/site";
 
 const LINKS = [
@@ -68,6 +69,7 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-1.5">
+          <NotificationBell />
           <ThemeSwitcher />
           <button
             className="grid h-9 w-9 place-items-center rounded-lg text-white/80 hover:bg-white/5 md:hidden focus-ring"
