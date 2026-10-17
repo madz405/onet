@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { reportError } from "@/lib/reportError";
 import { instagram } from "@/lib/scrapers/instagram";
 import { tiktokDl } from "@/lib/scrapers/tiktok";
+import { resolveTikTokUrl } from "@/lib/resolveTikTokUrl";
 import { scrapePinterest } from "@/lib/scrapers/pinterest";
 import { scrapeTwitter } from "@/lib/scrapers/twitter";
 import { scrapeAppleMusic } from "@/lib/scrapers/applemusic";
@@ -205,6 +206,11 @@ export async function POST(req) {
       case "tiktok": {
         const API_TIMEOUT = 10000;
 
+        // Link pendek tt.site diikuti dulu ke link tiktok.com aslinya (lihat
+        // lib/resolveTikTokUrl.js); link lain tidak diubah.
+        const tkUrl = await resolveTikTokUrl(url.trim());
+        const tkLink = encodeURIComponent(tkUrl);
+
         // Urutan percobaan: azbry -> faa -> nexray -> scraper (tikwm).
         // Tiap sumber yang gagal/mengembalikan hasil kosong otomatis lanjut
         // ke sumber berikutnya.
@@ -212,10 +218,10 @@ export async function POST(req) {
         // 1) API azbry — coba endpoint video dulu, kalau ternyata post foto
         //    baru coba endpoint slide.
         const tryAzbry = async () => {
-          const isPhoto = /\/photo\//i.test(url);
+          const isPhoto = /\/photo\//i.test(tkUrl);
           const tryVideo = async () => {
             const data = await getJson(
-              `https://api.azbry.com/api/download/tiktokv2?url=${link}`,
+              `https://api.azbry.com/api/download/tiktokv2?url=${tkLink}`,
               API_TIMEOUT
             );
             const r = data.result || {};
@@ -234,7 +240,7 @@ export async function POST(req) {
           };
           const trySlide = async () => {
             const data = await getJson(
-              `https://api.azbry.com/api/download/tiktokslide?url=${link}`,
+              `https://api.azbry.com/api/download/tiktokslide?url=${tkLink}`,
               API_TIMEOUT
             );
             const r = data.result || {};
@@ -257,14 +263,14 @@ export async function POST(req) {
 
         // 2) API faa — satu endpoint untuk video maupun slide.
         const tryFaa = async () => {
-          const data = await getJson(`https://api-faa.my.id/faa/tiktok?url=${link}`, API_TIMEOUT);
+          const data = await getJson(`https://api-faa.my.id/faa/tiktok?url=${tkLink}`, API_TIMEOUT);
           return normalizeFaaTiktok(data.result || {});
         };
 
         // 3) API nexray — satu endpoint untuk video maupun slide.
         const tryNexray = async () => {
           const data = await getJson(
-            `https://api.nexray.eu.cc/downloader/tiktok?url=${link}`,
+            `https://api.nexray.eu.cc/downloader/tiktok?url=${tkLink}`,
             API_TIMEOUT
           );
           return normalizeNexrayTiktok(data.result || {});
@@ -274,7 +280,7 @@ export async function POST(req) {
         //    punya audio, jadi pemutar audio dan tombol "Audio latar"
         //    otomatis tidak muncul.
         const tryScraper = async () => {
-          const res = await tiktokDl(url);
+          const res = await tiktokDl(tkUrl);
           if (!res.status || !res.data?.length) {
             throw new Error("Scraper TikTok gagal memproses link ini.");
           }
