@@ -12,7 +12,35 @@
       "type": "update",
       "title": "Pemutar musik baru",
       "body": "Pemutar penuh dengan lirik berjalan otomatis, impor playlist Spotify, dan link TikTok tt.site sekarang didukung.",
-      "date": "2026-10-16"
+      "date": "2026-10-16",
+      "expiresAt": "2026-10-25"
+    }
+  ],
+  "_contoh": [
+    {
+      "id": "2026-10-20-perbaikan-tiktok",
+      "type": "maintenance",
+      "title": "Downloader TikTok sedang perbaikan",
+      "body": "Sebagian video TikTok mungkin gagal diunduh.\nKami sedang memperbaikinya, mohon bersabar.",
+      "date": "2026-10-20",
+      "pinned": true,
+      "expiresAt": "2026-10-22",
+      "url": "https://whatsapp.com/channel/0029Vb8uu33EawdxN8HJlL1u",
+      "linkLabel": "Info terbaru"
+    },
+    {
+      "id": "2026-10-18-fitur-baru",
+      "type": "update",
+      "title": "Fitur baru: impor playlist Spotify",
+      "body": "Sekarang kamu bisa mengimpor playlist Spotify ke halaman Musik.",
+      "date": "2026-10-18"
+    },
+    {
+      "id": "2026-10-10-pengumuman",
+      "type": "info",
+      "title": "Info",
+      "date": "2026-10-10",
+      "active": false
     }
   ]
 }
