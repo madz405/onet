@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Search,
   Play,
@@ -10,6 +10,7 @@ import {
   History,
   Volume2,
   ListPlus,
+  ChevronDown,
   X,
 } from "lucide-react";
 import { makeTrackId } from "@/lib/musicHistory";
@@ -19,8 +20,8 @@ import usePlaylists from "@/lib/usePlaylists";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
 
 const SOURCES = [
-  { id: "youtube", label: "YouTube" },
   { id: "spotify", label: "Spotify" },
+  { id: "youtube", label: "YouTube" },
   { id: "soundcloud", label: "SoundCloud" },
 ];
 
@@ -37,8 +38,15 @@ function formatTime(sec) {
   return `${m}:${s}`;
 }
 
+const HISTORY_OPEN_KEY = "koyen-music-history-open";
+const HISTORY_VISIBLE_ROWS = 5; // baris riwayat yang tampil sebelum perlu di-scroll
+
 export default function MusicSection() {
-  const [source, setSource] = useState("youtube");
+  const [source, setSource] = useState("spotify");
+  // Kotak Riwayat: bisa diminimalkan / dibesarkan (pilihan diingat di perangkat).
+  const [histOpen, setHistOpen] = useState(true);
+  const [histMax, setHistMax] = useState(null); // tinggi maksimal daftar = 5 baris (px)
+  const histRef = useRef(null);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -49,6 +57,8 @@ export default function MusicSection() {
   const [tab, setTab] = useState("cari"); // cari | playlist
   const pl = usePlaylists();
   const searchInputRef = useRef(null);
+
+
   const searchSeq = useRef(0); // mencegah hasil lama menimpa pencarian yang lebih baru
   // Semua state pemutaran (audio, lagu aktif, riwayat, mode, progres) ada di
   // MusicPlayerProvider supaya lagu tetap jalan saat pindah halaman.
@@ -64,6 +74,50 @@ export default function MusicSection() {
     addAndPlay,
     removeFromHistory,
   } = useMusicPlayer();
+
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(HISTORY_OPEN_KEY) === "0") setHistOpen(false);
+    } catch {
+      // abaikan
+    }
+  }, []);
+
+  function toggleHistory() {
+    setHistOpen((v) => {
+      try {
+        window.localStorage.setItem(HISTORY_OPEN_KEY, v ? "0" : "1");
+      } catch {
+        // abaikan
+      }
+      return !v;
+    });
+  }
+
+  // Tinggi daftar riwayat dibatasi tepat 5 baris (diukur dari baris aslinya, jadi
+  // pas di semua tema); lebih dari itu bisa di-scroll.
+  useEffect(() => {
+    const el = histRef.current;
+    if (!histOpen || !el) return;
+    const measure = () => {
+      const kids = el.children;
+      if (kids.length <= HISTORY_VISIBLE_ROWS) {
+        setHistMax(null);
+        return;
+      }
+      // + padding atas/bawah daftar (p-1 + pb-2 = 12px) - jarak antar baris (8px)
+      setHistMax(kids[HISTORY_VISIBLE_ROWS].offsetTop - kids[0].offsetTop + 4);
+    };
+    measure();
+    const first = el.firstElementChild;
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    if (ro && first) ro.observe(first);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [histOpen, history.length, history[0]?.id, tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function runSearch(src = source, text = query) {
     const q = text.trim();
@@ -342,12 +396,24 @@ export default function MusicSection() {
       )}
 
       {tab === "cari" && history.length > 0 && (
-        <div className="mt-10">
-          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white/50">
+        <div className="mt-10 rounded-2xl border border-white/10 bg-ink-900/40 p-3">
+          <button
+            type="button"
+            onClick={toggleHistory}
+            aria-expanded={histOpen}
+            className="flex w-full items-center gap-2 text-left text-sm font-medium text-white/60 hover:text-white"
+          >
             <History size={16} />
             Riwayat pencarian
-          </div>
-          <div className="space-y-2">
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-white/60">{history.length}</span>
+            <ChevronDown size={18} className={`ml-auto transition-transform duration-200 ${histOpen ? "rotate-180" : ""}`} />
+          </button>
+          {histOpen && (
+          <div
+            ref={histRef}
+            className="relative mt-3 space-y-2 overflow-y-auto overscroll-contain p-1 pb-2 pr-2"
+            style={histMax ? { maxHeight: histMax } : undefined}
+          >
             {history.map((t) => (
               <div
                 key={t.id}
@@ -399,6 +465,7 @@ export default function MusicSection() {
               </div>
             ))}
           </div>
+          )}
         </div>
       )}
 
