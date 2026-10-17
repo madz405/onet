@@ -127,36 +127,56 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
     setConfirmDelete(false);
   }
 
+  // Impor playlist dari link Spotify atau YouTube / YouTube Music (dikenali otomatis).
   async function handleSpotifyImport(e) {
     e.preventDefault();
     const link = spUrl.trim();
     if (!link || spLoading) return;
+    const isSpotify = /spotify/i.test(link);
+    const isYoutube = /youtu/i.test(link) || /^(PL|OLAK5uy_|UU|FL|VL)[A-Za-z0-9_-]{8,}$/.test(link);
+    if (!isSpotify && !isYoutube) {
+      setError("Tempel link playlist dari Spotify atau YouTube Music.");
+      return;
+    }
     setSpLoading(true);
     setError("");
     setNotice("");
     try {
-      const res = await fetch("/api/spotify-playlist", {
+      const res = await fetch(isSpotify ? "/api/spotify-playlist" : "/api/youtube-playlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: link }),
       });
       const data = await res.json();
       if (!data?.status) throw new Error(data?.message || "Gagal mengimpor playlist.");
-      // Spotify tidak memberi sampul per lagu; sampul playlist dipakai sementara
-      // (diganti sampul asli lagu begitu lagunya diputar).
-      const out = pl.importTracks(
-        data.name,
-        data.tracks.map((t) => ({ ...t, thumbnail: data.cover })),
-        data.cover
-      );
+      let out;
+      if (isSpotify) {
+        // Spotify tidak memberi sampul per lagu; sampul playlist dipakai sementara
+        // (diganti sampul asli lagu begitu lagunya diputar).
+        out = pl.importTracks(
+          data.name,
+          data.tracks.map((t) => ({ ...t, thumbnail: data.cover })),
+          data.cover
+        );
+      } else {
+        out = pl.importTracks(
+          data.name,
+          data.tracks.map((t) => ({ ...t, source: "youtube" })),
+          null
+        );
+      }
       if (out.error) throw new Error(out.error);
       setSpUrl("");
       setSpOpen(false);
       setOpenId(out.playlist.id);
       setNotice(
-        `${out.count} lagu diimpor dari Spotify.${
-          out.count >= 100 ? " Spotify hanya membagikan sebagian lagu untuk playlist yang panjang." : ""
-        }`
+        isSpotify
+          ? `${out.count} lagu diimpor dari Spotify.${
+              out.count >= 100 ? " Spotify hanya membagikan sebagian lagu untuk playlist yang panjang." : ""
+            }`
+          : `${out.count} lagu diimpor dari YouTube Music.${
+              out.count >= 300 ? " Playlist yang lebih panjang dipotong di 300 lagu pertama." : ""
+            }`
       );
     } catch (err) {
       setError(err.message || "Gagal mengimpor playlist.");
@@ -400,14 +420,15 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
       {spOpen && (
         <form onSubmit={handleSpotifyImport} className="mb-4">
           <p className="mb-2 text-sm text-white/60">
-            Tempel link playlist Spotify (di aplikasi Spotify: titik tiga → Bagikan → Salin link). Playlist harus publik.
+            Tempel link playlist Spotify atau YouTube Music (buka playlist → titik tiga → Bagikan → Salin link). Playlist
+            harus publik atau tidak publik (bukan privat).
           </p>
           <div className="flex gap-2">
             <input
               value={spUrl}
               onChange={(e) => setSpUrl(e.target.value)}
-              placeholder="https://open.spotify.com/playlist/..."
-              aria-label="Link playlist Spotify"
+              placeholder="Link playlist Spotify / YouTube Music"
+              aria-label="Link playlist Spotify atau YouTube Music"
               autoFocus
               inputMode="url"
               className={FIELD}
@@ -509,7 +530,7 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
           className="flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white/80 hover:bg-white/10"
         >
           <Link2 size={16} />
-          Impor Spotify
+          Impor Playlist
         </button>
         <input ref={fileRef} type="file" accept="application/json,.json" onChange={handleImportFile} className="hidden" />
       </div>
