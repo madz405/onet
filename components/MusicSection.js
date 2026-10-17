@@ -105,13 +105,12 @@ export default function MusicSection() {
         setHistMax(null);
         return;
       }
-      // + padding atas/bawah daftar (p-1 + pb-2 = 12px) - jarak antar baris (8px)
-      setHistMax(kids[HISTORY_VISIBLE_ROWS].offsetTop - kids[0].offsetTop + 4);
+      // + padding atas/bawah daftar (2px + 6px) - jarak antar baris (8px) = +0
+      setHistMax(kids[HISTORY_VISIBLE_ROWS].offsetTop - kids[0].offsetTop);
     };
     measure();
-    const first = el.firstElementChild;
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
-    if (ro && first) ro.observe(first);
+    if (ro) Array.from(el.children).slice(0, HISTORY_VISIBLE_ROWS + 1).forEach((c) => ro.observe(c));
     window.addEventListener("resize", measure);
     return () => {
       ro?.disconnect();
@@ -396,7 +395,7 @@ export default function MusicSection() {
       )}
 
       {tab === "cari" && history.length > 0 && (
-        <div className="mt-10 rounded-2xl border border-white/10 bg-ink-900/40 p-3">
+        <div className="mt-10 rounded-2xl border border-white/10 bg-ink-900/40 p-2.5">
           <button
             type="button"
             onClick={toggleHistory}
@@ -411,13 +410,13 @@ export default function MusicSection() {
           {histOpen && (
           <div
             ref={histRef}
-            className="relative mt-3 space-y-2 overflow-y-auto overscroll-contain p-1 pb-2 pr-2"
+            className="relative mt-2.5 space-y-2 overflow-y-auto overscroll-contain p-0.5 pb-1.5 pr-1.5"
             style={histMax ? { maxHeight: histMax } : undefined}
           >
             {history.map((t) => (
               <div
                 key={t.id}
-                className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
+                className={`flex items-center gap-2 rounded-xl border px-2 py-2 transition-colors ${
                   track?.id === t.id ? "border-signal-500/40 bg-signal-500/5" : "border-white/8 bg-ink-900/60"
                 }`}
               >
@@ -427,41 +426,49 @@ export default function MusicSection() {
                     src={t.thumbnail}
                     alt=""
                     referrerPolicy="no-referrer"
-                    className="h-11 w-11 flex-shrink-0 rounded-lg object-cover"
+                    className="h-10 w-10 flex-shrink-0 rounded-lg object-cover"
                   />
                 ) : (
-                  <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-lg bg-white/5 text-white/30">
+                  <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-white/5 text-white/30">
                     <Music2 size={16} />
                   </span>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-white">{t.title}</p>
+                  {/* Judul boleh 2 baris supaya terbaca penuh (tidak terpotong jadi "DJ ...") */}
+                  <p
+                    className="break-words text-sm font-medium leading-snug text-white"
+                    style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                  >
+                    {t.title}
+                  </p>
                   <p className="truncate text-xs text-white/40">
                     {sourceLabel(t.source)} · {t.artist}
                   </p>
                 </div>
-                <button
-                  onClick={() => playTrack(t)}
-                  className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-signal-500 text-ink-950"
-                  aria-label={`Putar ${t.title}`}
-                >
-                  <Play size={15} className="ml-0.5" />
-                </button>
-                <button
-                  onClick={() => setAddTarget(t)}
-                  className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full text-white/40 hover:bg-white/10 hover:text-white"
-                  aria-label={`Tambah ${t.title} ke playlist`}
-                  title="Tambah ke playlist"
-                >
-                  <ListPlus size={16} />
-                </button>
-                <button
-                  onClick={() => removeFromHistory(t.id)}
-                  className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full text-white/40 hover:bg-flare-500/10 hover:text-flare-400"
-                  aria-label={`Hapus ${t.title} dari riwayat`}
-                >
-                  <Trash2 size={15} />
-                </button>
+                <div className="flex flex-shrink-0 items-center gap-0.5">
+                  <button
+                    onClick={() => playTrack(t)}
+                    className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full bg-signal-500 text-ink-950"
+                    aria-label={`Putar ${t.title}`}
+                  >
+                    <Play size={14} className="ml-0.5" />
+                  </button>
+                  <button
+                    onClick={() => setAddTarget(t)}
+                    className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full text-white/40 hover:bg-white/10 hover:text-white"
+                    aria-label={`Tambah ${t.title} ke playlist`}
+                    title="Tambah ke playlist"
+                  >
+                    <ListPlus size={16} />
+                  </button>
+                  <button
+                    onClick={() => removeFromHistory(t.id)}
+                    className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full text-white/40 hover:bg-flare-500/10 hover:text-flare-400"
+                    aria-label={`Hapus ${t.title} dari riwayat`}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
