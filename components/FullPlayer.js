@@ -15,14 +15,18 @@ import {
   Download,
   ListPlus,
   Loader2,
+  Minus,
   Music2,
   Pause,
   Play,
+  Plus,
   Repeat,
   Repeat1,
   Shuffle,
   SkipBack,
   SkipForward,
+  Volume1,
+  Volume2,
 } from "lucide-react";
 import MarqueeText from "@/components/MarqueeText";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
@@ -230,6 +234,9 @@ export default function FullPlayer() {
       setDragY(0);
     },
   };
+
+  // Satu tingkat volume = 10%.
+  const stepVolume = (dir) => setVolume(Math.min(1, Math.max(0, Math.round(volume * 10 + dir) / 10)));
 
   const holdAutoScroll = () => {
     userScrollUntil.current = Date.now() + 3500;
@@ -459,7 +466,19 @@ export default function FullPlayer() {
             </button>
           </div>
 
-          <div className="mt-4 flex items-center gap-3">
+          {/* Volume: speaker (-) turun 1 tingkat (10%), speaker (+) naik 1 tingkat, atau geser bar. */}
+          <div className="mt-4 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => stepVolume(-1)}
+              disabled={volume <= 0}
+              className="flex h-9 flex-shrink-0 items-center gap-0.5 rounded-full px-2 text-white/60 hover:text-white disabled:opacity-30"
+              aria-label="Kecilkan volume"
+              title="Kecilkan volume"
+            >
+              <Volume1 size={18} />
+              <Minus size={11} strokeWidth={3} />
+            </button>
             <input
               type="range"
               min={0}
@@ -467,8 +486,20 @@ export default function FullPlayer() {
               step={0.01}
               value={volume}
               onChange={(e) => setVolume(Number(e.target.value))}
-              className="h-1 w-full accent-signal-500"
+              aria-label="Volume"
+              className="h-1 min-w-0 flex-1 accent-signal-500"
             />
+            <button
+              type="button"
+              onClick={() => stepVolume(1)}
+              disabled={volume >= 1}
+              className="flex h-9 flex-shrink-0 items-center gap-0.5 rounded-full px-2 text-white/60 hover:text-white disabled:opacity-30"
+              aria-label="Besarkan volume"
+              title="Besarkan volume"
+            >
+              <Volume2 size={18} />
+              <Plus size={11} strokeWidth={3} />
+            </button>
           </div>
         </div>
       </div>
