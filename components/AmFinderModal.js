@@ -163,7 +163,10 @@ export default function AmFinderModal({ tool, onClose }) {
                   key={`${item.url}-${i}`}
                   className="flex items-center gap-2 rounded-xl border border-white/10 bg-ink-950 p-2 pl-4"
                 >
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">{item.label}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-white">{item.label}</span>
+                    {item.format && <span className="block truncate text-xs text-white/40">{item.format}</span>}
+                  </span>
                   <button
                     type="button"
                     onClick={() => copyLink(item.url, i)}
