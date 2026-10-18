@@ -9,7 +9,6 @@ import {
   ArrowLeft,
   Check,
   Download,
-  Link2,
   ListMusic,
   Loader2,
   Music2,
@@ -80,6 +79,7 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
   const fileRef = useRef(null);
   // Impor playlist dari link Spotify.
   const [spOpen, setSpOpen] = useState(false);
+  const [spMode, setSpMode] = useState("spotify"); // spotify | youtube (hanya mengatur teks petunjuk)
   const [spUrl, setSpUrl] = useState("");
   const [spLoading, setSpLoading] = useState(false);
 
@@ -385,6 +385,76 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
   // ---------- Daftar semua playlist ----------
   return (
     <div>
+      {/* Impor playlist: hijau = Spotify, merah = YouTube (Music) */}
+      <div className="mb-4 grid grid-cols-2 gap-2">
+        {[
+          { id: "spotify", label: "Impor Spotify", logo: "/assets/spotify.png", bg: "#1db954" },
+          { id: "youtube", label: "Impor YouTube", logo: "/assets/youtube.png", bg: "#e62117" },
+        ].map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            onClick={() => {
+              setSpMode(b.id);
+              setSpOpen(true);
+              setError("");
+              setNotice("");
+            }}
+            className="flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold"
+            style={{ background: b.bg, color: "#fff", outline: spOpen && spMode === b.id ? "2px solid currentColor" : "none", outlineOffset: 2 }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={b.logo} alt="" className="h-6 w-6 flex-shrink-0 rounded-md bg-white object-contain p-px" />
+            {b.label}
+          </button>
+        ))}
+      </div>
+
+      {spOpen && (
+        <form onSubmit={handleSpotifyImport} className="mb-4">
+          <p className="mb-2 text-sm text-white/60">
+            {spMode === "youtube"
+              ? "Tempel link playlist YouTube Music (buka playlist → titik tiga → Bagikan → Salin link). Playlist harus publik atau tidak publik (bukan privat)."
+              : "Tempel link playlist Spotify (di aplikasi Spotify: titik tiga → Bagikan → Salin link). Playlist harus publik."}
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={spUrl}
+              onChange={(e) => setSpUrl(e.target.value)}
+              placeholder={
+                spMode === "youtube"
+                  ? "https://music.youtube.com/playlist?list=..."
+                  : "https://open.spotify.com/playlist/..."
+              }
+              aria-label={spMode === "youtube" ? "Link playlist YouTube Music" : "Link playlist Spotify"}
+              autoFocus
+              inputMode="url"
+              className={FIELD}
+            />
+            <button
+              type="submit"
+              disabled={spLoading || !spUrl.trim()}
+              className="flex flex-shrink-0 items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold disabled:opacity-60"
+              style={{ background: spMode === "youtube" ? "#e62117" : "#1db954", color: "#fff" }}
+            >
+              {spLoading ? <Loader2 size={16} className="animate-spin" /> : "Impor"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSpOpen(false);
+                setSpUrl("");
+                setError("");
+              }}
+              aria-label="Batal"
+              className="grid w-12 flex-shrink-0 place-items-center rounded-xl border border-white/15 text-white"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </form>
+      )}
+
       {creating && (
         <form onSubmit={handleCreate} className="mb-4 flex gap-2">
           <input
@@ -417,44 +487,6 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
         </form>
       )}
 
-      {spOpen && (
-        <form onSubmit={handleSpotifyImport} className="mb-4">
-          <p className="mb-2 text-sm text-white/60">
-            Tempel link playlist Spotify atau YouTube Music (buka playlist → titik tiga → Bagikan → Salin link). Playlist
-            harus publik atau tidak publik (bukan privat).
-          </p>
-          <div className="flex gap-2">
-            <input
-              value={spUrl}
-              onChange={(e) => setSpUrl(e.target.value)}
-              placeholder="Link playlist Spotify / YouTube Music"
-              aria-label="Link playlist Spotify atau YouTube Music"
-              autoFocus
-              inputMode="url"
-              className={FIELD}
-            />
-            <button
-              type="submit"
-              disabled={spLoading || !spUrl.trim()}
-              className="flex flex-shrink-0 items-center gap-2 rounded-xl bg-signal-500 px-5 py-3 text-sm font-semibold text-ink-950 disabled:opacity-60"
-            >
-              {spLoading ? <Loader2 size={16} className="animate-spin" /> : "Impor"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSpOpen(false);
-                setSpUrl("");
-                setError("");
-              }}
-              aria-label="Batal"
-              className="grid w-12 flex-shrink-0 place-items-center rounded-xl border border-white/15 text-white"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </form>
-      )}
 
       {error && (
         <p className="mb-4 rounded-xl border border-flare-500/30 bg-flare-500/10 px-4 py-2.5 text-sm text-flare-400">
@@ -519,18 +551,6 @@ export default function PlaylistTab({ pl, scrollToPlayer }) {
         >
           <Upload size={16} />
           Impor
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setSpOpen(true);
-            setError("");
-            setNotice("");
-          }}
-          className="flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white/80 hover:bg-white/10"
-        >
-          <Link2 size={16} />
-          Impor Playlist
         </button>
         <input ref={fileRef} type="file" accept="application/json,.json" onChange={handleImportFile} className="hidden" />
       </div>
