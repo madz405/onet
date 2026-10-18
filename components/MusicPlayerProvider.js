@@ -162,8 +162,20 @@ export default function MusicPlayerProvider({ children }) {
     }
     // Link stream + sampul asli lagu ikut disimpan ke playlist (seperti riwayat),
     // jadi putaran berikutnya tidak perlu mengambil link lagi selama belum kedaluwarsa.
-    updatePlaylistTrackData(t.id, { thumbnail: fresh.thumbnail, streamUrl: fresh.streamUrl, resolvedAt: Date.now() });
-    setTrack({ ...t, streamUrl: fresh.streamUrl, thumbnail: fresh.thumbnail || t.thumbnail, resolvedAt: Date.now() });
+    const knownDuration = fresh.duration || t.duration || null;
+    updatePlaylistTrackData(t.id, {
+      thumbnail: fresh.thumbnail,
+      streamUrl: fresh.streamUrl,
+      resolvedAt: Date.now(),
+      duration: knownDuration,
+    });
+    setTrack({
+      ...t,
+      streamUrl: fresh.streamUrl,
+      thumbnail: fresh.thumbnail || t.thumbnail,
+      duration: knownDuration || undefined,
+      resolvedAt: Date.now(),
+    });
   }
   startTrackRef.current = startTrack;
 
@@ -287,6 +299,7 @@ export default function MusicPlayerProvider({ children }) {
       ...current,
       streamUrl: fresh.streamUrl,
       thumbnail: fresh.thumbnail || current.thumbnail,
+      duration: fresh.duration || current.duration || undefined,
       resolvedAt: Date.now(),
     };
     setHistory((h) => updateMusicHistoryItem(h, updated));
@@ -294,6 +307,7 @@ export default function MusicPlayerProvider({ children }) {
       thumbnail: updated.thumbnail,
       streamUrl: updated.streamUrl,
       resolvedAt: updated.resolvedAt,
+      duration: updated.duration,
     });
     // Hanya ganti kalau user belum pindah ke lagu lain selama menunggu.
     setTrack((prev) => (prev && prev.id === current.id ? updated : prev));
@@ -384,6 +398,10 @@ export default function MusicPlayerProvider({ children }) {
     }
   }, [hasMediaSession, track, activeList.length, playByOffset, seek, stopPlayback]);
 
+  // Stream tanpa panjang yang diketahui (mis. Spotify) melaporkan durasi Infinity -> pakai
+  // panjang lagu dari hasil pencarian / endpoint supaya sisa waktu & bar geser tetap ada.
+  const shownDuration = duration > 0 ? duration : track?.duration > 0 ? track.duration : 0;
+
   const value = useMemo(
     () => ({
       track,
@@ -391,7 +409,7 @@ export default function MusicPlayerProvider({ children }) {
       playMode,
       isPlaying,
       progress,
-      duration,
+      duration: shownDuration,
       volume,
       playbackError,
       refreshing,
@@ -413,7 +431,7 @@ export default function MusicPlayerProvider({ children }) {
       cycleMode,
     }),
     [
-      track, history, playMode, isPlaying, progress, duration, volume, playbackError, refreshing,
+      track, history, playMode, isPlaying, progress, shownDuration, volume, playbackError, refreshing,
       resolvingId, activeList.length, playerOpen, playlistTarget, playTrack, playFromList, addAndPlay, removeFromHistory, togglePlay, stopPlayback, playByOffset, seek, cycleMode,
     ]
   );
