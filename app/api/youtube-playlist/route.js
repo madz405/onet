@@ -7,8 +7,14 @@ import yts from "yt-search";
 // Playlist harus publik atau "tidak publik" (unlisted). Playlist pribadi, "Suka" (LM),
 // dan mix/radio otomatis (RD...) tidak bisa dibaca.
 //
-// Urutan: baca halaman playlist langsung (+ halaman lanjutan sampai MAX_TRACKS),
-// cadangan: module yt-search (hanya halaman pertama, ±100 lagu).
+// Beberapa cara dicoba BERSAMAAN (server hosting sering diblokir sebagian oleh YouTube,
+// jadi satu cara bisa gagal sementara cara lain berhasil); hasil dengan lagu terbanyak
+// dipakai (seri: YouTube Music > YouTube web > Android > halaman HTML):
+//   1. API internal YouTube Music (WEB_REMIX)  - nama artis paling akurat
+//   2. API internal YouTube (WEB)               - + halaman lanjutan sampai MAX_TRACKS
+//   3. API internal YouTube (ANDROID)
+//   4. halaman playlist HTML
+// Cadangan terakhir kalau semuanya kosong: module yt-search (±100 lagu).
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -94,57 +100,126 @@ function rendererToTrack(r) {
   };
 }
 
-async function readPlaylistPage(listId) {
-  const res = await fetch(`https://www.youtube.com/playlist?list=${encodeURIComponent(listId)}&hl=id&gl=ID`, {
-    headers: { "User-Agent": UA, "Accept-Language": "id-ID,id;q=0.9,en;q=0.8", Cookie: "CONSENT=YES+1; SOCS=CAI" },
-    signal: AbortSignal.timeout(12000),
+const COMMON_HEADERS = {
+  "User-Agent": UA,
+  "Accept-Language": "id-ID,id;q=0.9,en;q=0.8",
+  Cookie: "CONSENT=YES+1; SOCS=CAI",
+};
+const WEB_KEY = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8";
+const MUSIC_KEY = "AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30";
+
+// Panggilan API internal YouTube (youtubei/v1/browse).
+async function innertube({ host, key, client, extraHeaders, body }) {
+  const res = await fetch(`https://${host}/youtubei/v1/browse?key=${key}&prettyPrint=false`, {
+    method: "POST",
+    headers: { ...COMMON_HEADERS, "Content-Type": "application/json", ...extraHeaders },
+    body: JSON.stringify({ context: { client: { hl: "id", gl: "ID", ...client } }, ...body }),
+    signal: AbortSignal.timeout(9000),
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const html = await res.text();
-  const m = /var ytInitialData\s*=\s*(\{[\s\S]*?\});\s*<\/script>/.exec(html);
-  if (!m) throw new Error("data halaman playlist tidak ditemukan");
-  const data = JSON.parse(m[1]);
+  return res.json();
+}
 
-  const name =
+function playlistName(data) {
+  return (
     clean(collect(data, "playlistMetadataRenderer")[0]?.title, 80) ||
     clean(collect(data, "playlistHeaderRenderer")[0]?.title?.simpleText, 80) ||
-    clean(/<meta property="og:title" content="([^"]+)"/.exec(html)?.[1], 80);
+    clean(collect(data, "musicResponsiveHeaderRenderer")[0]?.title?.runs?.[0]?.text, 80) ||
+    clean(collect(data, "musicDetailHeaderRenderer")[0]?.title?.runs?.[0]?.text, 80) ||
+    clean(collect(data, "musicEditablePlaylistDetailHeaderRenderer")[0]?.header?.musicResponsiveHeaderRenderer?.title?.runs?.[0]?.text, 80) ||
+    ""
+  );
+}
 
+// Daftar lagu dari struktur "playlistVideoRenderer" (YouTube web & Android), + lanjutan.
+function videoRenderersToTracks(renderers, tracks) {
+  for (const r of renderers) {
+    const t = rendererToTrack(r);
+    if (t) tracks.push(t);
+  }
+}
+
+async function viaWebApi(listId) {
+  const client = { clientName: "WEB", clientVersion: "2.20241001.00.00" };
+  const data = await innertube({ host: "www.youtube.com", key: WEB_KEY, client, body: { browseId: `VL${listId}` } });
   const tracks = [];
-  const add = (renderers) => {
-    for (const r of renderers) {
-      const t = rendererToTrack(r);
-      if (t) tracks.push(t);
-    }
-  };
-  add(collect(data, "playlistVideoRenderer"));
-
-  // Halaman lanjutan (playlist > 100 lagu).
+  videoRenderersToTracks(collect(data, "playlistVideoRenderer"), tracks);
   let token = collect(data, "continuationCommand")[0]?.token;
-  const apiKey = /"INNERTUBE_API_KEY":"([^"]+)"/.exec(html)?.[1];
-  const version = /"INNERTUBE_CLIENT_VERSION":"([^"]+)"/.exec(html)?.[1] || "2.20241001.00.00";
-  for (let i = 0; token && apiKey && i < MAX_CONTINUATIONS && tracks.length < MAX_TRACKS; i++) {
+  for (let i = 0; token && i < MAX_CONTINUATIONS && tracks.length < MAX_TRACKS; i++) {
     try {
-      const r = await fetch(`https://www.youtube.com/youtubei/v1/browse?key=${apiKey}&prettyPrint=false`, {
-        method: "POST",
-        headers: { "User-Agent": UA, "Content-Type": "application/json", Cookie: "CONSENT=YES+1; SOCS=CAI" },
-        body: JSON.stringify({
-          context: { client: { clientName: "WEB", clientVersion: version, hl: "id", gl: "ID" } },
-          continuation: token,
-        }),
-        signal: AbortSignal.timeout(10000),
-        cache: "no-store",
-      });
-      if (!r.ok) break;
-      const j = await r.json();
-      add(collect(j, "playlistVideoRenderer"));
+      const j = await innertube({ host: "www.youtube.com", key: WEB_KEY, client, body: { continuation: token } });
+      videoRenderersToTracks(collect(j, "playlistVideoRenderer"), tracks);
       token = collect(j, "continuationCommand")[0]?.token;
     } catch {
       break; // halaman lanjutan gagal: pakai yang sudah didapat
     }
   }
-  return { name, tracks };
+  return { name: playlistName(data), tracks };
+}
+
+async function viaAndroidApi(listId) {
+  const client = { clientName: "ANDROID", clientVersion: "19.17.34", androidSdkVersion: 34 };
+  const data = await innertube({
+    host: "www.youtube.com",
+    key: WEB_KEY,
+    client,
+    extraHeaders: { "User-Agent": "com.google.android.youtube/19.17.34 (Linux; U; Android 14) gzip" },
+    body: { browseId: `VL${listId}` },
+  });
+  const tracks = [];
+  videoRenderersToTracks(collect(data, "playlistVideoRenderer"), tracks);
+  return { name: playlistName(data), tracks };
+}
+
+// YouTube Music: tiap lagu punya kolom judul + kolom artis (nama artis lebih akurat).
+async function viaMusicApi(listId) {
+  const data = await innertube({
+    host: "music.youtube.com",
+    key: MUSIC_KEY,
+    client: { clientName: "WEB_REMIX", clientVersion: "1.20241002.01.00" },
+    extraHeaders: { Origin: "https://music.youtube.com", Referer: "https://music.youtube.com/" },
+    body: { browseId: `VL${listId}` },
+  });
+  const tracks = [];
+  for (const it of collect(data, "musicResponsiveListItemRenderer")) {
+    if (/GREY_OUT/.test(it.musicItemRendererDisplayPolicy || "")) continue; // tidak tersedia
+    const id = it.playlistItemData?.videoId || collect(it, "watchEndpoint")[0]?.videoId;
+    if (!id || !/^[A-Za-z0-9_-]{11}$/.test(id)) continue;
+    const cols = it.flexColumns || [];
+    const title = clean(cols[0]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.[0]?.text, 200);
+    if (!title) continue;
+    const runs = cols[1]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs || [];
+    const artists = runs
+      .filter((r) => /^UC/.test(r.navigationEndpoint?.browseEndpoint?.browseId || ""))
+      .map((r) => clean(r.text, 60))
+      .filter(Boolean);
+    const artist = cleanArtist((artists.length ? artists : [runs[0]?.text || ""]).join(", "));
+    tracks.push({
+      title,
+      artist,
+      thumbnail: pickThumb(it.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails, id),
+      pageUrl: `https://www.youtube.com/watch?v=${id}`,
+      searchQuery: title,
+    });
+  }
+  return { name: playlistName(data), tracks };
+}
+
+async function viaHtmlPage(listId) {
+  const res = await fetch(`https://www.youtube.com/playlist?list=${encodeURIComponent(listId)}&hl=id&gl=ID`, {
+    headers: COMMON_HEADERS,
+    signal: AbortSignal.timeout(9000),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const html = await res.text();
+  const m = /var ytInitialData\s*=\s*(\{[\s\S]*?\});\s*<\/script>/.exec(html);
+  if (!m) throw new Error(/consent|captcha|unusual traffic/i.test(html) ? "diblokir/consent" : "data halaman tidak ada");
+  const data = JSON.parse(m[1]);
+  const tracks = [];
+  videoRenderersToTracks(collect(data, "playlistVideoRenderer"), tracks);
+  return { name: playlistName(data) || clean(/<meta property="og:title" content="([^"]+)"/.exec(html)?.[1], 80), tracks };
 }
 
 // Cadangan: module yt-search (halaman pertama saja).
@@ -186,21 +261,40 @@ export async function POST(req) {
   if (listId.startsWith("RD")) return bad("Mix / radio otomatis tidak bisa diimpor. Pakai playlist biasa.");
   if (listId === "LM" || listId === "WL") return bad("Playlist pribadi (Suka / Tonton nanti) tidak bisa diimpor.");
 
+  // Semua cara dijalankan bersamaan; hasil dengan lagu terbanyak menang (seri: urutan di bawah).
+  const methods = [
+    ["YT Music", viaMusicApi],
+    ["web", viaWebApi],
+    ["android", viaAndroidApi],
+    ["halaman", viaHtmlPage],
+  ];
+  const settled = await Promise.allSettled(methods.map(([, fn]) => fn(listId)));
+  const reasons = [];
   let result = null;
-  try {
-    result = await readPlaylistPage(listId);
-  } catch (err) {
-    console.error("[youtube-playlist] baca halaman gagal:", err.message);
-  }
-  if (!result?.tracks.length) {
+  settled.forEach((r, i) => {
+    const label = methods[i][0];
+    if (r.status === "rejected") {
+      reasons.push(`${label}: ${clean(r.reason?.message, 40) || "gagal"}`);
+    } else if (!r.value.tracks.length) {
+      reasons.push(`${label}: kosong`);
+    } else if (!result || r.value.tracks.length > result.tracks.length) {
+      result = r.value;
+    }
+  });
+
+  if (!result) {
     try {
       result = await readViaYts(listId);
     } catch (err) {
-      console.error("[youtube-playlist] yt-search gagal:", err.message);
+      reasons.push(`yts: ${clean(err.message, 40)}`);
     }
   }
   if (!result?.tracks.length) {
-    return bad("Playlist tidak bisa dibaca. Pastikan playlist-nya publik (bukan privat) dan bukan mix otomatis.", 404);
+    console.error("[youtube-playlist] semua cara gagal:", reasons.join("; "));
+    return bad(
+      `Playlist tidak bisa dibaca. Pastikan playlist-nya publik (bukan privat) dan bukan mix otomatis. (${reasons.join("; ")})`,
+      404
+    );
   }
 
   // Tanpa duplikat (video yang sama).
