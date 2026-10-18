@@ -6,6 +6,8 @@
 .fullplayer {
   position: fixed;
   inset: 0;
+  height: 100dvh; /* disesuaikan lagi lewat JS (FullPlayer.js) mengikuti layar yang terlihat */
+  overscroll-behavior: contain;
   z-index: 45; /* di atas navbar (40) & mini player (30), di bawah Modal (50) */
   display: flex;
   flex-direction: column;
