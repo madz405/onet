@@ -130,8 +130,8 @@ export async function POST(req) {
       title,
       artist,
       pageUrl: id ? `https://open.spotify.com/track/${id}` : null,
-      // Format yang sama dengan hasil pencarian Spotify ("Artis - Judul").
-      searchQuery: clean(artist ? `${artist} - ${title}` : title, 250),
+      // Judul dulu, baru artis ("Judul Artis") supaya pencarian link audio tidak meleset.
+      searchQuery: clean(artist ? `${title} ${artist}` : title, 250),
     });
     if (tracks.length >= MAX_TRACKS) break;
   }
