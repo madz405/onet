@@ -11,7 +11,8 @@
   z-index: 45; /* di atas navbar (40) & mini player (30), di bawah Modal (50) */
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* overflow dibiarkan visible: lapisan "rok" di bawah (::after) harus bisa keluar dari kotak.
+     Pemotongan blur cover dilakukan oleh .fp-bg sendiri. */
   /* Warna permukaan ikut tema. Di tema Neumorphism/Claymorphism --ink-950 itu PUTIH
      (dipakai sebagai warna teks di atas tombol), jadi latar diganti di bawah. */
   --fp-surface: rgb(var(--ink-950));
@@ -20,6 +21,19 @@
   visibility: hidden;
   transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.4s;
   will-change: transform;
+}
+/* "Rok": perpanjangan latar tepat di bawah pemutar. Kalau layar HP sedikit lebih tinggi dari
+   pemutar (bar alamat / bar navigasi sedang bergeser), celahnya terisi warna yang sama dan
+   halaman di belakang tidak kelihatan. Di luar layar tidak terlihat sama sekali. */
+.fullplayer::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 160px;
+  background: inherit;
+  pointer-events: none;
 }
 .fullplayer[data-open="true"] {
   transform: translateY(0);
