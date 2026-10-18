@@ -35,7 +35,7 @@ import useBackToClose from "@/lib/useBackToClose";
 const SOURCE_LABEL = { youtube: "YouTube", spotify: "Spotify", soundcloud: "SoundCloud" };
 
 function formatTime(sec) {
-  if (!sec || Number.isNaN(sec) || sec < 0) return "0:00";
+  if (!Number.isFinite(sec) || sec <= 0) return "0:00";
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60)
     .toString()
@@ -411,14 +411,15 @@ export default function FullPlayer() {
             <input
               type="range"
               min={0}
-              max={duration || 0}
+              max={duration > 0 ? duration : 0}
+              disabled={!(duration > 0)}
               value={progress}
               onChange={(e) => seek(Number(e.target.value))}
               className="h-1 w-full accent-signal-500"
             />
             <div className="mt-1 flex justify-between text-[11px] tabular-nums text-white/40">
               <span>{formatTime(progress)}</span>
-              <span>-{formatTime((duration || 0) - progress)}</span>
+              <span>{duration > 0 ? `-${formatTime(duration - progress)}` : "--:--"}</span>
             </div>
           </div>
 
