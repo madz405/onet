@@ -14,6 +14,14 @@
       "body": "Pemutar penuh dengan lirik berjalan otomatis, impor playlist Spotify, dan link TikTok tt.site sekarang didukung.",
       "date": "2026-10-16",
       "expiresAt": "2026-10-25"
+    },
+    {
+      "id": "2026-10-18-musikspotify",
+      "type": "info",
+      "title": "fix bug",
+      "body": "perbaiki pada tampilan pemutar musik spotify durasinya tidak jelas dan pop up mengambang",
+      "date": "2026-10-18",
+      "expiresAt": "2026-10-25"
     }
   ],
   "_contoh": [
