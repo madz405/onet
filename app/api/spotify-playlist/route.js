@@ -130,6 +130,8 @@ export async function POST(req) {
       title,
       artist,
       pageUrl: id ? `https://open.spotify.com/track/${id}` : null,
+      // Embed Spotify memberi durasi dalam milidetik.
+      duration: Number.isFinite(it?.duration) && it.duration > 0 ? Math.round(it.duration > 10000 ? it.duration / 1000 : it.duration) : null,
       // Judul dulu, baru artis ("Judul Artis") supaya pencarian link audio tidak meleset.
       searchQuery: clean(artist ? `${title} ${artist}` : title, 250),
     });
