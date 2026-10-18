@@ -185,6 +185,7 @@ export default function MusicSection() {
         artist,
         thumbnail: item.thumbnail || data.thumbnail || null,
         streamUrl: data.streamUrl,
+        duration: item.duration || data.duration || null, // dipakai kalau stream tidak melaporkan panjang lagu
         query: searchedQuery,
         pageUrl: item.url, // dipakai pemutar untuk mengambil ulang link yang kedaluwarsa
         searchQuery: item.query,
@@ -208,6 +209,7 @@ export default function MusicSection() {
       thumbnail: r.thumbnail || null,
       pageUrl: r.url,
       searchQuery: r.query,
+      duration: r.duration || null,
       query: searchedQuery,
     };
   }
