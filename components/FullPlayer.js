@@ -124,8 +124,9 @@ export default function FullPlayer() {
     const el = rootRef.current;
     if (!el) return;
     const fit = () => {
-      const h = window.visualViewport?.height || window.innerHeight;
-      el.style.height = `${Math.round(Math.max(h, window.innerHeight))}px`;
+      const h = Math.max(window.visualViewport?.height || 0, window.innerHeight, document.documentElement.clientHeight);
+      // +6px: sedikit melebihi layar (yang berlebih tidak terlihat) supaya tidak ada garis tipis di dasar.
+      el.style.height = `${Math.round(h) + 6}px`;
     };
     fit();
     const t1 = setTimeout(fit, 120);
