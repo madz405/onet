@@ -89,6 +89,7 @@ export default function FullPlayer() {
   const userScrollUntil = useRef(0);
   const scrolledOnce = useRef(false);
   const dragStart = useRef(null);
+  const rootRef = useRef(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
@@ -113,6 +114,31 @@ export default function FullPlayer() {
   useEffect(() => {
     setPlayerOpen(false);
   }, [pathname, setPlayerOpen]);
+
+  // Tinggi pemutar = tinggi layar yang benar-benar terlihat saat ini. Di Chrome HP,
+  // bar alamat yang muncul/hilang bisa membuat elemen "fixed" lebih pendek dari layar
+  // (muncul celah di bawah dan halaman di belakangnya kelihatan), jadi tinggi dihitung ulang
+  // saat dibuka dan setiap ukuran layar berubah.
+  useEffect(() => {
+    if (!playerOpen) return;
+    const el = rootRef.current;
+    if (!el) return;
+    const fit = () => {
+      const h = window.visualViewport?.height || window.innerHeight;
+      el.style.height = `${Math.round(Math.max(h, window.innerHeight))}px`;
+    };
+    fit();
+    const t1 = setTimeout(fit, 120);
+    const t2 = setTimeout(fit, 450); // setelah animasi naik selesai
+    window.addEventListener("resize", fit);
+    window.visualViewport?.addEventListener("resize", fit);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener("resize", fit);
+      window.visualViewport?.removeEventListener("resize", fit);
+    };
+  }, [playerOpen]);
 
   useEffect(() => {
     if (!playerOpen) return;
@@ -244,6 +270,7 @@ export default function FullPlayer() {
 
   return (
     <div
+      ref={rootRef}
       className="fullplayer"
       data-open={playerOpen ? "true" : "false"}
       aria-hidden={!playerOpen}
