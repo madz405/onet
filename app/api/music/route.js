@@ -195,6 +195,7 @@ export async function POST(req) {
         artist: r.artist || null,
         thumbnail: r.thumbnail || null,
         streamUrl: r.streamUrl,
+        duration: Number.isFinite(r.duration) && r.duration > 0 ? r.duration : null,
       });
     } catch (err) {
       await reportError(`musik putar: ${source}`, err, { judul: query });
