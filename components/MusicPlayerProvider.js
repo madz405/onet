@@ -23,6 +23,11 @@ const NEXT_MODE = { sequential: "repeat", repeat: "shuffle", shuffle: "sequentia
 
 // Kata pencarian untuk mengambil ulang link lagu: judul + artis (kalau judul
 // belum memuat nama artisnya), lalu query asli user sebagai cadangan.
+// Stream tanpa panjang yang diketahui melaporkan durasi Infinity/NaN: dianggap 0 (tidak diketahui).
+function safeDuration(d) {
+  return Number.isFinite(d) && d > 0 ? d : 0;
+}
+
 function refreshQueries(t) {
   const title = (t.title || "").trim();
   const artist = (t.artist || "").trim();
@@ -431,9 +436,10 @@ export default function MusicPlayerProvider({ children }) {
           onSeeked={syncPositionState}
           onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
           onLoadedMetadata={(e) => {
-            setDuration(e.currentTarget.duration);
+            setDuration(safeDuration(e.currentTarget.duration));
             syncPositionState();
           }}
+          onDurationChange={(e) => setDuration(safeDuration(e.currentTarget.duration))}
           onEnded={handleEnded}
           onError={handleAudioError}
         />
