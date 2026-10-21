@@ -55,7 +55,7 @@ const NEXRAY_TIMEOUT_MS = 25000;
 // Endpoint ini juga butuh URL gambar publik (bukan file upload langsung),
 // makanya tetap lewat top4top dulu seperti endpoint lama.
 async function fetchNexrayHd(hostedUrl) {
-  const target = `https://api.nexray.eu.cc/tools/v4/upscale?url=${encodeURIComponent(hostedUrl)}&resolusi=4`;
+  const target = `https://apiii-xrina.my.id/ai-image/hd?url=${encodeURIComponent(hostedUrl)}&scale=4`;
 
   const res = await fetch(target, {
     headers: { "User-Agent": PROXY_UA },
