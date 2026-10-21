@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { reportError } from "@/lib/reportError";
 import { uploadToTop4top } from "@/lib/uploadImage";
+import { uploadAnyFile } from "@/lib/uploadFile";
 import { proxyMedia } from "@/lib/proxyMedia";
 import { upscaleHd } from "@/lib/scrapers/imgLarger";
 import { removeBgILoveImg } from "@/lib/scrapers/iloveimg";
 import { humanCheck } from "@/lib/turnstile";
-import { TURNSTILE_TOOLS, FAKEML_RANKS, FAKEML_BORDERS } from "@/lib/tools";
+import { TURNSTILE_TOOLS } from "@/lib/tools";
 
 export const runtime = "nodejs";
-// Tool "hd" sekarang bisa nunggu lama: endpoint utama (nexray) dicoba dulu,
+// Tool "hd" sekarang bisa nunggu lama: endpoint utama (Xrina) dicoba dulu,
 // kalau gagal baru fallback ke scraper imglarger yang upload+polling
 // (~15-40 detik sendiri). Worst-case (utama gagal lambat -> lanjut fallback)
 // bisa mendekati/lebih dari 60 detik, makanya maxDuration dinaikkan ke 120.
@@ -46,40 +47,70 @@ function memegenEncode(text) {
 
 const PROXY_UA =
   "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36";
-const NEXRAY_TIMEOUT_MS = 25000;
+const HD_TIMEOUT_MS = 50000;
+const HD_MAX_BYTES = 25 * 1024 * 1024;
 
-// Endpoint UTAMA untuk tool "hd". Beda dari endpoint lain di ENDPOINTS di
-// bawah, ini butuh ditangani manual (bukan lewat proxyMedia langsung) karena
-// hasilnya perlu divalidasi dulu sebelum dipakai — kalau gagal/error, kita
-// mau fallback ke scraper imglarger, bukan langsung balas error ke user.
-// Endpoint ini juga butuh URL gambar publik (bukan file upload langsung),
-// makanya tetap lewat top4top dulu seperti endpoint lama.
-async function fetchNexrayHd(hostedUrl) {
+// Upload foto ke host publik memakai uploader dari tool "Upload file" (lib/uploadFile.js:
+// Litterbox -> Uguu -> TmpFiles). Kalau semuanya gagal, baru uploader lama (lib/uploadImage.js)
+// sebagai cadangan terakhir. Masa aktif 1 jam sudah cukup: URL ini hanya dipakai sekali oleh
+// endpoint pemroses.
+async function hostImage(buffer, filename, contentType) {
+  try {
+    const up = await uploadAnyFile(buffer, filename, contentType, "1h");
+    if (up?.url) return up.url;
+  } catch (err) {
+    console.error("[tools] uploader utama gagal, coba uploader lama:", err.message);
+  }
+  return uploadToTop4top(buffer, filename, contentType);
+}
+
+// Endpoint UTAMA untuk tool "hd": Xrina (apiii-xrina.my.id/ai-image/hd, scale=4).
+// Hasilnya divalidasi dulu (bukan langsung diteruskan lewat proxyMedia) — kalau gagal/error,
+// kita mau fallback ke scraper imglarger, bukan langsung balas error ke user.
+// Butuh URL gambar publik (bukan file upload langsung), makanya foto di-host dulu.
+// Endpoint bisa membalas gambar langsung ATAU JSON berisi link gambar; dua-duanya ditangani.
+async function fetchXrinaHd(hostedUrl) {
   const target = `https://apiii-xrina.my.id/ai-image/hd?url=${encodeURIComponent(hostedUrl)}&scale=4`;
 
   const res = await fetch(target, {
     headers: { "User-Agent": PROXY_UA },
-    signal: AbortSignal.timeout(NEXRAY_TIMEOUT_MS),
+    signal: AbortSignal.timeout(HD_TIMEOUT_MS),
   });
-
-  if (!res.ok) {
-    throw new Error(`Endpoint HD utama membalas status ${res.status}.`);
-  }
-
   const contentType = res.headers.get("content-type") || "";
-  // Endpoint ini memang balas media langsung (bukan JSON) kalau sukses.
-  // Kalau balasannya JSON/HTML, berarti itu pesan error dari servernya.
-  if (contentType.includes("application/json") || contentType.includes("text/html")) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text?.slice(0, 200) || "Endpoint HD utama tidak mengembalikan gambar.");
+
+  if (res.ok && contentType.startsWith("image/")) {
+    const buffer = await res.arrayBuffer();
+    if (!buffer.byteLength) throw new Error("Endpoint HD utama mengembalikan hasil kosong.");
+    return { buffer, contentType };
   }
 
-  const buffer = await res.arrayBuffer();
-  if (!buffer || buffer.byteLength === 0) {
-    throw new Error("Endpoint HD utama mengembalikan hasil kosong.");
+  const raw = await res.text().catch(() => "");
+  let json = null;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    // bukan JSON
   }
 
-  return { buffer, contentType: contentType || "image/jpeg" };
+  const link = json && res.ok ? findImageUrl(json) : null;
+  if (link) {
+    const imgRes = await fetch(link, {
+      headers: { "User-Agent": PROXY_UA },
+      signal: AbortSignal.timeout(30000),
+    });
+    const imgType = imgRes.headers.get("content-type") || "";
+    if (imgRes.ok && imgType.startsWith("image/")) {
+      const buffer = await imgRes.arrayBuffer();
+      if (buffer.byteLength && buffer.byteLength <= HD_MAX_BYTES) return { buffer, contentType: imgType };
+    }
+  }
+
+  const msg = json?.message || json?.error || "";
+  console.error("[hd] endpoint Xrina gagal:", res.status, contentType, raw.slice(0, 200));
+  throw new Error(
+    (typeof msg === "string" && msg.slice(0, 200)) ||
+      (res.ok ? "Endpoint HD utama tidak mengembalikan gambar." : `Endpoint HD utama membalas status ${res.status}.`)
+  );
 }
 
 const EDITIMG_TIMEOUT_MS = 90000;
@@ -164,7 +195,7 @@ async function fetchEditImg(hostedUrl, prompt) {
 
 const REMOVEBG_TIMEOUT_MS = 25000;
 
-// Endpoint UTAMA untuk tool "removebg" (azbry). Sama seperti fetchNexrayHd,
+// Endpoint UTAMA untuk tool "removebg" (azbry). Sama seperti fetchXrinaHd,
 // hasilnya divalidasi dulu (bukan langsung diteruskan lewat proxyMedia) supaya
 // kalau gagal bisa jatuh ke scraper cadangan iLoveIMG, bukan langsung error.
 async function fetchRemoveBgEndpoint(hostedUrl) {
@@ -193,37 +224,20 @@ async function fetchRemoveBgEndpoint(hostedUrl) {
   return { buffer, contentType: contentType || "image/png" };
 }
 
-// Avatar default fakeml, dipilih acak kalau user tidak upload avatar sendiri.
-const FAKEML_DEFAULT_AVATARS = [
-  "https://files.catbox.moe/zygmn7.jpg",
-  "https://files.catbox.moe/jkyqcd.jpg",
-  "https://files.catbox.moe/ll0152.jpg",
-  "https://files.catbox.moe/2xlyuy.jpg",
-  "https://files.catbox.moe/fyaax6.jpg",
-  "https://files.catbox.moe/jgzyrt.jpg",
-  "https://files.catbox.moe/htswya.jpg",
-];
-
 // Setiap builder menerima (imageUrl, formData) — imageUrl sudah di-host di
 // top4top, formData dipakai untuk tool yang butuh input tambahan selain foto
-// (contoh: fakeml butuh username/rank/border, meme butuh teks atas/bawah).
+// (contoh: fakeml butuh nickname, meme butuh teks atas/bawah).
 // "hd" TIDAK ada di sini lagi — sekarang ditangani terpisah di bawah
-// (endpoint nexray dulu, fallback ke upscaleHd() dari
+// (endpoint Xrina dulu, fallback ke upscaleHd() dari
 // lib/scrapers/imgLarger.js kalau gagal), bukan sekadar satu GET request
 // ke URL seperti tool lain di map ini.
 const ENDPOINTS = {
   removebg: (imageUrl) => `https://api.azbry.com/api/tools/removebg?url=${encodeURIComponent(imageUrl)}`,
-  // fakeml: avatar = URL gambar (hasil upload user, atau salah satu avatar
-  // default acak kalau user tidak upload). rank/border sudah divalidasi di POST.
   fakeml: (imageUrl, formData) => {
-    const username = (formData.get("username") || "").toString().trim();
-    const rank = (formData.get("rank") || "").toString().trim() || "imo";
-    const border = (formData.get("border") || "").toString().trim() || "1";
-    return `https://webapi-fawn.vercel.app/download/fakeml?username=${encodeURIComponent(
-      username
-    )}&rank=${encodeURIComponent(rank)}&border=${encodeURIComponent(border)}&avatar=${encodeURIComponent(
+    const nickname = (formData.get("nickname") || "").toString().trim();
+    return `https://api.nexray.web.id/maker/fakelobyml?avatar=${encodeURIComponent(
       imageUrl
-    )}&format=image`;
+    )}&nickname=${encodeURIComponent(nickname)}`;
   },
   meme: (imageUrl, formData) => {
     const top = memegenEncode(formData.get("topText"));
@@ -258,31 +272,15 @@ export async function POST(req) {
     }
   }
 
-  let file = formData.get("file");
-  if (!file || typeof file === "string" || file.size === 0) file = null;
-  // Avatar fakeml opsional; tool lain wajib upload file.
-  if (!file && tool !== "fakeml") {
+  const file = formData.get("file");
+  if (!file || typeof file === "string") {
     return NextResponse.json({ status: false, message: "Pilih file gambar terlebih dahulu." }, { status: 400 });
   }
-  if (file && file.size > 8 * 1024 * 1024) {
+  if (file.size > 8 * 1024 * 1024) {
     return NextResponse.json({ status: false, message: "Ukuran gambar maksimal 8MB." }, { status: 400 });
   }
-  if (tool === "fakeml") {
-    const username = (formData.get("username") || "").toString().trim();
-    const rank = (formData.get("rank") || "").toString().trim();
-    const border = (formData.get("border") || "").toString().trim();
-    if (!username) {
-      return NextResponse.json({ status: false, message: "Username tidak boleh kosong." }, { status: 400 });
-    }
-    if (username.length > 20) {
-      return NextResponse.json({ status: false, message: "Username maksimal 20 karakter." }, { status: 400 });
-    }
-    if (rank && !FAKEML_RANKS.some((r) => r.value === rank)) {
-      return NextResponse.json({ status: false, message: "Rank tidak valid." }, { status: 400 });
-    }
-    if (border && !FAKEML_BORDERS.some((b) => b.value === border)) {
-      return NextResponse.json({ status: false, message: "Border harus angka 1-16." }, { status: 400 });
-    }
+  if (tool === "fakeml" && !formData.get("nickname")?.toString().trim()) {
+    return NextResponse.json({ status: false, message: "Nickname tidak boleh kosong." }, { status: 400 });
   }
   if (tool === "meme") {
     const top = (formData.get("topText") || "").toString().trim();
@@ -309,7 +307,7 @@ export async function POST(req) {
   }
 
   // Tool "hd" sekarang dua lapis:
-  // 1) Coba endpoint utama (nexray) dulu — lebih cepat kalau lagi normal.
+  // 1) Coba endpoint utama (Xrina) dulu — lebih cepat kalau lagi normal.
   // 2) Kalau itu gagal (down, rate limit, error apapun), baru fallback ke
   //    scraper imglarger (upload file langsung + polling).
   if (tool === "hd") {
@@ -318,8 +316,8 @@ export async function POST(req) {
     const contentType = file.type;
 
     try {
-      const hostedUrl = await uploadToTop4top(buffer, filename, contentType);
-      const primary = await fetchNexrayHd(hostedUrl);
+      const hostedUrl = await hostImage(buffer, filename, contentType);
+      const primary = await fetchXrinaHd(hostedUrl);
       return new NextResponse(primary.buffer, {
         status: 200,
         headers: { "Content-Type": primary.contentType, "Cache-Control": "no-store" },
@@ -348,7 +346,7 @@ export async function POST(req) {
     const prompt = (formData.get("prompt") || "").toString().replace(/\s+/g, " ").trim();
     try {
       const buffer = Buffer.from(await file.arrayBuffer());
-      const hostedUrl = await uploadToTop4top(buffer, file.name || "image.jpg", file.type);
+      const hostedUrl = await hostImage(buffer, file.name || "image.jpg", file.type);
       const result = await fetchEditImg(hostedUrl, prompt);
       return new NextResponse(result.buffer, {
         status: 200,
@@ -381,7 +379,7 @@ export async function POST(req) {
     let hostedUrl = null;
 
     try {
-      hostedUrl = await uploadToTop4top(buffer, filename, contentType);
+      hostedUrl = await hostImage(buffer, filename, contentType);
       const primary = await fetchRemoveBgEndpoint(hostedUrl);
       return new NextResponse(primary.buffer, {
         status: 200,
@@ -407,14 +405,8 @@ export async function POST(req) {
   }
 
   try {
-    let hostedUrl;
-    if (file) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      hostedUrl = await uploadToTop4top(buffer, file.name || "image.jpg", file.type);
-    } else {
-      // Tanpa avatar sendiri (fakeml): pilih avatar default secara acak.
-      hostedUrl = FAKEML_DEFAULT_AVATARS[Math.floor(Math.random() * FAKEML_DEFAULT_AVATARS.length)];
-    }
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const hostedUrl = await hostImage(buffer, file.name || "image.jpg", file.type);
     const targetUrl = ENDPOINTS[tool](hostedUrl, formData);
     return proxyMedia(targetUrl);
   } catch (err) {
