@@ -195,13 +195,13 @@ async function fetchRemoveBgEndpoint(hostedUrl) {
 
 // Avatar default fakeml, dipilih acak kalau user tidak upload avatar sendiri.
 const FAKEML_DEFAULT_AVATARS = [
-  "https://raw.githubusercontent.com/julianmlbb068/asset/refs/heads/main/e3b432e2a7e6d941d02df1d71d93aa99.jpg",
-  "https://raw.githubusercontent.com/julianmlbb068/asset/refs/heads/main/b491fbdce9f52c9a72a6380c829ef2db.jpg",
-  "https://raw.githubusercontent.com/julianmlbb068/asset/refs/heads/main/9c0b67f8712e15ea4b01484e4830c6f9.jpg",
-  "https://raw.githubusercontent.com/julianmlbb068/asset/refs/heads/main/7ef0a5521505232239e07ebd950814cc.jpg",
-  "https://raw.githubusercontent.com/julianmlbb068/asset/refs/heads/main/6ecc0b98cb00db741ce2316fe40f78fc.jpg",
-  "https://raw.githubusercontent.com/julianmlbb068/asset/refs/heads/main/29a09ac7f0e3d4e42e00ef2eee187e87.jpg",
-  "https://raw.githubusercontent.com/julianmlbb068/asset/refs/heads/main/0bfc64b38a63954327615aa036638216.jpg",
+  "https://files.catbox.moe/zygmn7.jpg",
+  "https://files.catbox.moe/jkyqcd.jpg",
+  "https://files.catbox.moe/ll0152.jpg",
+  "https://files.catbox.moe/2xlyuy.jpg",
+  "https://files.catbox.moe/fyaax6.jpg",
+  "https://files.catbox.moe/jgzyrt.jpg",
+  "https://files.catbox.moe/htswya.jpg",
 ];
 
 // Setiap builder menerima (imageUrl, formData) — imageUrl sudah di-host di
