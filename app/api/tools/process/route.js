@@ -9,7 +9,7 @@ import { humanCheck } from "@/lib/turnstile";
 import { TURNSTILE_TOOLS } from "@/lib/tools";
 
 export const runtime = "nodejs";
-// Tool "hd" sekarang bisa nunggu lama: endpoint utama (Xrina) dicoba dulu,
+// Tool "hd" sekarang bisa nunggu lama: endpoint utama (Snowping) dicoba dulu,
 // kalau gagal baru fallback ke scraper imglarger yang upload+polling
 // (~15-40 detik sendiri). Worst-case (utama gagal lambat -> lanjut fallback)
 // bisa mendekati/lebih dari 60 detik, makanya maxDuration dinaikkan ke 120.
@@ -54,9 +54,9 @@ const HD_MAX_BYTES = 25 * 1024 * 1024;
 // Litterbox -> Uguu -> TmpFiles). Kalau semuanya gagal, baru uploader lama (lib/uploadImage.js)
 // sebagai cadangan terakhir. Masa aktif 1 jam sudah cukup: URL ini hanya dipakai sekali oleh
 // endpoint pemroses.
-async function hostImage(buffer, filename, contentType) {
+async function hostImage(buffer, filename, contentType, opts = {}) {
   try {
-    const up = await uploadAnyFile(buffer, filename, contentType, "1h");
+    const up = await uploadAnyFile(buffer, filename, contentType, "1h", opts);
     if (up?.url) return up.url;
   } catch (err) {
     console.error("[tools] uploader utama gagal, coba uploader lama:", err.message);
@@ -64,20 +64,37 @@ async function hostImage(buffer, filename, contentType) {
   return uploadToTop4top(buffer, filename, contentType);
 }
 
-// Endpoint UTAMA untuk tool "hd": Xrina (apiii-xrina.my.id/ai-image/hd, scale=4).
-// Hasilnya divalidasi dulu (bukan langsung diteruskan lewat proxyMedia) — kalau gagal/error,
-// kita mau fallback ke scraper imglarger, bukan langsung balas error ke user.
-// Butuh URL gambar publik (bukan file upload langsung), makanya foto di-host dulu.
-// Endpoint bisa membalas gambar langsung ATAU JSON berisi link gambar; dua-duanya ditangani.
-async function fetchXrinaHd(hostedUrl) {
-  const target = `https://apiii-xrina.my.id/ai-image/hd?url=${encodeURIComponent(hostedUrl)}&scale=4`;
+// Xrina dilindungi Cloudflare: IP server Vercel sering diberi halaman tantangan "Just a moment..."
+// (HTTP 403 berisi HTML). Server tidak bisa melewati tantangan itu (butuh browser sungguhan), jadi:
+// kenali, ingat 5 menit, dan lewati langsung (HD -> cadangan ImgLarger, editimg -> pesan jelas)
+// tanpa membuang waktu meng-upload foto dulu. (Sekarang hanya dipakai tool editimg; tool HD
+// sudah pindah ke endpoint Snowping.)
+const XRINA_BLOCK_MS = 5 * 60 * 1000;
+let xrinaBlockedUntil = 0;
+
+function isCloudflareChallenge(status, contentType, body) {
+  return (
+    (status === 403 || status === 503) &&
+    /text\/html/i.test(contentType || "") &&
+    /just a moment|cf-chl|challenge-platform|attention required/i.test(body || "")
+  );
+}
+
+// Endpoint UTAMA untuk tool "hd": Snowping (api.snowping.cfd/api/imagehd/hdr).
+// Balasannya JSON: { status: 200, result: { image_url, info: { size, mimetype, format } } }
+// — gambar hasilnya harus diunduh dulu dari image_url. Hasilnya divalidasi di sini (bukan
+// diteruskan langsung lewat proxyMedia) supaya kalau gagal bisa jatuh ke scraper ImgLarger,
+// bukan langsung error ke user. Butuh URL gambar publik, makanya foto di-host dulu.
+async function fetchSnowpingHd(hostedUrl) {
+  const target = `https://api.snowping.cfd/api/imagehd/hdr?url=${encodeURIComponent(hostedUrl)}`;
 
   const res = await fetch(target, {
-    headers: { "User-Agent": PROXY_UA },
+    headers: { "User-Agent": PROXY_UA, Accept: "application/json" },
     signal: AbortSignal.timeout(HD_TIMEOUT_MS),
   });
   const contentType = res.headers.get("content-type") || "";
 
+  // Jaga-jaga kalau suatu saat endpoint membalas gambar langsung.
   if (res.ok && contentType.startsWith("image/")) {
     const buffer = await res.arrayBuffer();
     if (!buffer.byteLength) throw new Error("Endpoint HD utama mengembalikan hasil kosong.");
@@ -92,21 +109,22 @@ async function fetchXrinaHd(hostedUrl) {
     // bukan JSON
   }
 
-  const link = json && res.ok ? findImageUrl(json) : null;
-  if (link) {
+  const link = res.ok && json && Number(json.status) === 200 ? json.result?.image_url || findImageUrl(json.result) : null;
+  if (typeof link === "string" && /^https:\/\//i.test(link)) {
     const imgRes = await fetch(link, {
       headers: { "User-Agent": PROXY_UA },
       signal: AbortSignal.timeout(30000),
     });
-    const imgType = imgRes.headers.get("content-type") || "";
+    const imgType = imgRes.headers.get("content-type") || json.result?.info?.mimetype || "";
     if (imgRes.ok && imgType.startsWith("image/")) {
       const buffer = await imgRes.arrayBuffer();
       if (buffer.byteLength && buffer.byteLength <= HD_MAX_BYTES) return { buffer, contentType: imgType };
     }
+    throw new Error("Hasil HD tidak bisa diunduh dari endpoint utama.");
   }
 
   const msg = json?.message || json?.error || "";
-  console.error("[hd] endpoint Xrina gagal:", res.status, contentType, raw.slice(0, 200));
+  console.error("[hd] endpoint Snowping gagal:", res.status, contentType, raw.slice(0, 200));
   throw new Error(
     (typeof msg === "string" && msg.slice(0, 200)) ||
       (res.ok ? "Endpoint HD utama tidak mengembalikan gambar." : `Endpoint HD utama membalas status ${res.status}.`)
@@ -185,6 +203,12 @@ async function fetchEditImg(hostedUrl, prompt) {
     }
   }
 
+  if (isCloudflareChallenge(res.status, contentType, raw)) {
+    xrinaBlockedUntil = Date.now() + XRINA_BLOCK_MS;
+    console.error("[editimg] Xrina memblokir IP server (tantangan Cloudflare), dilewati 5 menit.");
+    throw new Error("Layanan edit gambar sedang memblokir server kami (proteksi Cloudflare). Coba lagi nanti.");
+  }
+
   const msg = json?.message || json?.error || "";
   console.error("[editimg] endpoint gagal:", res.status, contentType, raw.slice(0, 200));
   throw new Error(
@@ -195,7 +219,7 @@ async function fetchEditImg(hostedUrl, prompt) {
 
 const REMOVEBG_TIMEOUT_MS = 25000;
 
-// Endpoint UTAMA untuk tool "removebg" (azbry). Sama seperti fetchXrinaHd,
+// Endpoint UTAMA untuk tool "removebg" (azbry). Sama seperti fetchSnowpingHd,
 // hasilnya divalidasi dulu (bukan langsung diteruskan lewat proxyMedia) supaya
 // kalau gagal bisa jatuh ke scraper cadangan iLoveIMG, bukan langsung error.
 async function fetchRemoveBgEndpoint(hostedUrl) {
@@ -228,7 +252,7 @@ async function fetchRemoveBgEndpoint(hostedUrl) {
 // top4top, formData dipakai untuk tool yang butuh input tambahan selain foto
 // (contoh: fakeml butuh nickname, meme butuh teks atas/bawah).
 // "hd" TIDAK ada di sini lagi — sekarang ditangani terpisah di bawah
-// (endpoint Xrina dulu, fallback ke upscaleHd() dari
+// (endpoint Snowping dulu, fallback ke upscaleHd() dari
 // lib/scrapers/imgLarger.js kalau gagal), bukan sekadar satu GET request
 // ke URL seperti tool lain di map ini.
 const ENDPOINTS = {
@@ -307,7 +331,7 @@ export async function POST(req) {
   }
 
   // Tool "hd" sekarang dua lapis:
-  // 1) Coba endpoint utama (Xrina) dulu — lebih cepat kalau lagi normal.
+  // 1) Coba endpoint utama (Snowping) dulu — lebih cepat kalau lagi normal.
   // 2) Kalau itu gagal (down, rate limit, error apapun), baru fallback ke
   //    scraper imglarger (upload file langsung + polling).
   if (tool === "hd") {
@@ -315,35 +339,46 @@ export async function POST(req) {
     const filename = file.name || "image.jpg";
     const contentType = file.type;
 
+    let primaryErr = null;
     try {
-      const hostedUrl = await hostImage(buffer, filename, contentType);
-      const primary = await fetchXrinaHd(hostedUrl);
+      // Uguu dicoba dulu sebagai host foto: terbukti bisa dibaca endpoint Snowping.
+      const hostedUrl = await hostImage(buffer, filename, contentType, { firstHost: "uguu" });
+      const primary = await fetchSnowpingHd(hostedUrl);
       return new NextResponse(primary.buffer, {
         status: 200,
         headers: { "Content-Type": primary.contentType, "Cache-Control": "no-store" },
       });
-    } catch (primaryErr) {
-      try {
-        const resultUrl = await upscaleHd(buffer, filename, contentType);
-        return proxyMedia(resultUrl);
-      } catch (fallbackErr) {
-        await reportError("tool: Perjelas Foto (HD)", fallbackErr, { endpointUtama: primaryErr?.message });
-        return NextResponse.json(
-          {
-            status: false,
-            message:
-              fallbackErr.message ||
-              "Gagal memperjelas foto (endpoint utama & cadangan sama-sama gagal).",
-          },
-          { status: 500 }
-        );
-      }
+    } catch (err) {
+      primaryErr = err;
+    }
+
+    try {
+      // Utama sudah gagal, jadi sisa waktu function lebih banyak: cadangan boleh menunggu lebih lama.
+      const resultUrl = await upscaleHd(buffer, filename, contentType, { deadlineMs: 75000 });
+      return proxyMedia(resultUrl);
+    } catch (fallbackErr) {
+      await reportError("tool: Perjelas Foto (HD)", fallbackErr, { endpointUtama: primaryErr?.message });
+      return NextResponse.json(
+        {
+          status: false,
+          message:
+            fallbackErr.message ||
+            "Gagal memperjelas foto (endpoint utama & cadangan sama-sama gagal).",
+        },
+        { status: 500 }
+      );
     }
   }
 
   // Tool "editimg": upload foto ke image host dulu, lalu kirim URL + prompt.
   if (tool === "editimg") {
     const prompt = (formData.get("prompt") || "").toString().replace(/\s+/g, " ").trim();
+    if (Date.now() < xrinaBlockedUntil) {
+      return NextResponse.json(
+        { status: false, message: "Layanan edit gambar sedang memblokir server kami (proteksi Cloudflare). Coba lagi nanti." },
+        { status: 503 }
+      );
+    }
     try {
       const buffer = Buffer.from(await file.arrayBuffer());
       const hostedUrl = await hostImage(buffer, file.name || "image.jpg", file.type);
