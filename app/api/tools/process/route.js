@@ -9,13 +9,12 @@ import { humanCheck } from "@/lib/turnstile";
 import { TURNSTILE_TOOLS, FAKEML_RANKS, FAKEML_BORDERS } from "@/lib/tools";
 
 export const runtime = "nodejs";
-// Tool "hd": endpoint utama (Snowping) dicoba dulu, kalau gagal baru fallback ke
-// scraper imglarger yang upload+polling (~15-75 detik sendiri). Worst-case
-// (utama gagal lambat -> lanjut fallback) bisa mendekati/lebih dari 60 detik,
-// makanya maxDuration dinaikkan ke 120.
+// Tool "hd": tiga lapis. (1) Nexray (utama, balasan langsung berupa media),
+// (2) Snowping (cadangan kedua), (3) scraper imglarger yang upload+polling
+// (pengaman terakhir). Total waktu dibatasi HD_TOTAL_BUDGET_MS supaya tidak
+// melewati maxDuration di bawah.
 // Kalau paket Vercel kamu (mis. Hobby) tidak mengizinkan durasi function
-// sepanjang ini, kecilkan HD_TIMEOUT_MS di bawah dan/atau deadlineMs di
-// pemanggilan upscaleHd, atau upgrade plan.
+// sepanjang ini, kecilkan HD_TOTAL_BUDGET_MS dan maxDuration, atau upgrade plan.
 // Tool "removebg" juga dua lapis (azbry -> scraper iLoveIMG), worst-case masih
 // di bawah batas ini.
 export const maxDuration = 120;
@@ -47,7 +46,10 @@ function memegenEncode(text) {
 
 const PROXY_UA =
   "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36";
-const HD_TIMEOUT_MS = 50000;
+// Batas waktu per endpoint HD + total anggaran waktu satu request (harus < maxDuration).
+const HD_NEXRAY_TIMEOUT_MS = 40000;
+const HD_SNOWPING_TIMEOUT_MS = 30000;
+const HD_TOTAL_BUDGET_MS = 110000;
 const HD_MAX_BYTES = 25 * 1024 * 1024;
 
 // Upload foto ke host publik memakai uploader dari tool "Upload file" (lib/uploadFile.js:
@@ -79,7 +81,35 @@ function isCloudflareChallenge(status, contentType, body) {
   );
 }
 
-// Endpoint UTAMA untuk tool "hd": Snowping (api.snowping.cfd/api/imagehd/hdr).
+// Endpoint UTAMA untuk tool "hd": Nexray (api.nexray.eu.cc/tools/v4/upscale).
+// Balasannya LANGSUNG berupa media (bukan JSON), jadi cukup diunduh sebagai buffer.
+// resolusi=4 -> upscale 4x. Butuh URL gambar publik, makanya foto di-host dulu.
+// Kalau balasannya bukan gambar (mis. JSON error / HTML), dilempar error supaya
+// request lanjut ke cadangan (Snowping).
+async function fetchNexrayHd(hostedUrl) {
+  const target = `https://api.nexray.eu.cc/tools/v4/upscale?url=${encodeURIComponent(hostedUrl)}&resolusi=4`;
+
+  const res = await fetch(target, {
+    headers: { "User-Agent": PROXY_UA, Accept: "image/*,*/*;q=0.8" },
+    signal: AbortSignal.timeout(HD_NEXRAY_TIMEOUT_MS),
+  });
+  const contentType = res.headers.get("content-type") || "";
+
+  if (res.ok && /^image\//i.test(contentType)) {
+    const buffer = await res.arrayBuffer();
+    if (!buffer.byteLength) throw new Error("Endpoint HD utama mengembalikan hasil kosong.");
+    if (buffer.byteLength > HD_MAX_BYTES) throw new Error("Hasil HD dari endpoint utama terlalu besar.");
+    return { buffer, contentType: contentType.split(";")[0].trim() };
+  }
+
+  const raw = await res.text().catch(() => "");
+  console.error("[hd] endpoint Nexray gagal:", res.status, contentType, raw.slice(0, 200));
+  throw new Error(
+    res.ok ? "Endpoint HD utama tidak mengembalikan gambar." : `Endpoint HD utama membalas status ${res.status}.`
+  );
+}
+
+// Endpoint CADANGAN KEDUA untuk tool "hd": Snowping (api.snowping.cfd/api/imagehd/hdr).
 // Balasannya JSON: { status: 200, result: { image_url, info: { size, mimetype, format } } }
 // — gambar hasilnya harus diunduh dulu dari image_url. Beda dari endpoint lain di ENDPOINTS
 // di bawah, ini ditangani manual (bukan lewat proxyMedia langsung) karena hasilnya perlu
@@ -90,7 +120,7 @@ async function fetchSnowpingHd(hostedUrl) {
 
   const res = await fetch(target, {
     headers: { "User-Agent": PROXY_UA, Accept: "application/json" },
-    signal: AbortSignal.timeout(HD_TIMEOUT_MS),
+    signal: AbortSignal.timeout(HD_SNOWPING_TIMEOUT_MS),
   });
   const contentType = res.headers.get("content-type") || "";
 
@@ -263,8 +293,7 @@ const FAKEML_DEFAULT_AVATARS = [
 // image host publik, formData dipakai untuk tool yang butuh input tambahan selain foto
 // (contoh: fakeml butuh username/rank/border, meme butuh teks atas/bawah).
 // "hd" TIDAK ada di sini lagi — sekarang ditangani terpisah di bawah
-// (endpoint Snowping dulu, fallback ke upscaleHd() dari
-// lib/scrapers/imgLarger.js kalau gagal), bukan sekadar satu GET request
+// (Nexray -> Snowping -> upscaleHd() dari lib/scrapers/imgLarger.js), bukan sekadar satu GET request
 // ke URL seperti tool lain di map ini.
 const ENDPOINTS = {
   removebg: (imageUrl) => `https://api.azbry.com/api/tools/removebg?url=${encodeURIComponent(imageUrl)}`,
@@ -363,40 +392,65 @@ export async function POST(req) {
     }
   }
 
-  // Tool "hd" dua lapis:
-  // 1) Coba endpoint utama (Snowping) dulu — lebih cepat kalau lagi normal.
-  // 2) Kalau itu gagal (down, rate limit, error apapun), baru fallback ke
-  //    scraper imglarger (upload file langsung + polling).
+  // Tool "hd" tiga lapis:
+  // 1) Nexray (utama) — balasan langsung berupa media.
+  // 2) Snowping (cadangan kedua) — dipakai kalau Nexray bermasalah.
+  // 3) Scraper imglarger (pengaman terakhir) — upload file langsung + polling,
+  //    jadi tetap jalan walau image host / kedua endpoint di atas down.
   if (tool === "hd") {
+    const startedAt = Date.now();
     const buffer = Buffer.from(await file.arrayBuffer());
     const filename = file.name || "image.jpg";
     const contentType = file.type;
+    const errors = {};
 
-    let primaryErr = null;
-    try {
-      // Uguu dicoba dulu sebagai host foto: terbukti bisa dibaca endpoint Snowping.
-      const hostedUrl = await hostImage(buffer, filename, contentType, { firstHost: "uguu" });
-      const primary = await fetchSnowpingHd(hostedUrl);
-      return new NextResponse(primary.buffer, {
+    const respondImage = (r) =>
+      new NextResponse(r.buffer, {
         status: 200,
-        headers: { "Content-Type": primary.contentType, "Cache-Control": "no-store" },
+        headers: { "Content-Type": r.contentType, "Cache-Control": "no-store" },
       });
+
+    // Foto di-host sekali saja, URL-nya dipakai Nexray dan Snowping.
+    // Uguu dicoba dulu karena terbukti bisa dibaca endpoint pemroses.
+    let hostedUrl = null;
+    try {
+      hostedUrl = await hostImage(buffer, filename, contentType, { firstHost: "uguu" });
     } catch (err) {
-      primaryErr = err;
+      errors.host = err?.message;
+      console.error("[hd] gagal host foto, langsung ke scraper imglarger:", err?.message);
+    }
+
+    if (hostedUrl) {
+      try {
+        return respondImage(await fetchNexrayHd(hostedUrl));
+      } catch (err) {
+        errors.nexray = err?.message;
+        console.error("[hd] Nexray gagal, coba Snowping:", err?.message);
+      }
+
+      try {
+        return respondImage(await fetchSnowpingHd(hostedUrl));
+      } catch (err) {
+        errors.snowping = err?.message;
+        console.error("[hd] Snowping gagal, coba scraper imglarger:", err?.message);
+      }
     }
 
     try {
-      // Utama sudah gagal, jadi sisa waktu function lebih banyak: cadangan boleh menunggu lebih lama.
-      const resultUrl = await upscaleHd(buffer, filename, contentType, { deadlineMs: 75000 });
+      // Sisa waktu function dipakai penuh oleh cadangan terakhir (minimal 15 detik).
+      const remaining = HD_TOTAL_BUDGET_MS - (Date.now() - startedAt);
+      const resultUrl = await upscaleHd(buffer, filename, contentType, {
+        deadlineMs: Math.min(75000, Math.max(15000, remaining)),
+      });
       return proxyMedia(resultUrl);
     } catch (fallbackErr) {
-      await reportError("tool: Perjelas Foto (HD)", fallbackErr, { endpointUtama: primaryErr?.message });
+      await reportError("tool: Perjelas Foto (HD)", fallbackErr, errors);
       return NextResponse.json(
         {
           status: false,
           message:
             fallbackErr.message ||
-            "Gagal memperjelas foto (endpoint utama & cadangan sama-sama gagal).",
+            "Gagal memperjelas foto (semua endpoint sama-sama gagal).",
         },
         { status: 500 }
       );
