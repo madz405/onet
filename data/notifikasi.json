@@ -5,7 +5,8 @@
       "type": "update",
       "title": "Fitur notifikasi hadir",
       "body": "Mulai sekarang info update dan perbaikan KOYEN disampaikan lewat ikon lonceng ini.",
-      "date": "2026-10-17"
+      "date": "2026-10-17",
+      "active": true
     },
     {
       "id": "2026-10-17-musik",
@@ -22,7 +23,8 @@
       "title": "fix bug",
       "body": "memperbaiki pada tampilan pemutar musik spotify durasinya tidak jelas dan pop up mengambang",
       "date": "2026-10-18",
-      "expiresAt": "2026-10-25"
+      "expiresAt": "2026-10-25",
+      "active": false
     }
   ],
   "_contoh": [
