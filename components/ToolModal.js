@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Download, Upload, ZoomIn } from "lucide-react";
 import PhotoLightbox from "@/components/PhotoLightbox";
+import CompareSlider from "@/components/CompareSlider";
 import Modal from "@/components/Modal";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import { TURNSTILE_TOOLS } from "@/lib/tools";
@@ -24,6 +25,8 @@ export default function ToolModal({ tool, onClose }) {
   const [resultUrl, setResultUrl] = useState(null);
   const [resultKind, setResultKind] = useState(null); // "image" | "video"
   const [zoomOpen, setZoomOpen] = useState(false);
+  // Foto asli yang dipakai untuk perbandingan Sebelum/Sesudah (tool dengan flag compare, mis. hd).
+  const [resultOriginal, setResultOriginal] = useState(null);
   // Verifikasi Turnstile untuk tool yang terdaftar di TURNSTILE_TOOLS (lib/tools.js).
   const needsHuman = TURNSTILE_TOOLS.includes(tool.id);
   const [token, setToken] = useState("");
@@ -32,6 +35,8 @@ export default function ToolModal({ tool, onClose }) {
   // seperti hasil foto TikTok/Instagram/Douyin. Tool dengan noZoom: true
   // (Brat & Brat HD) tetap tampil biasa.
   const canZoom = resultKind === "image" && !tool.noZoom;
+  // Tool dengan compare: true menampilkan slider Sebelum/Sesudah (CompareSlider), zoom tetap ada.
+  const compareOn = !!tool.compare && resultKind === "image" && !!resultOriginal;
 
   // Token sekali pakai: minta yang baru setelah setiap request.
   function resetToken() {
@@ -145,7 +150,11 @@ export default function ToolModal({ tool, onClose }) {
     setLoading(true);
     setError("");
     setResultUrl(null);
+    setResultOriginal(null);
     setZoomOpen(false);
+    // Simpan foto asli saat submit, supaya perbandingan tidak ikut berubah kalau
+    // user memilih foto lain setelah hasil muncul.
+    const originalForCompare = filePreview;
     try {
       const formData = new FormData();
       if (file) formData.append("file", file);
@@ -160,6 +169,7 @@ export default function ToolModal({ tool, onClose }) {
         body: formData,
       });
       await handleResponse(res);
+      setResultOriginal(originalForCompare);
     } catch (err) {
       setError(err.message || "Terjadi kesalahan.");
     } finally {
@@ -265,7 +275,9 @@ export default function ToolModal({ tool, onClose }) {
                 backgroundColor: "#141225",
               }}
             >
-              {canZoom ? (
+              {compareOn ? (
+                <CompareSlider before={resultOriginal} after={resultUrl} onZoom={() => setZoomOpen(true)} />
+              ) : canZoom ? (
                 <button
                   type="button"
                   onClick={() => setZoomOpen(true)}
@@ -284,7 +296,13 @@ export default function ToolModal({ tool, onClose }) {
               )}
             </div>
           )}
-          {canZoom && <p className="text-xs text-white/50">Ketuk gambar untuk memperbesar.</p>}
+          {compareOn ? (
+            <p className="text-xs text-white/50">
+              Geser pembatas untuk membandingkan sebelum &amp; sesudah. Ketuk ikon kaca pembesar untuk memperbesar.
+            </p>
+          ) : (
+            canZoom && <p className="text-xs text-white/50">Ketuk gambar untuk memperbesar.</p>
+          )}
           <a
             href={resultUrl}
             download={`${tool.id}-result.${resultKind === "video" ? "mp4" : "png"}`}
