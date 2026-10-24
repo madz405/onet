@@ -180,3 +180,208 @@
   border-color: var(--nb-ink);
   box-shadow: 4px 4px 0 var(--nb-ink) !important;
 }
+
+/* ======================================================================
+   Tampilan album (dipilih lewat ikon gear di FullPlayer.js)
+   - soft   : kotak sudut membulat (bawaan, memakai .fp-cover-size)
+   - square : kotak penuh selebar bar waktu, sudut hampir tajam (gaya Spotify)
+   - vinyl  : piringan hitam berputar; foto album jadi label tengah
+   ====================================================================== */
+
+/* --- Kotak penuh: selebar area konten (sama dengan bar waktu di bawahnya). - */
+.fp-cover-square {
+  display: block;
+  width: 100%;
+  max-height: 100%; /* layar pendek: tinggi dibatasi (gambar terpotong), lebar tetap */
+  border-radius: 6px;
+}
+[data-theme="neobrutalism"] .fp-cover-square {
+  border-radius: 10px;
+  box-shadow: 4px 4px 0 var(--nb-ink);
+}
+
+/* --- Piringan hitam -------------------------------------------------------
+   Bagian hitam sengaja tipis: label (foto album) memakai ~66% diameter, jadi
+   cincin hitamnya sekitar 17% di tiap sisi. Pembungkus .fp-vinyl tidak ikut
+   berputar (supaya border/bayangan tema tetap diam); yang berputar hanya
+   .fp-vinyl-disc. */
+.fp-vinyl {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.fp-vinyl-disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background:
+    /* kilap cahaya (ikut berputar bersama piringan) */
+    conic-gradient(
+      from 20deg,
+      rgb(255 255 255 / 0) 0deg,
+      rgb(255 255 255 / 0.17) 24deg,
+      rgb(255 255 255 / 0) 62deg,
+      rgb(255 255 255 / 0) 180deg,
+      rgb(255 255 255 / 0.12) 204deg,
+      rgb(255 255 255 / 0) 242deg,
+      rgb(255 255 255 / 0) 360deg
+    ),
+    /* alur piringan */
+    repeating-radial-gradient(circle at center, rgb(255 255 255 / 0.07) 0 1px, transparent 1px 3px),
+    radial-gradient(circle at center, #1d1d20 0%, #0a0a0b 100%);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.07), inset 0 0 0 6px rgb(0 0 0 / 0.35);
+  animation: fp-spin 9s linear infinite;
+  animation-play-state: paused; /* jeda saat lagu dijeda */
+  will-change: transform;
+}
+.fp-vinyl[data-playing="true"] .fp-vinyl-disc {
+  animation-play-state: running;
+}
+.fp-vinyl-label {
+  position: absolute;
+  left: 17%;
+  top: 17%;
+  width: 66%;
+  height: 66%;
+  border-radius: 50%;
+  object-fit: cover;
+  max-width: none;
+  /* cincin tipis pemisah label dan alur hitam */
+  box-shadow: 0 0 0 3px rgb(0 0 0 / 0.65), 0 0 0 5px rgb(255 255 255 / 0.08);
+}
+.fp-vinyl-label-empty {
+  display: grid;
+  place-items: center;
+  background: #2a2a2e;
+  color: rgb(255 255 255 / 0.4);
+}
+.fp-vinyl-hole {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5.5%;
+  height: 5.5%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--fp-surface);
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 0.7), inset 0 1px 3px rgb(0 0 0 / 0.55);
+}
+@keyframes fp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fp-vinyl-disc {
+    animation: none;
+  }
+}
+[data-theme="neobrutalism"] .fp-vinyl-hole {
+  background: var(--nb-cream);
+}
+
+/* --- Menu gear "Tampilan album" ------------------------------------------ */
+.fp-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 1rem;
+  z-index: 20;
+  width: min(16rem, calc(100vw - 2rem));
+  padding: 0.375rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--fp-surface) 90%, #fff);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.5);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+@media (min-width: 768px) {
+  .fp-menu {
+    right: 2rem;
+  }
+}
+.fp-menu-title {
+  padding: 0.35rem 0.6rem 0.4rem;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.55);
+}
+.fp-menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 0.75rem;
+  text-align: left;
+  background-color: transparent;
+  color: rgb(255 255 255 / 0.85);
+  transition: background-color 0.15s ease;
+}
+.fp-menu-item:hover {
+  background: rgb(255 255 255 / 0.08);
+}
+.fp-menu-item[data-active="true"] {
+  background: rgb(var(--signal-500));
+  color: rgb(var(--ink-950));
+}
+.fp-menu-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.fp-menu-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.fp-menu-hint {
+  font-size: 11px;
+  opacity: 0.65;
+}
+/* Pratinjau bentuk kecil di tiap pilihan */
+.fp-menu-shape {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  background: currentColor;
+  opacity: 0.85;
+}
+.fp-menu-shape-soft {
+  border-radius: 9px;
+}
+.fp-menu-shape-square {
+  border-radius: 3px;
+}
+.fp-menu-shape-vinyl {
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 0 22%, currentColor 24% 100%);
+}
+
+/* Tema Neobrutalism: panel putih + border tebal, pilihan aktif kuning. */
+[data-theme="neobrutalism"] .fp-menu {
+  background: #fff;
+  border: 3px solid var(--nb-ink);
+  border-radius: 16px;
+  box-shadow: 5px 5px 0 var(--nb-ink);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+[data-theme="neobrutalism"] .fp-menu-title,
+[data-theme="neobrutalism"] .fp-menu-item {
+  color: var(--nb-ink);
+}
+[data-theme="neobrutalism"] .fp-menu-item:hover {
+  background: rgb(10 10 10 / 0.08);
+}
+[data-theme="neobrutalism"] .fp-menu-item[data-active="true"] {
+  background: var(--nb-yellow);
+  border: 2px solid var(--nb-ink);
+  padding: calc(0.55rem - 2px) calc(0.6rem - 2px);
+  box-shadow: 2px 2px 0 var(--nb-ink);
+}
