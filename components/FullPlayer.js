@@ -6,11 +6,15 @@
 // sebelumnya, putar/jeda, berikutnya, mode putar, progres, volume, tambah ke
 // playlist), ditambah tab "Lirik" yang bergulir otomatis sesuai menit lagu.
 // Dibuka lewat MiniPlayer (state playerOpen ada di MusicPlayerProvider).
+// Ikon gear di sebelah tab Cover/Lirik membuka menu "Tampilan album": Kotak lembut
+// (bawaan), Kotak penuh (sejajar bar waktu, seperti Spotify), dan Piringan hitam
+// (berputar saat lagu diputar). Pilihan disimpan di localStorage (COVER_STYLE_KEY).
 
 import "./fullplayer.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
+  Check,
   ChevronDown,
   Download,
   ListPlus,
@@ -24,6 +28,7 @@ import {
   Repeat1,
   Shuffle,
   SkipBack,
+  Settings,
   SkipForward,
   Volume1,
   Volume2,
@@ -31,6 +36,13 @@ import {
 import MarqueeText from "@/components/MarqueeText";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
 import useBackToClose from "@/lib/useBackToClose";
+
+const COVER_STYLE_KEY = "fp-cover-style";
+const COVER_STYLES = [
+  { id: "soft", label: "Kotak lembut", hint: "Sudut membulat" },
+  { id: "square", label: "Kotak penuh", hint: "Sejajar bar waktu" },
+  { id: "vinyl", label: "Piringan hitam", hint: "Berputar saat diputar" },
+];
 
 const SOURCE_LABEL = { youtube: "YouTube", spotify: "Spotify", soundcloud: "SoundCloud" };
 
@@ -81,6 +93,9 @@ export default function FullPlayer() {
   const [dragY, setDragY] = useState(0);
   // Layar lebar (desktop / "situs desktop" di HP): cover & lirik tampil berdampingan.
   const [wide, setWide] = useState(false);
+  // Tampilan album (soft | square | vinyl) + menu gear untuk menggantinya.
+  const [coverStyle, setCoverStyle] = useState("soft");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const cacheRef = useRef(new Map()); // id lagu -> hasil lirik
   const fetchedKeyRef = useRef(null); // id lagu yang lirik-nya sedang/sudah diambil
@@ -90,6 +105,7 @@ export default function FullPlayer() {
   const scrolledOnce = useRef(false);
   const dragStart = useRef(null);
   const rootRef = useRef(null);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
@@ -98,6 +114,50 @@ export default function FullPlayer() {
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
+
+  // Muat pilihan tampilan album yang tersimpan.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(COVER_STYLE_KEY);
+      if (COVER_STYLES.some((c) => c.id === saved)) setCoverStyle(saved);
+    } catch {
+      // localStorage tidak tersedia: pakai tampilan bawaan
+    }
+  }, []);
+
+  function chooseCoverStyle(id) {
+    setCoverStyle(id);
+    setMenuOpen(false);
+    try {
+      localStorage.setItem(COVER_STYLE_KEY, id);
+    } catch {
+      // abaikan
+    }
+  }
+
+  // Menu gear: tutup saat mengetuk di luar menu, atau Esc (Esc menutup menu dulu,
+  // pemutar baru tertutup pada Esc berikutnya).
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onDown = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    window.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("keydown", onKey, true);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!playerOpen) setMenuOpen(false);
+  }, [playerOpen]);
 
   const trackId = track?.id;
   const showLyrics = view === "lirik" || wide;
@@ -313,43 +373,106 @@ export default function FullPlayer() {
             </button>
           </div>
 
-          <div className="mx-auto mt-2 flex w-56 rounded-xl md:hidden border border-white/10 bg-white/5 p-1" role="tablist">
-            {[
-              { id: "cover", label: "Cover" },
-              { id: "lirik", label: "Lirik" },
-            ].map((t) => (
-              <button
-                type="button"
-                role="tab"
-                key={t.id}
-                aria-selected={view === t.id}
-                onClick={() => setView(t.id)}
-                className={`flex-1 rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
-                  view === t.id ? "bg-signal-500 text-ink-950" : "text-white/60 hover:text-white"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
+          <div ref={menuRef} className="relative mt-2 h-10 md:h-11">
+            <div className="mx-auto flex w-56 rounded-xl md:hidden border border-white/10 bg-white/5 p-1" role="tablist">
+              {[
+                { id: "cover", label: "Cover" },
+                { id: "lirik", label: "Lirik" },
+              ].map((t) => (
+                <button
+                  type="button"
+                  role="tab"
+                  key={t.id}
+                  aria-selected={view === t.id}
+                  onClick={() => setView(t.id)}
+                  className={`flex-1 rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+                    view === t.id ? "bg-signal-500 text-ink-950" : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-label="Pengaturan tampilan album"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              title="Tampilan album"
+              className="absolute right-4 top-0 grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-white/80 hover:text-white md:right-8 md:h-11 md:w-11"
+            >
+              <Settings size={20} />
+            </button>
+
+            {menuOpen && (
+              <div className="fp-menu" role="menu" aria-label="Tampilan album">
+                <p className="fp-menu-title">Tampilan album</p>
+                {COVER_STYLES.map((c) => {
+                  const active = coverStyle === c.id;
+                  return (
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={active}
+                      key={c.id}
+                      onClick={() => chooseCoverStyle(c.id)}
+                      className="fp-menu-item"
+                      data-active={active ? "true" : "false"}
+                    >
+                      <span className={`fp-menu-shape fp-menu-shape-${c.id}`} aria-hidden="true" />
+                      <span className="fp-menu-text">
+                        <span className="fp-menu-label">{c.label}</span>
+                        <span className="fp-menu-hint">{c.hint}</span>
+                      </span>
+                      {active && <Check size={18} strokeWidth={3} aria-hidden="true" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col md:flex-row md:items-stretch md:gap-12 md:px-10 md:py-6">
           <div
-            className={`min-h-0 flex-1 items-center justify-center px-8 py-4 md:flex md:flex-none md:basis-[42%] md:p-0 ${
-              view === "cover" ? "flex" : "hidden"
-            }`}
+            className={`min-h-0 flex-1 items-center justify-center py-4 md:flex md:flex-none md:basis-[42%] md:p-0 ${
+              coverStyle === "square" ? "px-6" : "px-8"
+            } ${view === "cover" ? "flex" : "hidden"}`}
           >
-            {track.thumbnail ? (
+            {coverStyle === "vinyl" ? (
+              <div className="fp-vinyl fp-cover fp-cover-size" data-playing={isPlaying ? "true" : "false"}>
+                <div className="fp-vinyl-disc">
+                  {track.thumbnail ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={track.thumbnail} alt="" referrerPolicy="no-referrer" className="fp-vinyl-label" />
+                  ) : (
+                    <div className="fp-vinyl-label fp-vinyl-label-empty">
+                      <Music2 size={40} />
+                    </div>
+                  )}
+                  <span className="fp-vinyl-hole" aria-hidden="true" />
+                </div>
+              </div>
+            ) : track.thumbnail ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={track.thumbnail}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="fp-cover fp-cover-size aspect-square rounded-3xl object-cover"
+                className={
+                  coverStyle === "square"
+                    ? "fp-cover fp-cover-square aspect-square object-cover"
+                    : "fp-cover fp-cover-size aspect-square rounded-3xl object-cover"
+                }
               />
             ) : (
-              <div className="fp-cover fp-cover-size grid aspect-square place-items-center rounded-3xl bg-white/5 text-white/30">
+              <div
+                className={`fp-cover grid aspect-square place-items-center bg-white/5 text-white/30 ${
+                  coverStyle === "square" ? "fp-cover-square" : "fp-cover-size rounded-3xl"
+                }`}
+              >
                 <Music2 size={56} />
               </div>
             )}
