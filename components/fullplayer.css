@@ -184,7 +184,7 @@
 /* ======================================================================
    Tampilan album (dipilih lewat ikon gear di FullPlayer.js)
    - soft   : kotak sudut membulat (bawaan, memakai .fp-cover-size)
-   - square : kotak penuh selebar bar waktu, sudut hampir tajam (gaya Spotify)
+   - square : kotak penuh selebar bar waktu, sudut tajam (gaya Spotify)
    - vinyl  : piringan hitam berputar; foto album jadi label tengah
    ====================================================================== */
 
@@ -193,10 +193,10 @@
   display: block;
   width: 100%;
   max-height: 100%; /* layar pendek: tinggi dibatasi (gambar terpotong), lebar tetap */
-  border-radius: 6px;
+  border-radius: 0; /* sudut tajam, seperti cover album di Spotify */
 }
 [data-theme="neobrutalism"] .fp-cover-square {
-  border-radius: 10px;
+  border-radius: 0;
   box-shadow: 4px 4px 0 var(--nb-ink);
 }
 
