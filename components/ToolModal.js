@@ -296,13 +296,7 @@ export default function ToolModal({ tool, onClose }) {
               )}
             </div>
           )}
-          {compareOn ? (
-            <p className="text-xs text-white/50">
-              Geser pembatas untuk membandingkan sebelum &amp; sesudah. Ketuk ikon kaca pembesar untuk memperbesar.
-            </p>
-          ) : (
-            canZoom && <p className="text-xs text-white/50">Ketuk gambar untuk memperbesar.</p>
-          )}
+          {!compareOn && canZoom && <p className="text-xs text-white/50">Ketuk gambar untuk memperbesar.</p>}
           <a
             href={resultUrl}
             download={`${tool.id}-result.${resultKind === "video" ? "mp4" : "png"}`}
