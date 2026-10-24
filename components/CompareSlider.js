@@ -24,6 +24,16 @@ export default function CompareSlider({ before, after, onZoom }) {
     setPos(clamp(((clientX - rect.left) / rect.width) * 100));
   }
 
+  // PENTING: ukuran dibaca LANGSUNG dari elemen gambar, baru di-set ke state. Kalau
+  // e.currentTarget dibaca di dalam fungsi updater setState, nilainya sudah null saat
+  // updater dijalankan dan halaman crash ("client-side exception").
+  function saveSize(key, img) {
+    const w = img?.naturalWidth || 0;
+    const h = img?.naturalHeight || 0;
+    if (!w || !h) return;
+    setDims((d) => ({ ...d, [key]: { w, h } }));
+  }
+
   function onPointerDown(e) {
     dragging.current = true;
     e.currentTarget.setPointerCapture?.(e.pointerId);
@@ -69,7 +79,7 @@ export default function CompareSlider({ before, after, onZoom }) {
           src={after}
           alt="Sesudah"
           draggable={false}
-          onLoad={(e) => setDims((d) => ({ ...d, after: { w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight } }))}
+          onLoad={(e) => saveSize("after", e.currentTarget)}
           className="block h-auto max-h-96 w-auto max-w-full"
         />
 
@@ -79,7 +89,7 @@ export default function CompareSlider({ before, after, onZoom }) {
           src={before}
           alt="Sebelum"
           draggable={false}
-          onLoad={(e) => setDims((d) => ({ ...d, before: { w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight } }))}
+          onLoad={(e) => saveSize("before", e.currentTarget)}
           className="pointer-events-none absolute inset-0 h-full w-full object-fill"
           style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
         />
