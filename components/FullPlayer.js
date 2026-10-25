@@ -9,6 +9,8 @@
 // Ikon gear di sebelah tab Cover/Lirik membuka menu "Tampilan album": Kotak lembut
 // (bawaan), Kotak penuh (sejajar bar waktu, seperti Spotify), dan Piringan hitam
 // (berputar saat lagu diputar). Pilihan disimpan di localStorage (COVER_STYLE_KEY).
+// Ikon di sisi kiri tab membuka panel "Suara": kecepatan putar (slow/fast) dan
+// equalizer 5 pita. Mesin audionya ada di MusicPlayerProvider + lib/audioFx.js.
 
 import "./fullplayer.css";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -30,11 +32,22 @@ import {
   SkipBack,
   Settings,
   SkipForward,
+  SlidersHorizontal,
   Volume1,
   Volume2,
 } from "lucide-react";
 import MarqueeText from "@/components/MarqueeText";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
+import {
+  EQ_BANDS,
+  EQ_MAX_DB,
+  EQ_MIN_DB,
+  EQ_PRESETS,
+  RATE_MAX,
+  RATE_MIN,
+  RATE_PRESETS,
+  sameGains,
+} from "@/lib/audioFx";
 import useBackToClose from "@/lib/useBackToClose";
 
 const COVER_STYLE_KEY = "fp-cover-style";
@@ -85,6 +98,15 @@ export default function FullPlayer() {
     playByOffset,
     seek,
     cycleMode,
+    fx,
+    fxError,
+    eqEngine,
+    setRate,
+    setKeepPitch,
+    setEqOn,
+    setGain,
+    applyPreset,
+    resetFx,
   } = useMusicPlayer();
 
   const [view, setView] = useState("cover"); // cover | lirik
@@ -96,6 +118,7 @@ export default function FullPlayer() {
   // Tampilan album (soft | square | vinyl) + menu gear untuk menggantinya.
   const [coverStyle, setCoverStyle] = useState("soft");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [fxOpen, setFxOpen] = useState(false); // panel Suara (kecepatan + equalizer)
 
   const cacheRef = useRef(new Map()); // id lagu -> hasil lirik
   const fetchedKeyRef = useRef(null); // id lagu yang lirik-nya sedang/sudah diambil
@@ -137,15 +160,20 @@ export default function FullPlayer() {
 
   // Menu gear: tutup saat mengetuk di luar menu, atau Esc (Esc menutup menu dulu,
   // pemutar baru tertutup pada Esc berikutnya).
+  const panelOpen = menuOpen || fxOpen;
   useEffect(() => {
-    if (!menuOpen) return undefined;
+    if (!panelOpen) return undefined;
+    const closeAll = () => {
+      setMenuOpen(false);
+      setFxOpen(false);
+    };
     const onDown = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target)) closeAll();
     };
     const onKey = (e) => {
       if (e.key !== "Escape") return;
       e.stopPropagation();
-      setMenuOpen(false);
+      closeAll();
     };
     document.addEventListener("pointerdown", onDown);
     window.addEventListener("keydown", onKey, true);
@@ -153,10 +181,13 @@ export default function FullPlayer() {
       document.removeEventListener("pointerdown", onDown);
       window.removeEventListener("keydown", onKey, true);
     };
-  }, [menuOpen]);
+  }, [panelOpen]);
 
   useEffect(() => {
-    if (!playerOpen) setMenuOpen(false);
+    if (!playerOpen) {
+      setMenuOpen(false);
+      setFxOpen(false);
+    }
   }, [playerOpen]);
 
   const trackId = track?.id;
@@ -396,7 +427,153 @@ export default function FullPlayer() {
 
             <button
               type="button"
-              onClick={() => setMenuOpen((o) => !o)}
+              onClick={() => {
+                setMenuOpen(false);
+                setFxOpen((o) => !o);
+              }}
+              aria-label="Pengaturan suara"
+              aria-haspopup="dialog"
+              aria-expanded={fxOpen}
+              title="Suara: kecepatan & equalizer"
+              className="absolute left-4 top-0 grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-white/80 hover:text-white md:left-8 md:h-11 md:w-11"
+            >
+              <SlidersHorizontal size={20} />
+              {(fx.eqOn || fx.rate !== 1) && <span className="fp-fx-dot" aria-hidden="true" />}
+            </button>
+
+            {fxOpen && (
+              <div
+                className="fp-menu fp-fx text-white"
+                role="dialog"
+                aria-label="Pengaturan suara"
+                // Geser slider tidak boleh dianggap gestur "tarik ke bawah untuk menutup pemutar".
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => e.stopPropagation()}
+              >
+                <div className="fp-fx-head">
+                  <p className="fp-menu-title text-white/50">Suara</p>
+                  <button type="button" onClick={resetFx} className="fp-chip text-white/80">
+                    Reset
+                  </button>
+                </div>
+
+                <section className="fp-fx-sec">
+                  <div className="fp-fx-row">
+                    <span className="fp-fx-label">Kecepatan</span>
+                    <span className="fp-fx-val tabular-nums">{fx.rate.toFixed(2)}×</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={RATE_MIN}
+                    max={RATE_MAX}
+                    step={0.05}
+                    value={fx.rate}
+                    onChange={(e) => setRate(Number(e.target.value))}
+                    aria-label="Kecepatan putar"
+                    className="h-1 w-full accent-signal-500"
+                  />
+                  <div className="fp-chips">
+                    {RATE_PRESETS.map((r) => (
+                      <button
+                        type="button"
+                        key={r}
+                        onClick={() => setRate(r)}
+                        className="fp-chip text-white/80"
+                        data-active={Math.abs(fx.rate - r) < 0.001 ? "true" : "false"}
+                      >
+                        {r}×
+                      </button>
+                    ))}
+                  </div>
+                  <label className="fp-fx-check text-white/70">
+                    <input
+                      type="checkbox"
+                      checked={fx.keepPitch}
+                      onChange={(e) => setKeepPitch(e.target.checked)}
+                      className="accent-signal-500"
+                    />
+                    <span>Nada tetap (matikan untuk efek slowed / nightcore)</span>
+                  </label>
+                </section>
+
+                <section className="fp-fx-sec">
+                  <div className="fp-fx-row">
+                    <span className="fp-fx-label">Equalizer</span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={fx.eqOn}
+                      aria-label="Equalizer"
+                      onClick={() => setEqOn(!fx.eqOn)}
+                      className="fp-switch"
+                      data-on={fx.eqOn ? "true" : "false"}
+                    >
+                      <span className="fp-switch-knob" />
+                    </button>
+                  </div>
+
+                  <div className="fp-chips" aria-disabled={!fx.eqOn}>
+                    {EQ_PRESETS.map((p) => (
+                      <button
+                        type="button"
+                        key={p.id}
+                        disabled={!fx.eqOn}
+                        onClick={() => applyPreset(p.id)}
+                        className="fp-chip text-white/80"
+                        data-active={fx.eqOn && sameGains(fx.gains, p.gains) ? "true" : "false"}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="fp-eq" data-off={fx.eqOn ? "false" : "true"}>
+                    {EQ_BANDS.map((b, i) => (
+                      <div className="fp-eq-band" key={b.id}>
+                        <span className="fp-eq-name">
+                          {b.label}
+                          <small>{b.freq >= 1000 ? `${b.freq / 1000} kHz` : `${b.freq} Hz`}</small>
+                        </span>
+                        <input
+                          type="range"
+                          min={EQ_MIN_DB}
+                          max={EQ_MAX_DB}
+                          step={1}
+                          value={fx.gains[i]}
+                          disabled={!fx.eqOn}
+                          onChange={(e) => setGain(i, Number(e.target.value))}
+                          aria-label={`${b.label} (desibel)`}
+                          className="h-1 min-w-0 flex-1 accent-signal-500"
+                        />
+                        <span className="fp-eq-db tabular-nums">
+                          {fx.gains[i] > 0 ? `+${fx.gains[i]}` : fx.gains[i]} dB
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="fp-fx-note text-white/60">
+                    {fxError
+                      ? fxError
+                      : eqEngine === "proxy"
+                        ? "EQ aktif lewat server, karena sumber lagu ini tidak mengizinkan akses langsung. Pemakaian data server bertambah."
+                        : eqEngine === "direct"
+                          ? "EQ aktif langsung dari sumber lagu."
+                          : eqEngine === "pending"
+                            ? "Menyiapkan EQ…"
+                            : "Nyalakan equalizer untuk mengatur bass dan treble. Lagu dimuat ulang sebentar di posisi yang sama."}
+                  </p>
+                </section>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setFxOpen(false);
+                setMenuOpen((o) => !o);
+              }}
               aria-label="Pengaturan tampilan album"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
@@ -408,7 +585,7 @@ export default function FullPlayer() {
 
             {menuOpen && (
               <div className="fp-menu" role="menu" aria-label="Tampilan album">
-                <p className="fp-menu-title">Tampilan album</p>
+                <p className="fp-menu-title text-white/50">Tampilan album</p>
                 {COVER_STYLES.map((c) => {
                   const active = coverStyle === c.id;
                   return (
@@ -418,7 +595,7 @@ export default function FullPlayer() {
                       aria-checked={active}
                       key={c.id}
                       onClick={() => chooseCoverStyle(c.id)}
-                      className="fp-menu-item"
+                      className="fp-menu-item text-white/80"
                       data-active={active ? "true" : "false"}
                     >
                       <span className={`fp-menu-shape fp-menu-shape-${c.id}`} aria-hidden="true" />
