@@ -308,7 +308,6 @@
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgb(255 255 255 / 0.55);
 }
 .fp-menu-item {
   display: flex;
@@ -319,7 +318,6 @@
   border-radius: 0.75rem;
   text-align: left;
   background-color: transparent;
-  color: rgb(255 255 255 / 0.85);
   transition: background-color 0.15s ease;
 }
 .fp-menu-item:hover {
@@ -384,4 +382,188 @@
   border: 2px solid var(--nb-ink);
   padding: calc(0.55rem - 2px) calc(0.6rem - 2px);
   box-shadow: 2px 2px 0 var(--nb-ink);
+}
+
+/* ======================================================================
+   Panel "Suara": kecepatan putar + equalizer (tombol di kiri tab Cover/Lirik)
+   Warna teks memakai class tema di JSX (text-white/..), dan elemen di sini
+   memakai currentColor supaya otomatis ikut tema terang/gelap.
+   ====================================================================== */
+.fp-fx-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgb(var(--signal-500));
+  box-shadow: 0 0 0 2px var(--fp-surface);
+}
+.fp-fx {
+  left: 1rem;
+  right: 1rem;
+  width: auto;
+  max-height: min(70dvh, 32rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.75rem 0.9rem 1rem;
+}
+@media (min-width: 768px) {
+  .fp-fx {
+    left: 2rem;
+    right: auto;
+    width: 25rem;
+  }
+}
+.fp-fx .fp-menu-title {
+  padding: 0;
+}
+.fp-fx-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.fp-fx-sec {
+  margin-top: 0.6rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+}
+.fp-fx-head + .fp-fx-sec {
+  border-top: 0;
+  padding-top: 0.2rem;
+}
+.fp-fx-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.55rem;
+}
+.fp-fx-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.fp-fx-val {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+.fp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+.fp-chip {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  background: color-mix(in srgb, currentColor 7%, transparent);
+}
+.fp-chip:disabled {
+  opacity: 0.4;
+}
+.fp-chip[data-active="true"] {
+  background: rgb(var(--signal-500));
+  color: rgb(var(--ink-950));
+  border-color: transparent;
+}
+.fp-fx-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 12px;
+}
+.fp-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  color: inherit;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  transition: background-color 0.15s ease;
+}
+.fp-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: currentColor;
+  transition: transform 0.15s ease;
+}
+.fp-switch[data-on="true"] {
+  background: rgb(var(--signal-500));
+  border-color: transparent;
+}
+.fp-switch[data-on="true"] .fp-switch-knob {
+  transform: translateX(20px);
+  background: rgb(var(--ink-950));
+}
+.fp-eq {
+  display: grid;
+  gap: 0.1rem;
+  margin-top: 0.75rem;
+}
+.fp-eq[data-off="true"] {
+  opacity: 0.45;
+}
+.fp-eq-band {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.3rem;
+}
+.fp-eq-name {
+  display: flex;
+  width: 4.6rem;
+  flex-direction: column;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+.fp-eq-name small {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.6;
+}
+.fp-eq-db {
+  width: 3.6rem;
+  text-align: right;
+  font-size: 12px;
+  opacity: 0.85;
+}
+.fp-fx-note {
+  margin-top: 0.7rem;
+  font-size: 11px;
+  line-height: 1.45;
+}
+/* Tema Neobrutalism: chip & saklar bergaya border tebal, aktif = kuning. */
+[data-theme="neobrutalism"] .fp-chip {
+  border: 2px solid var(--nb-ink);
+  background: #fff;
+  color: var(--nb-ink);
+}
+[data-theme="neobrutalism"] .fp-chip[data-active="true"] {
+  background: var(--nb-yellow);
+  box-shadow: 2px 2px 0 var(--nb-ink);
+}
+[data-theme="neobrutalism"] .fp-switch {
+  border: 2px solid var(--nb-ink);
+  background: #fff;
+  color: var(--nb-ink);
+}
+[data-theme="neobrutalism"] .fp-switch[data-on="true"] {
+  background: var(--nb-yellow);
+}
+[data-theme="neobrutalism"] .fp-switch[data-on="true"] .fp-switch-knob {
+  background: var(--nb-ink);
+}
+[data-theme="neobrutalism"] .fp-fx-sec {
+  border-top-color: var(--nb-ink);
 }
