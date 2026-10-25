@@ -6,6 +6,13 @@
 // Next.js mempertahankan layout, jadi lagu tetap jalan terus).
 // MusicSection (halaman /musik) dan MiniPlayer (halaman downloader & tools)
 // sama-sama membaca state ini lewat useMusicPlayer().
+//
+// Efek suara (lib/audioFx.js): kecepatan putar + equalizer 5 pita.
+// - Kecepatan: langsung lewat playbackRate, tidak butuh izin CORS.
+// - Equalizer (Web Audio) butuh audio yang boleh diproses browser. Saat EQ aktif,
+//   <audio> dimuat dengan crossOrigin="anonymous" ("cors"). Kalau sumber menolak
+//   (tanpa header CORS, elemen error), lagu diputar ulang lewat /api/fetch-media
+//   ("proxy", same-origin) di posisi yang sama. EQ mati = mode "direct" seperti dulu.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -15,6 +22,18 @@ import {
   updateMusicHistoryItem,
 } from "@/lib/musicHistory";
 import { updatePlaylistTrackData } from "@/lib/musicPlaylists";
+import {
+  EQ_PRESETS,
+  DEFAULT_FX,
+  applyEqGains,
+  applyRate,
+  clampGain,
+  clampRate,
+  loadFx,
+  proxiedAudioUrl,
+  saveFx,
+  wireEq,
+} from "@/lib/audioFx";
 
 const MusicPlayerContext = createContext(null);
 
@@ -110,6 +129,18 @@ export default function MusicPlayerProvider({ children }) {
   // supaya tidak berulang-ulang kalau memang gagal).
   const retriedRef = useRef(null);
 
+  // ---- Efek suara: kecepatan + equalizer ----
+  const [fx, setFx] = useState(DEFAULT_FX);
+  // Mode pemuatan khusus untuk satu lagu: { id, mode } ("proxy" setelah CORS ditolak,
+  // atau mode yang dipertahankan saat EQ dimatikan di tengah lagu supaya <audio> tidak dimuat ulang).
+  const [lock, setLock] = useState(null);
+  const [fxError, setFxError] = useState("");
+  const fxRef = useRef(DEFAULT_FX);
+  const volumeRef = useRef(1);
+  const ctxRef = useRef(null); // AudioContext (satu untuk seluruh aplikasi)
+  const graphRef = useRef(null); // filter EQ milik elemen <audio> yang aktif
+  const resumeRef = useRef(null); // { time, play }: dipulihkan setelah <audio> dimuat ulang
+
   // Muat riwayat tersimpan begitu situs dibuka (termasuk setelah refresh).
   useEffect(() => {
     setHistory(loadMusicHistory());
@@ -126,13 +157,115 @@ export default function MusicPlayerProvider({ children }) {
   }, [track]);
 
   useEffect(() => {
+    volumeRef.current = volume;
     if (audioRef.current) audioRef.current.volume = volume;
   }, [volume]);
+
+  // Muat pengaturan efek suara yang tersimpan.
+  useEffect(() => {
+    const saved = loadFx();
+    fxRef.current = saved;
+    setFx(saved);
+  }, []);
 
   // Tidak ada lagu = tidak ada pemutar penuh.
   useEffect(() => {
     if (!track) setPlayerOpen(false);
   }, [track]);
+
+  // Mode pemuatan <audio> untuk lagu yang sedang aktif.
+  const preferredMode = fx.eqOn ? "cors" : "direct";
+  const audioMode = track && lock && lock.id === track.id ? lock.mode : preferredMode;
+  // Elemen <audio> hanya dimuat ulang (key berubah) saat berpindah antara "polos" dan
+  // "graph". Selain itu elemen yang sama dipakai terus, supaya lagu berikutnya tetap bisa
+  // diputar otomatis di latar belakang HP.
+  const graphKey = audioMode === "direct" ? "plain" : "graph";
+  const audioSrc = track ? (audioMode === "proxy" ? proxiedAudioUrl(track.streamUrl) : track.streamUrl) : "";
+  const audioModeRef = useRef(audioMode);
+  audioModeRef.current = audioMode;
+
+  // Pasang (sekali per elemen) rantai equalizer begitu <audio> mode "graph" muncul.
+  const hasTrack = !!track;
+  useEffect(() => {
+    graphRef.current = null;
+    if (!hasTrack || graphKey !== "graph") return;
+    const el = audioRef.current;
+    if (!el) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) {
+      setFxError("Browser ini tidak mendukung equalizer.");
+      return;
+    }
+    try {
+      if (!ctxRef.current) ctxRef.current = new AC();
+      graphRef.current = wireEq(ctxRef.current, el, fxRef.current);
+      setFxError("");
+      ctxRef.current.resume?.().catch(() => {});
+    } catch {
+      setFxError("Equalizer gagal dipasang di browser ini.");
+    }
+  }, [hasTrack, graphKey]);
+
+  // Terapkan nilai equalizer setiap berubah.
+  useEffect(() => {
+    applyEqGains(ctxRef.current, graphRef.current, fx);
+  }, [fx, hasTrack, graphKey]);
+
+  // Terapkan kecepatan + nada (dan volume, karena elemen baru mulai dari 1).
+  useEffect(() => {
+    applyRate(audioRef.current, fx);
+  }, [fx.rate, fx.keepPitch, hasTrack, graphKey, track?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Browser (terutama iOS) menahan AudioContext sampai ada sentuhan pengguna.
+  const resumeCtx = useCallback(() => {
+    const ctx = ctxRef.current;
+    if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (!hasTrack) return undefined;
+    window.addEventListener("pointerdown", resumeCtx, { passive: true });
+    return () => window.removeEventListener("pointerdown", resumeCtx);
+  }, [hasTrack, resumeCtx]);
+
+  const updateFx = useCallback((patch) => {
+    const next = { ...fxRef.current, ...patch };
+    fxRef.current = next;
+    setFx(next);
+    saveFx(next);
+  }, []);
+
+  const setRate = useCallback((v) => updateFx({ rate: clampRate(v) }), [updateFx]);
+  const setKeepPitch = useCallback((on) => updateFx({ keepPitch: !!on }), [updateFx]);
+  const setGain = useCallback(
+    (i, v) => {
+      const gains = fxRef.current.gains.slice();
+      gains[i] = clampGain(v);
+      updateFx({ gains });
+    },
+    [updateFx]
+  );
+  const applyPreset = useCallback(
+    (id) => {
+      const p = EQ_PRESETS.find((x) => x.id === id);
+      if (p) updateFx({ gains: p.gains.slice() });
+    },
+    [updateFx]
+  );
+  const resetFx = useCallback(() => updateFx({ rate: 1, keepPitch: true, gains: [0, 0, 0, 0, 0] }), [updateFx]);
+
+  // Menyalakan EQ di tengah lagu: <audio> dimuat ulang dengan crossOrigin, lalu posisi dipulihkan.
+  // Mematikan EQ: elemen dipertahankan (EQ hanya di-bypass) supaya lagu tidak terputus.
+  function setEqOn(on) {
+    if (on && track && audioModeRef.current === "direct") {
+      const el = audioRef.current;
+      resumeRef.current = { time: el?.currentTime || 0, play: el ? !el.paused : false };
+    }
+    if (!on && track && audioModeRef.current !== "direct") {
+      setLock({ id: track.id, mode: audioModeRef.current });
+    }
+    setFxError("");
+    updateFx({ eqOn: !!on });
+  }
 
   // Memulai satu lagu. Lagu dari riwayat sudah punya streamUrl (kalau kedaluwarsa,
   // handleAudioError yang memperbaruinya). Lagu dari playlist hanya menyimpan data
@@ -142,6 +275,7 @@ export default function MusicPlayerProvider({ children }) {
     const token = ++playTokenRef.current;
     setPlaybackError("");
     retriedRef.current = null;
+    resumeRef.current = null; // posisi lama tidak boleh terbawa ke lagu lain
     if (t.streamUrl) {
       setResolvingId(null);
       setTrack(t);
@@ -223,11 +357,12 @@ export default function MusicPlayerProvider({ children }) {
     const el = audioRef.current;
     if (!el) return;
     if (el.paused) {
+      resumeCtx();
       el.play().catch(() => {});
     } else {
       el.pause();
     }
-  }, []);
+  }, [resumeCtx]);
 
   // Daftar yang sedang menjadi acuan: antrean playlist, atau riwayat kalau tidak ada.
   const activeList = queue || history;
@@ -280,6 +415,14 @@ export default function MusicPlayerProvider({ children }) {
   // + artis, simpan ke riwayat, lalu putar ulang otomatis.
   async function handleAudioError() {
     if (!track) return;
+    // Mode EQ langsung gagal dimuat: kemungkinan besar sumber tidak mengizinkan CORS.
+    // Coba lewat proxy sendiri dulu (posisi dipertahankan); kalau proxy pun gagal,
+    // error berikutnya jatuh ke perbaikan link kedaluwarsa di bawah.
+    if (audioModeRef.current === "cors") {
+      resumeRef.current = { time: audioRef.current?.currentTime || 0, play: true };
+      setLock({ id: track.id, mode: "proxy" });
+      return;
+    }
     if (retriedRef.current === track.id) {
       setRefreshing(false);
       setPlaybackError("Link lagu ini sudah tidak bisa diputar dan gagal diperbarui. Coba cari ulang.");
@@ -429,8 +572,19 @@ export default function MusicPlayerProvider({ children }) {
       playByOffset,
       seek,
       cycleMode,
+      fx,
+      fxError,
+      // "off" | "direct" (langsung dari sumber) | "proxy" (lewat server) | "pending"
+      eqEngine: !fx.eqOn ? "off" : audioMode === "proxy" ? "proxy" : audioMode === "cors" ? "direct" : "pending",
+      setRate,
+      setKeepPitch,
+      setEqOn,
+      setGain,
+      applyPreset,
+      resetFx,
     }),
     [
+      fx, fxError, audioMode, setRate, setKeepPitch, setGain, applyPreset, resetFx,
       track, history, playMode, isPlaying, progress, shownDuration, volume, playbackError, refreshing,
       resolvingId, activeList.length, playerOpen, playlistTarget, playTrack, playFromList, addAndPlay, removeFromHistory, togglePlay, stopPlayback, playByOffset, seek, cycleMode,
     ]
@@ -441,9 +595,12 @@ export default function MusicPlayerProvider({ children }) {
       {children}
       {track && (
         <audio
+          key={graphKey}
           ref={audioRef}
-          src={track.streamUrl}
+          src={audioSrc}
+          crossOrigin={graphKey === "graph" ? "anonymous" : undefined}
           onPlay={() => {
+            resumeCtx();
             setIsPlaying(true);
             syncPositionState();
           }}
@@ -452,9 +609,25 @@ export default function MusicPlayerProvider({ children }) {
             syncPositionState();
           }}
           onSeeked={syncPositionState}
+          onRateChange={syncPositionState}
           onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
           onLoadedMetadata={(e) => {
-            setDuration(safeDuration(e.currentTarget.duration));
+            const el = e.currentTarget;
+            // Elemen baru / sumber baru: kecepatan & volume kembali ke bawaan, terapkan ulang.
+            applyRate(el, fxRef.current);
+            el.volume = volumeRef.current;
+            // Pulihkan posisi + status putar setelah dimuat ulang (nyala EQ / pindah ke proxy).
+            const r = resumeRef.current;
+            if (r) {
+              resumeRef.current = null;
+              try {
+                if (r.time > 1) el.currentTime = r.time;
+              } catch {
+                // sumber belum bisa di-seek — abaikan
+              }
+              if (r.play) el.play().catch(() => {});
+            }
+            setDuration(safeDuration(el.duration));
             syncPositionState();
           }}
           onDurationChange={(e) => setDuration(safeDuration(e.currentTarget.duration))}
