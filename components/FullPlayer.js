@@ -9,8 +9,8 @@
 // Ikon gear di sebelah tab Cover/Lirik membuka menu "Tampilan album": Kotak lembut
 // (bawaan), Kotak penuh (sejajar bar waktu, seperti Spotify), dan Piringan hitam
 // (berputar saat lagu diputar). Pilihan disimpan di localStorage (COVER_STYLE_KEY).
-// Ikon di sisi kiri tab membuka panel "Suara": kecepatan putar (slow/fast) dan
-// equalizer 5 pita. Mesin audionya ada di MusicPlayerProvider + lib/audioFx.js.
+// Ikon di sisi kiri tab membuka panel "Kecepatan" (slow/fast, dengan opsi nada tetap).
+// Mesin audionya ada di MusicPlayerProvider + lib/audioFx.js.
 
 import "./fullplayer.css";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -19,6 +19,7 @@ import {
   Check,
   ChevronDown,
   Download,
+  Gauge,
   ListPlus,
   Loader2,
   Minus,
@@ -32,23 +33,12 @@ import {
   SkipBack,
   Settings,
   SkipForward,
-  SlidersHorizontal,
   Volume1,
   Volume2,
 } from "lucide-react";
 import MarqueeText from "@/components/MarqueeText";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
-import {
-  audioProxyBase,
-  EQ_BANDS,
-  EQ_MAX_DB,
-  EQ_MIN_DB,
-  EQ_PRESETS,
-  RATE_MAX,
-  RATE_MIN,
-  RATE_PRESETS,
-  sameGains,
-} from "@/lib/audioFx";
+import { RATE_MAX, RATE_MIN, RATE_PRESETS } from "@/lib/audioFx";
 import useBackToClose from "@/lib/useBackToClose";
 
 const COVER_STYLE_KEY = "fp-cover-style";
@@ -100,13 +90,8 @@ export default function FullPlayer() {
     seek,
     cycleMode,
     fx,
-    fxError,
-    eqEngine,
     setRate,
     setKeepPitch,
-    setEqOn,
-    setGain,
-    applyPreset,
     resetFx,
   } = useMusicPlayer();
 
@@ -119,7 +104,7 @@ export default function FullPlayer() {
   // Tampilan album (soft | square | vinyl) + menu gear untuk menggantinya.
   const [coverStyle, setCoverStyle] = useState("soft");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [fxOpen, setFxOpen] = useState(false); // panel Suara (kecepatan + equalizer)
+  const [fxOpen, setFxOpen] = useState(false); // panel Kecepatan (slow / fast)
 
   const cacheRef = useRef(new Map()); // id lagu -> hasil lirik
   const fetchedKeyRef = useRef(null); // id lagu yang lirik-nya sedang/sudah diambil
@@ -432,28 +417,28 @@ export default function FullPlayer() {
                 setMenuOpen(false);
                 setFxOpen((o) => !o);
               }}
-              aria-label="Pengaturan suara"
+              aria-label="Kecepatan putar"
               aria-haspopup="dialog"
               aria-expanded={fxOpen}
-              title="Suara: kecepatan & equalizer"
+              title="Kecepatan putar"
               className="absolute left-4 top-0 grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-white/80 hover:text-white md:left-8 md:h-11 md:w-11"
             >
-              <SlidersHorizontal size={20} />
-              {(fx.eqOn || fx.rate !== 1) && <span className="fp-fx-dot" aria-hidden="true" />}
+              <Gauge size={20} />
+              {fx.rate !== 1 && <span className="fp-fx-dot" aria-hidden="true" />}
             </button>
 
             {fxOpen && (
               <div
                 className="fp-menu fp-fx text-white"
                 role="dialog"
-                aria-label="Pengaturan suara"
+                aria-label="Kecepatan putar"
                 // Geser slider tidak boleh dianggap gestur "tarik ke bawah untuk menutup pemutar".
                 onTouchStart={(e) => e.stopPropagation()}
                 onTouchMove={(e) => e.stopPropagation()}
                 onTouchEnd={(e) => e.stopPropagation()}
               >
                 <div className="fp-fx-head">
-                  <p className="fp-menu-title text-white/50">Suara</p>
+                  <p className="fp-menu-title text-white/50">Kecepatan</p>
                   <button type="button" onClick={resetFx} className="fp-chip text-white/80">
                     Reset
                   </button>
@@ -498,76 +483,6 @@ export default function FullPlayer() {
                   </label>
                 </section>
 
-                <section className="fp-fx-sec">
-                  <div className="fp-fx-row">
-                    <span className="fp-fx-label">Equalizer</span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={fx.eqOn}
-                      aria-label="Equalizer"
-                      onClick={() => setEqOn(!fx.eqOn)}
-                      className="fp-switch"
-                      data-on={fx.eqOn ? "true" : "false"}
-                    >
-                      <span className="fp-switch-knob" />
-                    </button>
-                  </div>
-
-                  <div className="fp-chips" aria-disabled={!fx.eqOn}>
-                    {EQ_PRESETS.map((p) => (
-                      <button
-                        type="button"
-                        key={p.id}
-                        disabled={!fx.eqOn}
-                        onClick={() => applyPreset(p.id)}
-                        className="fp-chip text-white/80"
-                        data-active={fx.eqOn && sameGains(fx.gains, p.gains) ? "true" : "false"}
-                      >
-                        {p.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="fp-eq" data-off={fx.eqOn ? "false" : "true"}>
-                    {EQ_BANDS.map((b, i) => (
-                      <div className="fp-eq-band" key={b.id}>
-                        <span className="fp-eq-name">
-                          {b.label}
-                          <small>{b.freq >= 1000 ? `${b.freq / 1000} kHz` : `${b.freq} Hz`}</small>
-                        </span>
-                        <input
-                          type="range"
-                          min={EQ_MIN_DB}
-                          max={EQ_MAX_DB}
-                          step={1}
-                          value={fx.gains[i]}
-                          disabled={!fx.eqOn}
-                          onChange={(e) => setGain(i, Number(e.target.value))}
-                          aria-label={`${b.label} (desibel)`}
-                          className="h-1 min-w-0 flex-1 accent-signal-500"
-                        />
-                        <span className="fp-eq-db tabular-nums">
-                          {fx.gains[i] > 0 ? `+${fx.gains[i]}` : fx.gains[i]} dB
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <p className="fp-fx-note text-white/60">
-                    {fxError
-                      ? fxError
-                      : eqEngine === "proxy"
-                        ? audioProxyBase()
-                          ? "EQ aktif lewat proxy, karena sumber lagu ini tidak mengizinkan akses langsung."
-                          : "EQ aktif lewat server, karena sumber lagu ini tidak mengizinkan akses langsung. Pemakaian data server bertambah."
-                        : eqEngine === "direct"
-                          ? "EQ aktif langsung dari sumber lagu."
-                          : eqEngine === "pending"
-                            ? "Menyiapkan EQ…"
-                            : "Nyalakan equalizer untuk mengatur bass dan treble. Lagu dimuat ulang sebentar di posisi yang sama."}
-                  </p>
-                </section>
               </div>
             )}
 
