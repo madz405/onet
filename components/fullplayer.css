@@ -385,7 +385,7 @@
 }
 
 /* ======================================================================
-   Panel "Suara": kecepatan putar + equalizer (tombol di kiri tab Cover/Lirik)
+   Panel "Kecepatan": slow / fast (tombol di kiri tab Cover/Lirik)
    Warna teks memakai class tema di JSX (text-white/..), dan elemen di sini
    memakai currentColor supaya otomatis ikut tema terang/gelap.
    ====================================================================== */
@@ -476,74 +476,7 @@
   margin-top: 0.75rem;
   font-size: 12px;
 }
-.fp-switch {
-  position: relative;
-  flex-shrink: 0;
-  width: 46px;
-  height: 26px;
-  border-radius: 999px;
-  color: inherit;
-  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
-  background: color-mix(in srgb, currentColor 18%, transparent);
-  transition: background-color 0.15s ease;
-}
-.fp-switch-knob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: currentColor;
-  transition: transform 0.15s ease;
-}
-.fp-switch[data-on="true"] {
-  background: rgb(var(--signal-500));
-  border-color: transparent;
-}
-.fp-switch[data-on="true"] .fp-switch-knob {
-  transform: translateX(20px);
-  background: rgb(var(--ink-950));
-}
-.fp-eq {
-  display: grid;
-  gap: 0.1rem;
-  margin-top: 0.75rem;
-}
-.fp-eq[data-off="true"] {
-  opacity: 0.45;
-}
-.fp-eq-band {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  min-height: 2.3rem;
-}
-.fp-eq-name {
-  display: flex;
-  width: 4.6rem;
-  flex-direction: column;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.15;
-}
-.fp-eq-name small {
-  font-size: 10px;
-  font-weight: 400;
-  opacity: 0.6;
-}
-.fp-eq-db {
-  width: 3.6rem;
-  text-align: right;
-  font-size: 12px;
-  opacity: 0.85;
-}
-.fp-fx-note {
-  margin-top: 0.7rem;
-  font-size: 11px;
-  line-height: 1.45;
-}
-/* Tema Neobrutalism: chip & saklar bergaya border tebal, aktif = kuning. */
+/* Tema Neobrutalism: chip bergaya border tebal, aktif = kuning. */
 [data-theme="neobrutalism"] .fp-chip {
   border: 2px solid var(--nb-ink);
   background: #fff;
@@ -552,17 +485,6 @@
 [data-theme="neobrutalism"] .fp-chip[data-active="true"] {
   background: var(--nb-yellow);
   box-shadow: 2px 2px 0 var(--nb-ink);
-}
-[data-theme="neobrutalism"] .fp-switch {
-  border: 2px solid var(--nb-ink);
-  background: #fff;
-  color: var(--nb-ink);
-}
-[data-theme="neobrutalism"] .fp-switch[data-on="true"] {
-  background: var(--nb-yellow);
-}
-[data-theme="neobrutalism"] .fp-switch[data-on="true"] .fp-switch-knob {
-  background: var(--nb-ink);
 }
 [data-theme="neobrutalism"] .fp-fx-sec {
   border-top-color: var(--nb-ink);
