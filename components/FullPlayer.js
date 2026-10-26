@@ -39,6 +39,7 @@ import {
 import MarqueeText from "@/components/MarqueeText";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
 import {
+  audioProxyBase,
   EQ_BANDS,
   EQ_MAX_DB,
   EQ_MIN_DB,
@@ -557,7 +558,9 @@ export default function FullPlayer() {
                     {fxError
                       ? fxError
                       : eqEngine === "proxy"
-                        ? "EQ aktif lewat server, karena sumber lagu ini tidak mengizinkan akses langsung. Pemakaian data server bertambah."
+                        ? audioProxyBase()
+                          ? "EQ aktif lewat proxy, karena sumber lagu ini tidak mengizinkan akses langsung."
+                          : "EQ aktif lewat server, karena sumber lagu ini tidak mengizinkan akses langsung. Pemakaian data server bertambah."
                         : eqEngine === "direct"
                           ? "EQ aktif langsung dari sumber lagu."
                           : eqEngine === "pending"
