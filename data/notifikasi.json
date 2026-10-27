@@ -25,6 +25,15 @@
       "date": "2026-10-18",
       "expiresAt": "2026-10-25",
       "active": false
+    },
+    {
+      "id": "2026-10-27-slow/fast",
+      "type": "update",
+      "title": "Fitur baru di halaman musik",
+      "body": "Slow/fast mengubah kecepatan musik dengan pilihan kecepatan atau geser manual lewat bar",
+      "date": "2026-10-27",
+      "expiresAt": "2026-10-29",
+      "active": true
     }
   ],
   "_contoh": [
