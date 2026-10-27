@@ -22,19 +22,15 @@ import {
   Gauge,
   ListPlus,
   Loader2,
-  Minus,
   Music2,
   Pause,
   Play,
-  Plus,
   Repeat,
   Repeat1,
   Shuffle,
   SkipBack,
   Settings,
   SkipForward,
-  Volume1,
-  Volume2,
 } from "lucide-react";
 import MarqueeText from "@/components/MarqueeText";
 import { useMusicPlayer } from "@/components/MusicPlayerProvider";
@@ -49,6 +45,27 @@ const COVER_STYLES = [
 ];
 
 const SOURCE_LABEL = { youtube: "YouTube", spotify: "Spotify", soundcloud: "SoundCloud" };
+
+// Ikon speaker gaya iOS: kiri speaker tanpa gelombang (kecil), kanan speaker
+// dengan gelombang (besar). Hanya tampilan, fungsi tombol tidak berubah.
+function SpeakerLow({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M4 9.5C4 9.2 4.2 9 4.5 9H7.6c.2 0 .4-.1.5-.2l3.2-2.9c.6-.5 1.7-.1 1.7.8v10.6c0 .9-1.1 1.3-1.7.8l-3.2-2.9c-.1-.1-.3-.2-.5-.2H4.5c-.3 0-.5-.2-.5-.5v-5.5z" />
+    </svg>
+  );
+}
+
+function SpeakerHigh({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path fill="currentColor" d="M2 9.5C2 9.2 2.2 9 2.5 9H5.6c.2 0 .4-.1.5-.2l3.2-2.9c.6-.5 1.7-.1 1.7.8v10.6c0 .9-1.1 1.3-1.7.8l-3.2-2.9c-.1-.1-.3-.2-.5-.2H2.5c-.3 0-.5-.2-.5-.5v-5.5z" />
+      <path stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" d="M14.2 9.3c.9.7 1.4 1.7 1.4 2.7s-.5 2-1.4 2.7" />
+      <path stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" d="M16.6 6.9c1.6 1.4 2.5 3.1 2.5 5.1s-.9 3.7-2.5 5.1" />
+      <path stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" d="M19 4.6c2.3 2 3.6 4.4 3.6 7.4s-1.3 5.4-3.6 7.4" />
+    </svg>
+  );
+}
 
 function formatTime(sec) {
   if (!Number.isFinite(sec) || sec <= 0) return "0:00";
@@ -719,12 +736,11 @@ export default function FullPlayer() {
               type="button"
               onClick={() => stepVolume(-1)}
               disabled={volume <= 0}
-              className="flex h-9 flex-shrink-0 items-center gap-0.5 rounded-full px-2 text-white/60 hover:text-white disabled:opacity-30"
+              className="flex h-9 flex-shrink-0 items-center justify-center rounded-full px-2 text-white/60 hover:text-white disabled:opacity-30"
               aria-label="Kecilkan volume"
               title="Kecilkan volume"
             >
-              <Volume1 size={18} />
-              <Minus size={11} strokeWidth={3} />
+              <SpeakerLow size={22} />
             </button>
             <input
               type="range"
@@ -740,12 +756,11 @@ export default function FullPlayer() {
               type="button"
               onClick={() => stepVolume(1)}
               disabled={volume >= 1}
-              className="flex h-9 flex-shrink-0 items-center gap-0.5 rounded-full px-2 text-white/60 hover:text-white disabled:opacity-30"
+              className="flex h-9 flex-shrink-0 items-center justify-center rounded-full px-2 text-white/60 hover:text-white disabled:opacity-30"
               aria-label="Besarkan volume"
               title="Besarkan volume"
             >
-              <Volume2 size={18} />
-              <Plus size={11} strokeWidth={3} />
+              <SpeakerHigh size={24} />
             </button>
           </div>
         </div>
