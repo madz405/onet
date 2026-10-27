@@ -731,12 +731,12 @@ export default function FullPlayer() {
           </div>
 
           {/* Volume: speaker (-) turun 1 tingkat (10%), speaker (+) naik 1 tingkat, atau geser bar. */}
-          <div className="mt-4 flex items-center gap-2">
+          <div className="mt-4 -mx-1 flex items-center gap-2">
             <button
               type="button"
               onClick={() => stepVolume(-1)}
               disabled={volume <= 0}
-              className="flex h-9 flex-shrink-0 items-center justify-center rounded-full px-2 text-white/60 hover:text-white disabled:opacity-30"
+              className="flex h-9 flex-shrink-0 items-center justify-center rounded-full px-0 text-white/60 hover:text-white disabled:opacity-30"
               aria-label="Kecilkan volume"
               title="Kecilkan volume"
             >
@@ -756,7 +756,7 @@ export default function FullPlayer() {
               type="button"
               onClick={() => stepVolume(1)}
               disabled={volume >= 1}
-              className="flex h-9 flex-shrink-0 items-center justify-center rounded-full px-2 text-white/60 hover:text-white disabled:opacity-30"
+              className="flex h-9 flex-shrink-0 items-center justify-center rounded-full px-0 text-white/60 hover:text-white disabled:opacity-30"
               aria-label="Besarkan volume"
               title="Besarkan volume"
             >
