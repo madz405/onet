@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, ExternalLink, Copy, Check, Eye, Heart, MessageCircle, Share2 } from "lucide-react";
 import Modal from "@/components/Modal";
 
@@ -15,6 +15,56 @@ function Stat({ icon: Icon, value }) {
       <Icon size={13} />
       {fmt(value)}
     </span>
+  );
+}
+
+// Preview video: putar otomatis + loop + tanpa kontrol, dengan suara.
+// Browser kadang memblokir autoplay bersuara; kalau begitu video diputar
+// bisu dulu lalu suaranya dinyalakan pada sentuhan/klik pertama di halaman.
+function PreviewVideo({ src, poster, onError }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    let cleanup = () => {};
+    el.muted = false;
+    el.volume = 1;
+    const p = el.play();
+    if (p && typeof p.catch === "function") {
+      p.catch(() => {
+        el.muted = true;
+        el.play().catch(() => {});
+        const unmute = () => {
+          el.muted = false;
+          el.volume = 1;
+          el.play().catch(() => {});
+          cleanup();
+        };
+        const events = ["pointerdown", "touchstart", "keydown"];
+        events.forEach((ev) => document.addEventListener(ev, unmute, { once: true, passive: true }));
+        cleanup = () => events.forEach((ev) => document.removeEventListener(ev, unmute));
+      });
+    }
+    return () => cleanup();
+  }, [src]);
+
+  return (
+    <video
+      ref={ref}
+      src={src}
+      poster={poster}
+      autoPlay
+      loop
+      playsInline
+      preload="auto"
+      disablePictureInPicture
+      disableRemotePlayback
+      controlsList="nodownload nofullscreen noremoteplayback"
+      onContextMenu={(e) => e.preventDefault()}
+      onError={onError}
+      className="pointer-events-none mx-auto max-h-[50vh] w-full bg-black object-contain"
+    />
   );
 }
 
@@ -103,21 +153,11 @@ export default function AmFinderModal({ tool, onClose }) {
           {/* Preview video: putar otomatis & loop tanpa kontrol (bukan untuk diunduh) */}
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
             {v.previewUrl && !videoFailed ? (
-              <video
+              <PreviewVideo
                 key={v.previewUrl}
                 src={v.previewUrl}
                 poster={result.thumbnail || undefined}
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="auto"
-                disablePictureInPicture
-                disableRemotePlayback
-                controlsList="nodownload nofullscreen noremoteplayback"
-                onContextMenu={(e) => e.preventDefault()}
                 onError={() => setVideoFailed(true)}
-                className="pointer-events-none mx-auto max-h-[50vh] w-full bg-black object-contain"
               />
             ) : result.thumbnail ? (
               // eslint-disable-next-line @next/next/no-img-element
