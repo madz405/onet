@@ -100,19 +100,24 @@ export default function AmFinderModal({ tool, onClose }) {
 
       {result && (
         <div className="mt-5 animate-rise space-y-4">
-          {/* Preview video (bukan untuk diunduh) */}
+          {/* Preview video: putar otomatis & loop tanpa kontrol (bukan untuk diunduh) */}
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
             {v.previewUrl && !videoFailed ? (
               <video
                 key={v.previewUrl}
                 src={v.previewUrl}
                 poster={result.thumbnail || undefined}
-                controls
+                autoPlay
+                loop
+                muted
                 playsInline
-                preload="metadata"
-                controlsList="nodownload"
+                preload="auto"
+                disablePictureInPicture
+                disableRemotePlayback
+                controlsList="nodownload nofullscreen noremoteplayback"
+                onContextMenu={(e) => e.preventDefault()}
                 onError={() => setVideoFailed(true)}
-                className="mx-auto max-h-[50vh] w-full bg-black object-contain"
+                className="pointer-events-none mx-auto max-h-[50vh] w-full bg-black object-contain"
               />
             ) : result.thumbnail ? (
               // eslint-disable-next-line @next/next/no-img-element
