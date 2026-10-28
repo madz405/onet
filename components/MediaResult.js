@@ -279,6 +279,7 @@ export default function MediaResult({ result }) {
           controls
           playsInline
           preload="metadata"
+          controlsList="nodownload"
           referrerPolicy="no-referrer"
           className="w-full rounded-xl border border-white/8 bg-black"
           src={previewSrc(result, mainVideo)}
